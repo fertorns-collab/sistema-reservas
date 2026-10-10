@@ -21,6 +21,11 @@ app.use(express.json());
 // Servir la carpeta 'public' de forma estática
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Ruta de bienvenida principal (soluciona el Cannot GET /)
+app.get('/', (req, res) => {
+  res.send('¡Bienvenido al sistema de reservas! El servidor está funcionando correctamente.');
+});
+
 // 1. Obtener todas las empresas (GET /api/tenants)
 app.get('/api/tenants', async (req, res) => {
   try {
