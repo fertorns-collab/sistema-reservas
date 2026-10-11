@@ -76,27 +76,47 @@ app.get('/api/tenants', async (req, res) => {
   }
 });
 
-// 2. Configurar o actualizar un negocio con turnos y capacidad (POST /api/tenants/config)
+// 2. Configurar, crear o actualizar un negocio con turnos y capacidad (POST /api/tenants/config)
 app.post('/api/tenants/config', async (req, res) => {
   const { 
+    id, // Recibimos el id opcionalmente para saber si es actualización
     name, phone, category, notes, business_type, 
     max_capacity, default_duration_min,
     shift1_start, shift1_end, shift2_start, shift2_end 
   } = req.body;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO tenants 
-        (name, phone, category, notes, business_type, max_capacity, default_duration_min, shift1_start, shift1_end, shift2_start, shift2_end) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-       RETURNING *`,
-      [
-        name, phone, category || null, notes, business_type || 'general',
-        max_capacity || 2, default_duration_min || 60,
-        shift1_start || '09:00', shift1_end || '14:00',
-        shift2_start || null, shift2_end || null
-      ]
-    );
+    let result;
+    if (id) {
+      // Actualizar empresa existente para evitar duplicados
+      result = await pool.query(
+        `UPDATE tenants SET 
+          name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
+          max_capacity = $6, default_duration_min = $7, shift1_start = $8, 
+          shift1_end = $9, shift2_start = $10, shift2_end = $11 
+         WHERE id = $12 RETURNING *`,
+        [
+          name, phone, category || null, notes, business_type || 'general',
+          max_capacity || 2, default_duration_min || 60,
+          shift1_start || '09:00', shift1_end || '14:00',
+          shift2_start || null, shift2_end || null, id
+        ]
+      );
+    } else {
+      // Crear nueva empresa si no hay ID
+      result = await pool.query(
+        `INSERT INTO tenants 
+          (name, phone, category, notes, business_type, max_capacity, default_duration_min, shift1_start, shift1_end, shift2_start, shift2_end) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+         RETURNING *`,
+        [
+          name, phone, category || null, notes, business_type || 'general',
+          max_capacity || 2, default_duration_min || 60,
+          shift1_start || '09:00', shift1_end || '14:00',
+          shift2_start || null, shift2_end || null
+        ]
+      );
+    }
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
