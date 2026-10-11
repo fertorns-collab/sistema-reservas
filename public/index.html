@@ -15,23 +15,30 @@
     .btn-secondary { background: #6c757d; }
     .btn-success { background: #28a745; }
     .btn-success:hover { background: #218838; }
+    .btn-danger { background: #dc3545; }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
     .modal-content { background: white; margin: 10% auto; padding: 20px; width: 90%; max-width: 450px; border-radius: 8px; }
     .row { display: flex; gap: 10px; }
     .row .form-group { flex: 1; }
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }
+    .slot-item { padding: 10px; border-radius: 4px; text-align: center; font-weight: bold; border: 1px solid #ccc; }
+    .slot-free { background: #d4edda; color: #155724; border-color: #c3e6cb; cursor: pointer; }
+    .slot-free:hover { background: #c3e6cb; }
+    .slot-full { background: #f8d7da; color: #721c24; border-color: #f5c6cb; opacity: 0.7; }
   </style>
 </head>
 <body>
 
-  <h2>Panel de Administración de Empresas y Configuración</h2>
+  <h2>Panel de Administración y Reservas</h2>
 
   <!-- Sección de Exportación a CSV -->
   <div class="card">
     <h3>Exportación de Datos</h3>
-    <p>Descarga la lista completa con todas las reservas, horas y notas actuales listas para abrir en Google Sheets o Excel.</p>
+    <p>Descarga la lista completa con todas las reservas actuales listas para abrir en Google Sheets o Excel.</p>
     <button class="btn btn-success" onclick="exportarCSV()">Exportar a CSV (Google Sheets)</button>
   </div>
 
+  <!-- Sección de Configuración de Empresa -->
   <div class="card">
     <div class="form-group">
       <label>Configurar Empresa:</label>
@@ -103,7 +110,27 @@
     </form>
   </div>
 
-  <!-- Modal de Resumen Previo -->
+  <!-- Nueva Sección: Consulta de Disponibilidad y Reservas en Directo -->
+  <div class="card">
+    <h3>Gestión de Disponibilidad y Reservas</h3>
+    <div class="form-group">
+      <label>Seleccionar Empresa para Reservar:</label>
+      <select id="bookingTenantSelect" onchange="verDisponibilidad()">
+        <option value="">-- Elige una empresa --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Fecha a Consultar:</label>
+      <input type="date" id="bookingDate" onchange="verDisponibilidad()">
+    </div>
+
+    <div id="availabilityContainer">
+      <p style="color: #666; font-style: italic;">Selecciona una empresa y una fecha para ver los tramos libres y ocupados.</p>
+    </div>
+  </div>
+
+  <!-- Modal de Resumen Previo de Configuración -->
   <div id="summaryModal" class="modal">
     <div class="modal-content">
       <h3>Resumen de Configuración</h3>
@@ -120,18 +147,48 @@
     </div>
   </div>
 
+  <!-- Modal para Hacer Reserva en un Tramo -->
+  <div id="reservationModal" class="modal">
+    <div class="modal-content">
+      <h3>Hacer Reserva</h3>
+      <p><strong>Hora seleccionada:</strong> <span id="modalSlotTime"></span></p>
+      <form id="reservationForm" onsubmit="enviarReserva(event)">
+        <div class="form-group">
+          <label>Nombre del Cliente:</label>
+          <input type="text" id="client_name" required placeholder="Ej: María Pérez">
+        </div>
+        <div class="form-group">
+          <label>Teléfono del Cliente:</label>
+          <input type="tel" id="client_phone" required placeholder="Ej: +34611223344">
+        </div>
+        <div class="form-group">
+          <label>Notas adicionales:</label>
+          <textarea id="reservation_notes" placeholder="Ej: Preferencia de pista, observaciones..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-success">Confirmar Reserva</button>
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalReserva()" style="margin-top: 10px;">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
   <script>
     let tenantsCache = [];
+    let selectedSlotTime = null;
 
     async function obtenerTenants() {
       try {
         const res = await fetch('/api/tenants');
         tenantsCache = await res.json();
+        
         const select = document.getElementById('tenantSelect');
+        const bookingSelect = document.getElementById('bookingTenantSelect');
+        
         select.innerHTML = '<option value="NEW">-- Registrar Nueva Empresa / Configuración --</option>';
+        bookingSelect.innerHTML = '<option value="">-- Elige una empresa --</option>';
         
         tenantsCache.forEach(t => {
           select.innerHTML += `<option value="${t.id}">${t.name} (${t.business_type || 'personalizado'})</option>`;
+          bookingSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.business_type || 'personalizado'})</option>`;
         });
       } catch (err) {
         console.error('Error al obtener tenants:', err);
@@ -217,11 +274,111 @@
       }
     }
 
+    // Funciones de Disponibilidad y Reservas en el Frontend
+    async function verDisponibilidad() {
+      const tenantId = document.getElementById('bookingTenantSelect').value;
+      const date = document.getElementById('bookingDate').value;
+      const container = document.getElementById('availabilityContainer');
+
+      if (!tenantId || !date) {
+        container.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una empresa y una fecha para ver los tramos libres y ocupados.</p>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/tenants/${tenantId}/availability?date=${date}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          container.innerHTML = `<p style="color: red;">Error: ${data.error || 'No se pudo cargar la disponibilidad'}</p>`;
+          return;
+        }
+
+        if (data.slots.length === 0) {
+          container.innerHTML = '<p style="color: orange;">No hay turnos configurados para esta fecha.</p>';
+          return;
+        }
+
+        let html = `<h4>Disponibilidad para el ${date}</h4><div class="slot-grid">`;
+        data.slots.forEach(slot => {
+          if (slot.available) {
+            html += `<div class="slot-item slot-free" onclick="abrirModalReserva('${slot.time}')">
+                      ${slot.time}<br><small>Libres: ${slot.maxCapacity - slot.bookedCount}/${slot.maxCapacity}</small>
+                     </div>`;
+          } else {
+            html += `<div class="slot-item slot-full">
+                      ${slot.time}<br><small>Completo (${slot.bookedCount}/${slot.maxCapacity})</small>
+                     </div>`;
+          }
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+      } catch (err) {
+        console.error('Error al consultar disponibilidad:', err);
+        container.innerHTML = '<p style="color: red;">Error de conexión con el servidor.</p>';
+      }
+    }
+
+    function abrirModalReserva(timeStr) {
+      selectedSlotTime = timeStr;
+      document.getElementById('modalSlotTime').innerText = `${document.getElementById('bookingDate').value} a las ${timeStr}`;
+      document.getElementById('reservationForm').reset();
+      document.getElementById('reservationModal').style.display = 'block';
+    }
+
+    function cerrarModalReserva() {
+      document.getElementById('reservationModal').style.display = 'none';
+    }
+
+    async function enviarReserva(e) {
+      e.preventDefault();
+      const tenantId = document.getElementById('bookingTenantSelect').value;
+      const date = document.getElementById('bookingDate').value;
+      const clientName = document.getElementById('client_name').value;
+      const clientPhone = document.getElementById('client_phone').value;
+      const notes = document.getElementById('reservation_notes').value;
+
+      const reservationDateTime = `${date}T${selectedSlotTime}:00`;
+
+      const payload = {
+        tenant_id: parseInt(tenantId),
+        client_name: clientName,
+        client_phone: clientPhone,
+        reservation_time: reservationDateTime,
+        notes: notes
+      };
+
+      try {
+        const res = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const resultData = await res.json();
+
+        if (res.ok) {
+          alert('¡Reserva realizada con éxito!');
+          cerrarModalReserva();
+          verDisponibilidad(); // Refrescar la parrilla de disponibilidad
+        } else {
+          alert('No se pudo completar la reserva: ' + (resultData.error || 'Error desconocido'));
+        }
+      } catch (err) {
+        console.error('Error al enviar reserva:', err);
+        alert('Error de conexión al procesar la reserva.');
+      }
+    }
+
     function exportarCSV() {
       window.location.href = '/api/tenants/export';
     }
 
+    // Inicializar al cargar
     obtenerTenants();
+    // Poner por defecto la fecha de hoy en el selector de reservas
+    document.getElementById('bookingDate').valueAsDate = new Date();
   </script>
 </body>
 </html>
