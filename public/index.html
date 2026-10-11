@@ -239,7 +239,9 @@
     }
 
     async function confirmarGuardado() {
+      const tenantId = document.getElementById('tenantId').value;
       const data = {
+        id: tenantId ? parseInt(tenantId) : null, // CORREGIDO: Enviamos el ID para que actualice en lugar de duplicar
         name: document.getElementById('name').value,
         phone: document.getElementById('phone').value,
         business_type: document.getElementById('business_type').value,
@@ -262,6 +264,7 @@
         if (res.ok) {
           cerrarModal();
           document.getElementById('tenantForm').reset();
+          document.getElementById('tenantId').value = '';
           obtenerTenants();
           alert('¡Configuración guardada con éxito!');
         } else {
@@ -377,7 +380,6 @@
 
     // Inicializar al cargar
     obtenerTenants();
-    // Poner por defecto la fecha de hoy en el selector de reservas
     document.getElementById('bookingDate').valueAsDate = new Date();
   </script>
 </body>
