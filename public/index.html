@@ -12,6 +12,7 @@
     textarea { resize: vertical; height: 80px; }
     .btn { background: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
     .btn-secondary { background: #6c757d; }
+    .btn-success { background: #28a745; }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
     .modal-content { background: white; margin: 15% auto; padding: 20px; width: 80%; max-width: 400px; border-radius: 8px; }
   </style>
@@ -19,6 +20,13 @@
 <body>
 
   <h2>Panel de Administración de Empresas (Tenants)</h2>
+
+  <!-- Sección de Exportación a Google Sheets / Excel -->
+  <div class="card">
+    <h3>Exportación de Datos</h3>
+    <p>Descarga la lista completa con todas las reservas y notas actuales listas para abrir en Google Sheets o Excel.</p>
+    <button class="btn btn-success" onclick="exportarCSV()">Exportar a CSV (Google Sheets)</button>
+  </div>
 
   <div class="card">
     <div class="form-group">
@@ -133,6 +141,11 @@
       document.getElementById('tenantForm').reset();
       obtenerTenants();
       alert('¡Empresa guardada con éxito!');
+    }
+
+    // Función para exportar los datos a CSV
+    function exportarCSV() {
+      window.location.href = '/api/tenants/export';
     }
 
     // Inicializar al cargar
