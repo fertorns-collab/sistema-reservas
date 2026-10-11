@@ -68,6 +68,32 @@ app.put('/api/tenants/:id', async (req, res) => {
   }
 });
 
+// 4. Endpoint para exportar los datos a formato CSV (para Google Sheets / Excel)
+app.get('/api/tenants/export', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
+    const tenants = result.rows;
+
+    // Definir las cabeceras del CSV
+    let csvContent = 'ID,Nombre,Telefono,Categoria,Notas,Fecha Creacion\n';
+
+    // Rellenar las filas con los datos de Neon
+    tenants.forEach(t => {
+      const cleanNotes = (t.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
+      csvContent += `${t.id},"${t.name}","${t.phone}","${t.category}","${cleanNotes}","${t.created_at}"\n`;
+    });
+
+    // Configurar cabeceras HTTP para forzar la descarga del archivo
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=reservas_empresas.csv');
+    
+    res.status(200).send(csvContent);
+  } catch (err) {
+    console.error('Error en GET /api/tenants/export:', err);
+    res.status(500).json({ error: 'Error al exportar los datos' });
+  }
+});
+
 // Iniciar servidor
 app.listen(port, () => {
   console.log(`Servidor listo escuchando en el puerto ${port}`);
