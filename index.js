@@ -94,6 +94,168 @@ app.get('/api/tenants/export', async (req, res) => {
   }
 });
 
+// =========================================================================
+// NUEVA LÓGICA DE NEGOCIO: CONFIGURACIÓN, DISPONIBILIDAD Y RESERVAS CON VALIDACIÓN
+// =========================================================================
+
+// 5. Crear o actualizar la configuración de un negocio con sus turnos y capacidad
+app.post('/api/tenants/config', async (req, res) => {
+  const { 
+    name, phone, category, notes, business_type, 
+    max_capacity, default_duration_min,
+    shift1_start, shift1_end, shift2_start, shift2_end 
+  } = req.body;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO tenants 
+        (name, phone, category, notes, business_type, max_capacity, default_duration_min, shift1_start, shift1_end, shift2_start, shift2_end) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+       RETURNING *`,
+      [
+        name, phone, category, notes, business_type || 'general',
+        max_capacity || 2, default_duration_min || 60,
+        shift1_start || '09:00', shift1_end || '14:00',
+        shift2_start || null, shift2_end || null
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al guardar configuración:', err);
+    res.status(500).json({ error: 'Error al guardar la configuración del negocio' });
+  }
+});
+
+// 6. Consultar tramos horarios libres u ocupados de un negocio para un día (GET /api/tenants/:id/availability)
+app.get('/api/tenants/:id/availability', async (req, res) => {
+  const tenantId = req.params.id;
+  const { date } = req.query; // Formato requerido: 'YYYY-MM-DD'
+
+  if (!date) {
+    return res.status(400).json({ error: 'Debes proporcionar una fecha (YYYY-MM-DD)' });
+  }
+
+  try {
+    const tenantRes = await pool.query('SELECT * FROM tenants WHERE id = $1', [tenantId]);
+    if (tenantRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Negocio no encontrado' });
+    }
+    const tenant = tenantRes.rows[0];
+
+    const reservationsRes = await pool.query(
+      `SELECT reservation_time FROM tenants 
+       WHERE id = $1 AND DATE(reservation_time) = $2`,
+      [tenantId, date]
+    );
+
+    const activeReservations = reservationsRes.rows;
+    const intervalMinutes = tenant.default_duration_min || 60;
+    const slots = [];
+
+    const addShiftsToSlots = (startStr, endStr) => {
+      if (!startStr || !endStr) return;
+      let current = new Date(`${date}T${startStr}`);
+      const end = new Date(`${date}T${endStr}`);
+
+      while (current < end) {
+        const timeStr = current.toTimeString().substring(0, 5);
+        slots.push(timeStr);
+        current = new Date(current.getTime() + intervalMinutes * 60000);
+      }
+    };
+
+    addShiftsToSlots(tenant.shift1_start, tenant.shift1_end);
+    addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
+
+    const availability = slots.map(slotTime => {
+      const count = activeReservations.filter(r => {
+        if (!r.reservation_time) return false;
+        const rTime = new Date(r.reservation_time).toTimeString().substring(0, 5);
+        return rTime === slotTime;
+      }).length;
+
+      const isFull = count >= (tenant.max_capacity || 2);
+
+      return {
+        time: slotTime,
+        available: !isFull,
+        bookedCount: count,
+        maxCapacity: tenant.max_capacity || 2
+      };
+    });
+
+    res.json({
+      date,
+      business_type: tenant.business_type,
+      slots: availability
+    });
+
+  } catch (err) {
+    console.error('Error al calcular disponibilidad:', err);
+    res.status(500).json({ error: 'Error interno al consultar la disponibilidad' });
+  }
+});
+
+// 7. Crear reserva validando turnos comerciales y capacidad de recursos (POST /api/reservations)
+app.post('/api/reservations', async (req, res) => {
+  const { tenant_id, client_name, client_phone, reservation_time, duration_min } = req.body;
+
+  try {
+    const tenantRes = await pool.query('SELECT * FROM tenants WHERE id = $1', [tenant_id]);
+    if (tenantRes.rows.length === 0) {
+      return res.status(404).json({ error: 'El negocio no existe' });
+    }
+    const tenant = tenantRes.rows[0];
+
+    const requestedDate = new Date(reservation_time);
+    const timeString = requestedDate.toTimeString().substring(0, 5);
+
+    // Validar horario comercial (Turno 1 y Turno 2)
+    const inShift1 = tenant.shift1_start && tenant.shift1_end && 
+                     (timeString >= tenant.shift1_start && timeString < tenant.shift1_end);
+    const inShift2 = tenant.shift2_start && tenant.shift2_end && 
+                     (timeString >= tenant.shift2_start && timeString < tenant.shift2_end);
+
+    if (!inShift1 && !inShift2) {
+      return res.status(400).json({ 
+        error: 'El horario seleccionado está fuera del horario comercial del negocio.' 
+      });
+    }
+
+    // Validar capacidad máxima
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM tenants 
+       WHERE id = $1 AND reservation_time = $2`,
+      [tenant_id, reservation_time]
+    );
+
+    const activeReservations = parseInt(countResult.rows[0].count);
+
+    if (activeReservations >= (tenant.max_capacity || 2)) {
+      return res.status(400).json({ 
+        error: 'El tramo horario seleccionado ya está completo. Por favor, elige otra hora.' 
+      });
+    }
+
+    // Guardar la reserva
+    const insertResult = await pool.query(
+      `INSERT INTO tenants (name, phone, notes, reservation_time) 
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [client_name, client_phone, `Reserva confirmada (${duration_min || tenant.default_duration_min || 60} min)`, reservation_time]
+    );
+
+    res.status(201).json({
+      message: 'Reserva realizada con éxito',
+      reservation: insertResult.rows[0]
+    });
+
+  } catch (err) {
+    console.error('Error al procesar reserva:', err);
+    res.status(500).json({ error: 'Error interno al procesar la reserva' });
+  }
+});
+
 // Iniciar servidor
 app.listen(port, () => {
   console.log(`Servidor listo escuchando en el puerto ${port}`);
