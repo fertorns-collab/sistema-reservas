@@ -18,15 +18,54 @@ pool.on('error', (err) => {
 
 // Middleware
 app.use(express.json());
-// Servir la carpeta 'public' de forma estática
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ruta raíz explícita para asegurar que carga el index.html automáticamente
+// Inicialización de esquema de Base de Datos
+async function initDB() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tenants (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        phone VARCHAR(30) NOT NULL,
+        category VARCHAR(50),
+        business_type VARCHAR(100) DEFAULT 'general',
+        max_capacity INT DEFAULT 2,
+        default_duration_min INT DEFAULT 60,
+        shift1_start TIME DEFAULT '09:00',
+        shift1_end TIME DEFAULT '14:00',
+        shift2_start TIME,
+        shift2_end TIME,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reservations (
+        id SERIAL PRIMARY KEY,
+        tenant_id INT REFERENCES tenants(id) ON DELETE CASCADE,
+        client_name VARCHAR(100) NOT NULL,
+        client_phone VARCHAR(30) NOT NULL,
+        reservation_time TIMESTAMP NOT NULL,
+        duration_min INT DEFAULT 60,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('Tablas inicializadas correctamente.');
+  } catch (err) {
+    console.error('Error al inicializar la base de datos:', err);
+  }
+}
+initDB();
+
+// Ruta raíz explícita
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 1. Obtener todas las empresas/reservas (GET /api/tenants)
+// 1. Obtener todas las empresas (GET /api/tenants)
 app.get('/api/tenants', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
@@ -37,68 +76,7 @@ app.get('/api/tenants', async (req, res) => {
   }
 });
 
-// 2. Crear un nuevo registro con hora de reserva y notas (POST /api/tenants)
-app.post('/api/tenants', async (req, res) => {
-  const { name, phone, category, notes, reservation_time } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO tenants (name, phone, category, notes, reservation_time) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [name, phone, category, notes, reservation_time || null]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Error en POST /api/tenants:', err);
-    res.status(500).json({ error: 'Error al crear el registro' });
-  }
-});
-
-// 3. Actualizar un registro existente incluyendo hora y notas (PUT /api/tenants/:id)
-app.put('/api/tenants/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, phone, category, notes, reservation_time } = req.body;
-  try {
-    const result = await pool.query(
-      'UPDATE tenants SET name = $1, phone = $2, category = $3, notes = $4, reservation_time = $5 WHERE id = $6 RETURNING *',
-      [name, phone, category, notes, reservation_time || null, id]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error en PUT /api/tenants/:id:', err);
-    res.status(500).json({ error: 'Error al actualizar el registro' });
-  }
-});
-
-// 4. Endpoint para exportar los datos a formato CSV incluyendo la hora de reserva
-app.get('/api/tenants/export', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
-    const tenants = result.rows;
-
-    // Definir las cabeceras del CSV actualizadas
-    let csvContent = 'ID,Nombre,Telefono,Categoria,Notas,Hora Reserva,Fecha Creacion\n';
-
-    // Rellenar las filas con los datos de Neon
-    tenants.forEach(t => {
-      const cleanNotes = (t.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
-      csvContent += `${t.id},"${t.name}","${t.phone}","${t.category}","${cleanNotes}","${t.reservation_time || ''}","${t.created_at}"\n`;
-    });
-
-    // Configurar cabeceras HTTP para forzar la descarga del archivo
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=reservas_empresas.csv');
-    
-    res.status(200).send(csvContent);
-  } catch (err) {
-    console.error('Error en GET /api/tenants/export:', err);
-    res.status(500).json({ error: 'Error al exportar los datos' });
-  }
-});
-
-// =========================================================================
-// NUEVA LÓGICA DE NEGOCIO: CONFIGURACIÓN, DISPONIBILIDAD Y RESERVAS CON VALIDACIÓN
-// =========================================================================
-
-// 5. Crear o actualizar la configuración de un negocio con sus turnos y capacidad
+// 2. Configurar o actualizar un negocio con turnos y capacidad (POST /api/tenants/config)
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     name, phone, category, notes, business_type, 
@@ -113,7 +91,7 @@ app.post('/api/tenants/config', async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
        RETURNING *`,
       [
-        name, phone, category, notes, business_type || 'general',
+        name, phone, category || null, notes, business_type || 'general',
         max_capacity || 2, default_duration_min || 60,
         shift1_start || '09:00', shift1_end || '14:00',
         shift2_start || null, shift2_end || null
@@ -127,7 +105,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// 6. Consultar tramos horarios libres u ocupados de un negocio para un día (GET /api/tenants/:id/availability)
+// 3. Consultar disponibilidad en tiempo real para una fecha y tenant (GET /api/tenants/:id/availability)
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date } = req.query; // Formato requerido: 'YYYY-MM-DD'
@@ -144,8 +122,8 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     const tenant = tenantRes.rows[0];
 
     const reservationsRes = await pool.query(
-      `SELECT reservation_time FROM tenants 
-       WHERE id = $1 AND DATE(reservation_time) = $2`,
+      `SELECT reservation_time FROM reservations 
+       WHERE tenant_id = $1 AND DATE(reservation_time) = $2`,
       [tenantId, date]
     );
 
@@ -197,9 +175,9 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// 7. Crear reserva validando turnos comerciales y capacidad de recursos (POST /api/reservations)
+// 4. Crear reserva validando turnos y capacidad (POST /api/reservations)
 app.post('/api/reservations', async (req, res) => {
-  const { tenant_id, client_name, client_phone, reservation_time, duration_min } = req.body;
+  const { tenant_id, client_name, client_phone, reservation_time, duration_min, notes } = req.body;
 
   try {
     const tenantRes = await pool.query('SELECT * FROM tenants WHERE id = $1', [tenant_id]);
@@ -225,8 +203,8 @@ app.post('/api/reservations', async (req, res) => {
 
     // Validar capacidad máxima
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM tenants 
-       WHERE id = $1 AND reservation_time = $2`,
+      `SELECT COUNT(*) FROM reservations 
+       WHERE tenant_id = $1 AND reservation_time = $2`,
       [tenant_id, reservation_time]
     );
 
@@ -240,9 +218,9 @@ app.post('/api/reservations', async (req, res) => {
 
     // Guardar la reserva
     const insertResult = await pool.query(
-      `INSERT INTO tenants (name, phone, notes, reservation_time) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [client_name, client_phone, `Reserva confirmada (${duration_min || tenant.default_duration_min || 60} min)`, reservation_time]
+      `INSERT INTO reservations (tenant_id, client_name, client_phone, reservation_time, duration_min, notes) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [tenant_id, client_name, client_phone, reservation_time, duration_min || tenant.default_duration_min || 60, notes || 'Reserva confirmada']
     );
 
     res.status(201).json({
@@ -253,6 +231,31 @@ app.post('/api/reservations', async (req, res) => {
   } catch (err) {
     console.error('Error al procesar reserva:', err);
     res.status(500).json({ error: 'Error interno al procesar la reserva' });
+  }
+});
+
+// 5. Exportar reservas a CSV (GET /api/tenants/export)
+app.get('/api/tenants/export', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT t.name as empresa, t.business_type, r.client_name, r.client_phone, r.reservation_time, r.notes 
+      FROM reservations r
+      JOIN tenants t ON r.tenant_id = t.id
+      ORDER BY r.reservation_time DESC
+    `);
+
+    let csvContent = 'Empresa,Tipo Negocio,Cliente,Telefono,Fecha Hora,Notas\n';
+    result.rows.forEach(row => {
+      const cleanNotes = (row.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
+      csvContent += `"${row.empresa}","${row.business_type || ''}","${row.client_name || ''}","${row.client_phone || ''}","${row.reservation_time}","${cleanNotes}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=reservas_empresas.csv');
+    res.status(200).send(csvContent);
+  } catch (err) {
+    console.error('Error en GET /api/tenants/export:', err);
+    res.status(500).json({ error: 'Error al exportar los datos' });
   }
 });
 
