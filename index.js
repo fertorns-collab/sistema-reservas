@@ -37,13 +37,13 @@ app.get('/api/tenants', async (req, res) => {
   }
 });
 
-// 2. Crear un nuevo registro con campo de notas (POST /api/tenants)
+// 2. Crear un nuevo registro con hora de reserva y notas (POST /api/tenants)
 app.post('/api/tenants', async (req, res) => {
-  const { name, phone, category, notes } = req.body;
+  const { name, phone, category, notes, reservation_time } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO tenants (name, phone, category, notes) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, phone, category, notes]
+      'INSERT INTO tenants (name, phone, category, notes, reservation_time) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, phone, category, notes, reservation_time || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -52,14 +52,14 @@ app.post('/api/tenants', async (req, res) => {
   }
 });
 
-// 3. Actualizar un registro existente incluyendo notas (PUT /api/tenants/:id)
+// 3. Actualizar un registro existente incluyendo hora y notas (PUT /api/tenants/:id)
 app.put('/api/tenants/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, phone, category, notes } = req.body;
+  const { name, phone, category, notes, reservation_time } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE tenants SET name = $1, phone = $2, category = $3, notes = $4 WHERE id = $5 RETURNING *',
-      [name, phone, category, notes, id]
+      'UPDATE tenants SET name = $1, phone = $2, category = $3, notes = $4, reservation_time = $5 WHERE id = $6 RETURNING *',
+      [name, phone, category, notes, reservation_time || null, id]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -68,19 +68,19 @@ app.put('/api/tenants/:id', async (req, res) => {
   }
 });
 
-// 4. Endpoint para exportar los datos a formato CSV (para Google Sheets / Excel)
+// 4. Endpoint para exportar los datos a formato CSV incluyendo la hora de reserva
 app.get('/api/tenants/export', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
     const tenants = result.rows;
 
-    // Definir las cabeceras del CSV
-    let csvContent = 'ID,Nombre,Telefono,Categoria,Notas,Fecha Creacion\n';
+    // Definir las cabeceras del CSV actualizadas
+    let csvContent = 'ID,Nombre,Telefono,Categoria,Notas,Hora Reserva,Fecha Creacion\n';
 
     // Rellenar las filas con los datos de Neon
     tenants.forEach(t => {
       const cleanNotes = (t.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
-      csvContent += `${t.id},"${t.name}","${t.phone}","${t.category}","${cleanNotes}","${t.created_at}"\n`;
+      csvContent += `${t.id},"${t.name}","${t.phone}","${t.category}","${cleanNotes}","${t.reservation_time || ''}","${t.created_at}"\n`;
     });
 
     // Configurar cabeceras HTTP para forzar la descarga del archivo
