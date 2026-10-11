@@ -18,8 +18,13 @@ pool.on('error', (err) => {
 
 // Middleware
 app.use(express.json());
-// Servir la carpeta 'public' de forma estática (esto carga automáticamente el index.html)
+// Servir la carpeta 'public' de forma estática
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Ruta raíz explícita para asegurar que carga el index.html automáticamente
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 1. Obtener todas las empresas (GET /api/tenants)
 app.get('/api/tenants', async (req, res) => {
