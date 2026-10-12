@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Panel - Gestión de Tenants y Horarios</title>
+  <title>Panel de Gestión de Reservas</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f8; color: #333; }
     .card { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -15,7 +15,6 @@
     .btn-secondary { background: #6c757d; }
     .btn-success { background: #28a745; }
     .btn-success:hover { background: #218838; }
-    .btn-danger { background: #dc3545; }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
     .modal-content { background: white; margin: 10% auto; padding: 20px; width: 90%; max-width: 450px; border-radius: 8px; }
     .row { display: flex; gap: 10px; }
@@ -25,22 +24,23 @@
     .slot-free { background: #d4edda; color: #155724; border-color: #c3e6cb; cursor: pointer; }
     .slot-free:hover { background: #c3e6cb; }
     .slot-full { background: #f8d7da; color: #721c24; border-color: #f5c6cb; opacity: 0.7; }
+    .badge-token { background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; word-break: break-all; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-  <h2>Panel de Administración y Reservas</h2>
+  <h2 id="panelTitle">Panel de Configuración y Reservas</h2>
 
   <!-- Sección de Exportación a CSV -->
-  <div class="card">
+  <div class="card" id="exportCard">
     <h3>Exportación de Datos</h3>
-    <p>Descarga la lista completa con todas las reservas actuales listas para abrir en Google Sheets o Excel.</p>
-    <button class="btn btn-success" onclick="exportarCSV()">Exportar a CSV (Google Sheets)</button>
+    <p>Descarga la lista completa con todas las reservas actuales.</p>
+    <button class="btn btn-success" onclick="exportarCSV()">Exportar a CSV</button>
   </div>
 
   <!-- Sección de Configuración de Empresa -->
   <div class="card">
-    <div class="form-group">
+    <div class="form-group" id="tenantSelectGroup">
       <label>Configurar Empresa:</label>
       <select id="tenantSelect" onchange="cargarDatosEmpresa()">
         <option value="NEW">-- Registrar Nueva Empresa / Configuración --</option>
@@ -62,13 +62,13 @@
 
       <div class="form-group">
         <label>Tipo de Negocio / Sector:</label>
-        <input type="text" id="business_type" required placeholder="Ej: Bolera Pepe, Masajes Pipa, Clínica Dental...">
+        <input type="text" id="business_type" required placeholder="Ej: Bolera, Peluquería, Clínica...">
       </div>
 
       <div class="row">
         <div class="form-group">
-          <label>Capacidad Máxima (Recursos simultáneos):</label>
-          <input type="number" id="max_capacity" min="1" value="2" required placeholder="Ej: 3 pistas, 2 peluqueros...">
+          <label>Capacidad Máxima (Aforo/Recursos):</label>
+          <input type="number" id="max_capacity" min="1" value="2" required>
         </div>
         <div class="form-group">
           <label>Duración Estándar (min):</label>
@@ -77,7 +77,7 @@
       </div>
 
       <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-      <h4>Configuración de Horarios (Turnos)</h4>
+      <h4>Horarios y Turnos</h4>
 
       <div class="row">
         <div class="form-group">
@@ -102,19 +102,25 @@
       </div>
 
       <div class="form-group">
-        <label>Notas / Descripción / Servicios:</label>
-        <textarea id="notes" placeholder="Ej: Pistas cristal, lavado y corte, mesas de 2..."></textarea>
+        <label>Notas / Descripción:</label>
+        <textarea id="notes" placeholder="Ej: Información útil para las reservas..."></textarea>
       </div>
 
-      <button type="submit" class="btn">Revisar y Guardar Configuración</button>
+      <div id="tokenDisplay" style="display: none;">
+        <label>Enlace Privado del Negocio:</label>
+        <div class="badge-token" id="tokenUrlText"></div>
+      </div>
+
+      <br>
+      <button type="submit" class="btn">Guardar Configuración</button>
     </form>
   </div>
 
-  <!-- Nueva Sección: Consulta de Disponibilidad y Reservas en Directo -->
+  <!-- Sección de Disponibilidad y Reservas -->
   <div class="card">
     <h3>Gestión de Disponibilidad y Reservas</h3>
-    <div class="form-group">
-      <label>Seleccionar Empresa para Reservar:</label>
+    <div class="form-group" id="bookingTenantSelectGroup">
+      <label>Seleccionar Empresa:</label>
       <select id="bookingTenantSelect" onchange="verDisponibilidad()">
         <option value="">-- Elige una empresa --</option>
       </select>
@@ -126,28 +132,28 @@
     </div>
 
     <div id="availabilityContainer">
-      <p style="color: #666; font-style: italic;">Selecciona una empresa y una fecha para ver los tramos libres y ocupados.</p>
+      <p style="color: #666; font-style: italic;">Selecciona una fecha para ver la disponibilidad.</p>
     </div>
   </div>
 
-  <!-- Modal de Resumen Previo de Configuración -->
+  <!-- Modal de Resumen Previo -->
   <div id="summaryModal" class="modal">
     <div class="modal-content">
-      <h3>Resumen de Configuración</h3>
+      <h3>Confirmar Guardado</h3>
       <p><strong>Nombre:</strong> <span id="sumName"></span></p>
       <p><strong>Teléfono:</strong> <span id="sumPhone"></span></p>
       <p><strong>Tipo:</strong> <span id="sumType"></span></p>
-      <p><strong>Capacidad Máxima:</strong> <span id="sumCapacity"></span></p>
+      <p><strong>Capacidad:</strong> <span id="sumCapacity"></span></p>
       <p><strong>Turno 1:</strong> <span id="sumShift1"></span></p>
       <p><strong>Turno 2:</strong> <span id="sumShift2"></span></p>
       <p><strong>Notas:</strong> <span id="sumNotes"></span></p>
       <br>
-      <button class="btn" onclick="confirmarGuardado()">Confirmar y Guardar en Neon</button>
+      <button class="btn" onclick="confirmarGuardado()">Confirmar y Guardar</button>
       <button class="btn btn-secondary" onclick="cerrarModal()" style="margin-top: 10px;">Cancelar</button>
     </div>
   </div>
 
-  <!-- Modal para Hacer Reserva en un Tramo -->
+  <!-- Modal para Hacer Reserva -->
   <div id="reservationModal" class="modal">
     <div class="modal-content">
       <h3>Hacer Reserva</h3>
@@ -163,7 +169,7 @@
         </div>
         <div class="form-group">
           <label>Notas adicionales:</label>
-          <textarea id="reservation_notes" placeholder="Ej: Preferencia de pista, observaciones..."></textarea>
+          <textarea id="reservation_notes" placeholder="Ej: Observaciones..."></textarea>
         </div>
         <button type="submit" class="btn btn-success">Confirmar Reserva</button>
         <button type="button" class="btn btn-secondary" onclick="cerrarModalReserva()" style="margin-top: 10px;">Cancelar</button>
@@ -173,7 +179,42 @@
 
   <script>
     let tenantsCache = [];
+    let currentTenantToken = null;
     let selectedSlotTime = null;
+
+    // Detectar token en la URL (?token=...)
+    function obtenerTokenURL() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('token');
+    }
+
+    async function inicializar() {
+      currentTenantToken = obtenerTokenURL();
+      document.getElementById('bookingDate').valueAsDate = new Date();
+
+      await obtenerTenants();
+
+      if (currentTenantToken) {
+        // MODO NEGOCIO PRIVADO: Aislar vista para el tenant con este token
+        const tenant = tenantsCache.find(t => t.tenant_token === currentTenantToken);
+        if (tenant) {
+          document.getElementById('panelTitle').innerText = `Panel de Gestión - ${tenant.name}`;
+          document.getElementById('tenantSelectGroup').style.display = 'none';
+          document.getElementById('bookingTenantSelectGroup').style.display = 'none';
+          document.getElementById('exportCard').style.display = 'none';
+
+          // Precargar datos en los formularios
+          document.getElementById('tenantSelect').value = tenant.id;
+          cargarDatosEmpresa();
+          
+          // Preseleccionar en reservas
+          document.getElementById('bookingTenantSelect').value = tenant.id;
+          verDisponibilidad();
+        } else {
+          alert('Token de negocio no válido o no encontrado.');
+        }
+      }
+    }
 
     async function obtenerTenants() {
       try {
@@ -187,8 +228,8 @@
         bookingSelect.innerHTML = '<option value="">-- Elige una empresa --</option>';
         
         tenantsCache.forEach(t => {
-          select.innerHTML += `<option value="${t.id}">${t.name} (${t.business_type || 'personalizado'})</option>`;
-          bookingSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.business_type || 'personalizado'})</option>`;
+          select.innerHTML += `<option value="${t.id}">${t.name} (${t.business_type || 'general'})</option>`;
+          bookingSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.business_type || 'general'})</option>`;
         });
       } catch (err) {
         console.error('Error al obtener tenants:', err);
@@ -200,6 +241,7 @@
       if (id === 'NEW') {
         document.getElementById('tenantForm').reset();
         document.getElementById('tenantId').value = '';
+        document.getElementById('tokenDisplay').style.display = 'none';
       } else {
         const tenant = tenantsCache.find(t => t.id == id);
         if (tenant) {
@@ -214,6 +256,12 @@
           document.getElementById('shift2_start').value = tenant.shift2_start ? tenant.shift2_start.slice(0, 5) : '';
           document.getElementById('shift2_end').value = tenant.shift2_end ? tenant.shift2_end.slice(0, 5) : '';
           document.getElementById('notes').value = tenant.notes || '';
+
+          if (tenant.tenant_token) {
+            document.getElementById('tokenDisplay').style.display = 'block';
+            const urlPrivada = `${window.location.origin}/?token=${tenant.tenant_token}`;
+            document.getElementById('tokenUrlText').innerHTML = `<a href="${urlPrivada}" target="_blank">${urlPrivada}</a>`;
+          }
         }
       }
     }
@@ -241,7 +289,7 @@
     async function confirmarGuardado() {
       const tenantId = document.getElementById('tenantId').value;
       const data = {
-        id: tenantId ? parseInt(tenantId) : null, // CORREGIDO: Enviamos el ID para que actualice en lugar de duplicar
+        id: tenantId ? parseInt(tenantId) : null,
         name: document.getElementById('name').value,
         phone: document.getElementById('phone').value,
         business_type: document.getElementById('business_type').value,
@@ -263,13 +311,17 @@
 
         if (res.ok) {
           cerrarModal();
-          document.getElementById('tenantForm').reset();
-          document.getElementById('tenantId').value = '';
-          obtenerTenants();
-          alert('¡Configuración guardada con éxito!');
+          await obtenerTenants();
+          if (currentTenantToken) {
+            inicializar();
+          } else {
+            document.getElementById('tenantForm').reset();
+            document.getElementById('tenantId').value = '';
+          }
+          alert('¡Configuración guardada correctamente!');
         } else {
           const errData = await res.json();
-          alert('Error al guardar: ' + (errData.error || 'Desconocido'));
+          alert('Error: ' + (errData.error || 'Desconocido'));
         }
       } catch (err) {
         console.error('Error de red:', err);
@@ -277,14 +329,13 @@
       }
     }
 
-    // Funciones de Disponibilidad y Reservas en el Frontend
     async function verDisponibilidad() {
       const tenantId = document.getElementById('bookingTenantSelect').value;
       const date = document.getElementById('bookingDate').value;
       const container = document.getElementById('availabilityContainer');
 
       if (!tenantId || !date) {
-        container.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una empresa y una fecha para ver los tramos libres y ocupados.</p>';
+        container.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una fecha para ver la disponibilidad.</p>';
         return;
       }
 
@@ -302,7 +353,7 @@
           return;
         }
 
-        let html = `<h4>Disponibilidad para el ${date}</h4><div class="slot-grid">`;
+        let html = `<h4>Disponibilidad para ${data.business_name} (${date})</h4><div class="slot-grid">`;
         data.slots.forEach(slot => {
           if (slot.available) {
             html += `<div class="slot-item slot-free" onclick="abrirModalReserva('${slot.time}')">
@@ -342,13 +393,11 @@
       const clientPhone = document.getElementById('client_phone').value;
       const notes = document.getElementById('reservation_notes').value;
 
-      const reservationDateTime = `${date}T${selectedSlotTime}:00`;
-
       const payload = {
         tenant_id: parseInt(tenantId),
         client_name: clientName,
         client_phone: clientPhone,
-        reservation_time: reservationDateTime,
+        reservation_time: `${date}T${selectedSlotTime}:00`,
         notes: notes
       };
 
@@ -359,14 +408,13 @@
           body: JSON.stringify(payload)
         });
 
-        const resultData = await res.json();
-
         if (res.ok) {
           alert('¡Reserva realizada con éxito!');
           cerrarModalReserva();
-          verDisponibilidad(); // Refrescar la parrilla de disponibilidad
+          verDisponibilidad();
         } else {
-          alert('No se pudo completar la reserva: ' + (resultData.error || 'Error desconocido'));
+          const resultData = await res.json();
+          alert('Error: ' + (resultData.error || 'Error desconocido'));
         }
       } catch (err) {
         console.error('Error al enviar reserva:', err);
@@ -378,9 +426,8 @@
       window.location.href = '/api/tenants/export';
     }
 
-    // Inicializar al cargar
-    obtenerTenants();
-    document.getElementById('bookingDate').valueAsDate = new Date();
+    // Ejecutar inicialización
+    inicializar();
   </script>
 </body>
 </html>
