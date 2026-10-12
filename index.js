@@ -257,7 +257,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Crear reserva vinculada al servicio y su duración
+// Crear reserva vinculada al servicio y su duración (CORREGIDO)
 app.post('/api/reservations', async (req, res) => {
   const { tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
@@ -266,7 +266,9 @@ app.post('/api/reservations', async (req, res) => {
     if (serviceRes.rows.length === 0) {
       return res.status(404).json({ error: 'Servicio no válido' });
     }
-    const durationMin = serviceRes.rows.duration_min || 60;
+    
+    // ACCESO CORREGIDO AL ARRAY ROWS[0]
+    const durationMin = serviceRes.rows[0].duration_min || 60;
 
     const insertResult = await pool.query(
       `INSERT INTO reservations (tenant_id, service_id, client_name, client_phone, reservation_time, duration_min, notes) 
@@ -280,7 +282,7 @@ app.post('/api/reservations', async (req, res) => {
     });
   } catch (err) {
     console.error('Error reserva:', err);
-    res.status(500).json({ error: 'Error al procesar reserva' });
+    res.status(500).json({ error: 'Error al procesar reserva: ' + err.message });
   }
 });
 
