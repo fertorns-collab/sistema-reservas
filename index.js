@@ -6,20 +6,18 @@ const crypto = require('crypto');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configuración PostgreSQL (Neon)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
 pool.on('error', (err) => {
-  console.error('Error inesperado en PostgreSQL:', err);
+  console.error('Error en PostgreSQL:', err);
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inicialización de esquema
 async function initDB() {
   try {
     await pool.query(`
@@ -33,7 +31,6 @@ async function initDB() {
         category VARCHAR(50),
         business_type VARCHAR(100) DEFAULT 'general',
         max_capacity INT DEFAULT 2,
-        default_duration_min INT DEFAULT 60,
         shift1_start TIME DEFAULT '09:00',
         shift1_end TIME DEFAULT '14:00',
         shift2_start TIME,
@@ -43,16 +40,22 @@ async function initDB() {
       );
     `);
 
+    // Nueva tabla para servicios flexibles por negocio (ej. 1h, 1.5h, Corte, Tinte)
     await pool.query(`
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tenant_token VARCHAR(64) UNIQUE;
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS admin_token VARCHAR(64) UNIQUE;
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS booking_token VARCHAR(64) UNIQUE;
+      CREATE TABLE IF NOT EXISTS services (
+        id SERIAL PRIMARY KEY,
+        tenant_id INT REFERENCES tenants(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        duration_min INT NOT NULL DEFAULT 60,
+        price NUMERIC(10,2) DEFAULT 0.00
+      );
     `);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reservations (
         id SERIAL PRIMARY KEY,
         tenant_id INT REFERENCES tenants(id) ON DELETE CASCADE,
+        service_id INT REFERENCES services(id) ON DELETE SET NULL,
         client_name VARCHAR(100) NOT NULL,
         client_phone VARCHAR(30) NOT NULL,
         reservation_time TIMESTAMP NOT NULL,
@@ -61,7 +64,7 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Base de datos adaptada para Doble Tokenización y Duraciones Variables.');
+    console.log('Base de datos inicializada con soporte para Servicios Dinámicos.');
   } catch (err) {
     console.error('Error al inicializar BD:', err);
   }
@@ -72,23 +75,55 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Obtener empresas
+// Obtener tenants
 app.get('/api/tenants', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (err) {
-    console.error('Error en GET /api/tenants:', err);
     res.status(500).json({ error: 'Error al obtener registros' });
   }
 });
 
-// Guardar/Actualizar empresa con Doble Token
+// Obtener servicios de un tenant
+app.get('/api/tenants/:id/services', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM services WHERE tenant_id = $1 ORDER BY id ASC', [req.params.id]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener servicios' });
+  }
+});
+
+// Guardar servicio
+app.post('/api/services', async (req, res) => {
+  const { tenant_id, name, duration_min, price } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO services (tenant_id, name, duration_min, price) VALUES ($1, $2, $3, $4) RETURNING *',
+      [tenant_id, name, duration_min || 60, price || 0]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al crear servicio' });
+  }
+});
+
+// Borrar servicio
+app.delete('/api/services/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM services WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Servicio eliminado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar servicio' });
+  }
+});
+
+// Guardar/Actualizar empresa
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
-    max_capacity, default_duration_min,
-    shift1_start, shift1_end, shift2_start, shift2_end 
+    max_capacity, shift1_start, shift1_end, shift2_start, shift2_end 
   } = req.body;
 
   try {
@@ -97,13 +132,12 @@ app.post('/api/tenants/config', async (req, res) => {
       result = await pool.query(
         `UPDATE tenants SET 
           name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
-          max_capacity = $6, default_duration_min = $7, shift1_start = $8, 
-          shift1_end = $9, shift2_start = $10, shift2_end = $11 
-         WHERE id = $12 RETURNING *`,
+          max_capacity = $6, shift1_start = $7, shift1_end = $8, 
+          shift2_start = $9, shift2_end = $10 
+         WHERE id = $11 RETURNING *`,
         [
           name, phone, category || null, notes || '', business_type || 'general',
-          max_capacity || 2, default_duration_min || 60,
-          shift1_start || '09:00', shift1_end || '14:00',
+          max_capacity || 2, shift1_start || '09:00', shift1_end || '14:00',
           shift2_start || null, shift2_end || null, id
         ]
       );
@@ -113,48 +147,59 @@ app.post('/api/tenants/config', async (req, res) => {
 
       result = await pool.query(
         `INSERT INTO tenants 
-          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, default_duration_min, shift1_start, shift1_end, shift2_start, shift2_end) 
-         VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, shift1_start, shift1_end, shift2_start, shift2_end) 
+         VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
          RETURNING *`,
         [
           adminToken, bookingToken, name, phone, category || null, notes || '',
-          business_type || 'general', max_capacity || 2, default_duration_min || 60,
+          business_type || 'general', max_capacity || 2, 
           shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null
         ]
+      );
+      
+      // Crear un servicio por defecto (ej. Sesión 60 min)
+      const newTenantId = result.rows[0].id;
+      await pool.query(
+        'INSERT INTO services (tenant_id, name, duration_min, price) VALUES ($1, $2, $3, $4)',
+        [newTenantId, 'Sesión Estándar', 60, 0]
       );
     }
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error al guardar configuración:', err);
-    res.status(500).json({ error: 'Error al guardar configuración: ' + err.message });
+    console.error('Error al guardar:', err);
+    res.status(500).json({ error: 'Error al guardar configuración' });
   }
 });
 
-// Disponibilidad con cálculo dinámico (ej. 90 min)
+// Disponibilidad basada en la duración del servicio seleccionado por el cliente
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
-  const { date } = req.query;
+  const { date, service_id } = req.query;
 
-  if (!date) {
-    return res.status(400).json({ error: 'Proporciona una fecha (YYYY-MM-DD)' });
+  if (!date || !service_id) {
+    return res.status(400).json({ error: 'Proporciona fecha y service_id' });
   }
 
   try {
     const tenantRes = await pool.query('SELECT * FROM tenants WHERE id = $1', [tenantId]);
-    if (tenantRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Negocio no encontrado' });
+    const serviceRes = await pool.query('SELECT * FROM services WHERE id = $1', [service_id]);
+
+    if (tenantRes.rows.length === 0 || serviceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Negocio o servicio no encontrado' });
     }
+
     const tenant = tenantRes.rows[0];
+    const service = serviceRes.rows[0];
+    const durationMin = service.duration_min;
 
     const reservationsRes = await pool.query(
-      `SELECT reservation_time FROM reservations 
+      `SELECT reservation_time, duration_min FROM reservations 
        WHERE tenant_id = $1 AND DATE(reservation_time) = $2`,
       [tenantId, date]
     );
 
     const activeReservations = reservationsRes.rows;
-    const intervalMinutes = parseInt(tenant.default_duration_min) || 60;
     const slots = [];
 
     const addShiftsToSlots = (startStr, endStr) => {
@@ -165,7 +210,8 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
       while (current < end) {
         const timeStr = current.toTimeString().substring(0, 5);
         slots.push(timeStr);
-        current = new Date(current.getTime() + intervalMinutes * 60000);
+        // Avanzamos en intervalos de 30 minutos para la rejilla de selección
+        current = new Date(current.getTime() + 30 * 60000);
       }
     };
 
@@ -173,62 +219,68 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
 
     const availability = slots.map(slotTime => {
-      const count = activeReservations.filter(r => {
-        if (!r.reservation_time) return false;
-        const rTime = new Date(r.reservation_time).toTimeString().substring(0, 5);
-        return rTime === slotTime;
+      // Comprobar solapes basados en la duración del servicio
+      const slotStart = new Date(`${date}T${slotTime}:00`).getTime();
+      const slotEnd = slotStart + durationMin * 60000;
+
+      const overlappingCount = activeReservations.filter(r => {
+        const rStart = new Date(r.reservation_time).getTime();
+        const rDuration = r.duration_min || 60;
+        const rEnd = rStart + rDuration * 60000;
+
+        // Condición de solape entre intervalos
+        return slotStart < rEnd && slotEnd > rStart;
       }).length;
 
-      const isFull = count >= (tenant.max_capacity || 2);
+      const isFull = overlappingCount >= (tenant.max_capacity || 2);
 
       return {
         time: slotTime,
         available: !isFull,
-        bookedCount: count,
+        bookedCount: overlappingCount,
         maxCapacity: tenant.max_capacity || 2,
-        durationMin: intervalMinutes
+        durationMin: durationMin
       };
     });
 
     res.json({
       date,
       business_name: tenant.name,
-      business_type: tenant.business_type,
-      duration_min: intervalMinutes,
+      service_name: service.name,
+      duration_min: durationMin,
       slots: availability
     });
 
   } catch (err) {
-    console.error('Error al calcular disponibilidad:', err);
+    console.error('Error disponibilidad:', err);
     res.status(500).json({ error: 'Error interno al consultar disponibilidad' });
   }
 });
 
-// Crear reserva
+// Crear reserva vinculada al servicio y su duración
 app.post('/api/reservations', async (req, res) => {
-  const { tenant_id, client_name, client_phone, reservation_time, duration_min, notes } = req.body;
+  const { tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
   try {
-    const tenantRes = await pool.query('SELECT * FROM tenants WHERE id = $1', [tenant_id]);
-    if (tenantRes.rows.length === 0) {
-      return res.status(404).json({ error: 'El negocio no existe' });
+    const serviceRes = await pool.query('SELECT duration_min FROM services WHERE id = $1', [service_id]);
+    if (serviceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Servicio no válido' });
     }
-    const tenant = tenantRes.rows[0];
+    const durationMin = serviceRes.rows.duration_min || 60;
 
     const insertResult = await pool.query(
-      `INSERT INTO reservations (tenant_id, client_name, client_phone, reservation_time, duration_min, notes) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [tenant_id, client_name, client_phone, reservation_time, duration_min || tenant.default_duration_min || 60, notes || 'Reserva confirmada']
+      `INSERT INTO reservations (tenant_id, service_id, client_name, client_phone, reservation_time, duration_min, notes) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [tenant_id, service_id, client_name, client_phone, reservation_time, durationMin, notes || 'Reserva confirmada']
     );
 
     res.status(201).json({
       message: 'Reserva realizada con éxito',
       reservation: insertResult.rows[0]
     });
-
   } catch (err) {
-    console.error('Error al procesar reserva:', err);
-    res.status(500).json({ error: 'Error interno al procesar la reserva' });
+    console.error('Error reserva:', err);
+    res.status(500).json({ error: 'Error al procesar reserva' });
   }
 });
 
@@ -236,27 +288,27 @@ app.post('/api/reservations', async (req, res) => {
 app.get('/api/tenants/export', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT t.name as empresa, t.business_type, r.client_name, r.client_phone, r.reservation_time, r.notes 
+      SELECT t.name as empresa, s.name as servicio, r.client_name, r.client_phone, r.reservation_time, r.duration_min, r.notes 
       FROM reservations r
       JOIN tenants t ON r.tenant_id = t.id
+      LEFT JOIN services s ON r.service_id = s.id
       ORDER BY r.reservation_time DESC
     `);
 
-    let csvContent = 'Empresa,Tipo Negocio,Cliente,Telefono,Fecha Hora,Notas\n';
+    let csvContent = 'Empresa,Servicio,Cliente,Telefono,Fecha Hora,Duracion (min),Notas\n';
     result.rows.forEach(row => {
       const cleanNotes = (row.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
-      csvContent += `"${row.empresa}","${row.business_type || ''}","${row.client_name || ''}","${row.client_phone || ''}","${row.reservation_time}","${cleanNotes}"\n`;
+      csvContent += `"${row.empresa}","${row.servicio || ''}","${row.client_name || ''}","${row.client_phone || ''}","${row.reservation_time}","${row.duration_min}","${cleanNotes}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=reservas_empresas.csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=reservas_servicios.csv');
     res.status(200).send(csvContent);
   } catch (err) {
-    console.error('Error en exportar CSV:', err);
-    res.status(500).json({ error: 'Error al exportar los datos' });
+    res.status(500).json({ error: 'Error al exportar' });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Servidor listo en puerto ${port}`);
+  console.log(`Servidor en puerto ${port}`);
 });
