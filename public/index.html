@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panel de Gestión de Reservas</title>
+  <title>Sistema de Reservas B2B</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f8; color: #333; }
     .card { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -14,31 +14,29 @@
     .btn:hover { background: #0056b3; }
     .btn-secondary { background: #6c757d; }
     .btn-success { background: #28a745; }
-    .btn-success:hover { background: #218838; }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
     .modal-content { background: white; margin: 10% auto; padding: 20px; width: 90%; max-width: 450px; border-radius: 8px; }
     .row { display: flex; gap: 10px; }
     .row .form-group { flex: 1; }
-    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 15px; }
     .slot-item { padding: 10px; border-radius: 4px; text-align: center; font-weight: bold; border: 1px solid #ccc; }
     .slot-free { background: #d4edda; color: #155724; border-color: #c3e6cb; cursor: pointer; }
     .slot-free:hover { background: #c3e6cb; }
     .slot-full { background: #f8d7da; color: #721c24; border-color: #f5c6cb; opacity: 0.7; }
-    .badge-token { background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9em; word-break: break-all; margin-top: 10px; }
+    .badge-token { background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.85em; word-break: break-all; margin-top: 5px; }
   </style>
 </head>
 <body>
 
   <h2 id="panelTitle">Panel de Configuración y Reservas</h2>
 
-  <!-- Sección de Exportación a CSV -->
+  <!-- Sección CSV -->
   <div class="card" id="exportCard">
     <h3>Exportación de Datos</h3>
-    <p>Descarga la lista completa con todas las reservas actuales.</p>
     <button class="btn btn-success" onclick="exportarCSV()">Exportar a CSV</button>
   </div>
 
-  <!-- Sección de Configuración de Empresa -->
+  <!-- Configuración Empresa -->
   <div class="card" id="configCardContainer">
     <div class="form-group" id="tenantSelectGroup">
       <label>Configurar Empresa:</label>
@@ -52,7 +50,7 @@
       
       <div class="form-group">
         <label>Nombre Comercial:</label>
-        <input type="text" id="name" required placeholder="Ej: Bolera Pepe">
+        <input type="text" id="name" required placeholder="Ej: Pádel Club">
       </div>
 
       <div class="form-group">
@@ -62,17 +60,23 @@
 
       <div class="form-group">
         <label>Tipo de Negocio / Sector:</label>
-        <input type="text" id="business_type" required placeholder="Ej: Bolera, Peluquería, Clínica...">
+        <input type="text" id="business_type" required placeholder="Ej: Pistas de Pádel, Peluquería...">
       </div>
 
       <div class="row">
         <div class="form-group">
-          <label>Capacidad Máxima (Aforo/Recursos):</label>
+          <label>Capacidad Máxima (Aforo/Pistas):</label>
           <input type="number" id="max_capacity" min="1" value="2" required>
         </div>
         <div class="form-group">
-          <label>Duración Estándar (min):</label>
-          <input type="number" id="default_duration_min" min="15" step="15" value="60" required>
+          <label>Duración por Reserva:</label>
+          <select id="default_duration_min" required>
+            <option value="30">30 minutos</option>
+            <option value="45">45 minutos</option>
+            <option value="60">60 minutos (1 hora)</option>
+            <option value="90" selected>90 minutos (1.5 horas - Pádel/Deportes)</option>
+            <option value="120">120 minutos (2 horas)</option>
+          </select>
         </div>
       </div>
 
@@ -97,29 +101,30 @@
         </div>
         <div class="form-group">
           <label>Turno 2 - Fin (Opcional):</label>
-          <input type="time" id="shift2_end" value="20:00">
+          <input type="time" id="shift2_end" value="22:00">
         </div>
       </div>
 
       <div class="form-group">
         <label>Notas / Descripción:</label>
-        <textarea id="notes" placeholder="Ej: Información útil para las reservas..."></textarea>
+        <textarea id="notes" placeholder="Información útil..."></textarea>
       </div>
 
       <div id="tokenDisplay" style="display: none;">
-        <label>Enlace Privado del Negocio:</label>
-        <div class="badge-token" id="tokenUrlText"></div>
+        <label>🔑 Enlace Privado del DUEÑO (Gestión):</label>
+        <div class="badge-token" id="adminUrlText"></div>
 
-        <!-- Módulo de Mensajería para WhatsApp -->
+        <label style="margin-top: 15px;">🔗 Enlace PÚBLICO para CLIENTES (Reservas):</label>
+        <div class="badge-token" id="bookingUrlText"></div>
+
+        <!-- Sección WhatsApp -->
         <div id="whatsappSection" style="margin-top: 15px; padding: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px;">
           <h4 style="margin-top: 0; color: #2e7d32;">💬 Plantilla de Reservas para WhatsApp</h4>
-          <p style="font-size: 0.9em; color: #555;">Copia este texto o envíalo directamente a tus clientes para que reserven en tu panel:</p>
-          
           <textarea id="whatsappTemplateText" readonly style="background: #fff; font-family: sans-serif; font-size: 0.9em;"></textarea>
           
           <div style="margin-top: 10px; display: flex; gap: 10px;">
             <button type="button" class="btn btn-success" onclick="copiarTextoWhatsApp()">📋 Copiar Mensaje</button>
-            <button type="button" class="btn" style="background: #25D366; color: white;" onclick="abrirWhatsAppWeb()">📲 Abrir en WhatsApp</button>
+            <button type="button" class="btn" style="background: #25D366; color: white;" onclick="abrirWhatsAppWeb()">📲 Abrir WhatsApp</button>
           </div>
         </div>
       </div>
@@ -129,7 +134,7 @@
     </form>
   </div>
 
-  <!-- Sección de Disponibilidad y Reservas -->
+  <!-- Disponibilidad -->
   <div class="card">
     <h3 id="bookingCardTitle">Gestión de Disponibilidad y Reservas</h3>
     <div class="form-group" id="bookingTenantSelectGroup">
@@ -145,28 +150,24 @@
     </div>
 
     <div id="availabilityContainer">
-      <p style="color: #666; font-style: italic;">Selecciona una fecha para ver la disponibilidad.</p>
+      <p style="color: #666; font-style: italic;">Selecciona una fecha para ver disponibilidad.</p>
     </div>
   </div>
 
-  <!-- Modal de Resumen Previo -->
+  <!-- Modal Resumen Admin -->
   <div id="summaryModal" class="modal">
     <div class="modal-content">
       <h3>Confirmar Guardado</h3>
       <p><strong>Nombre:</strong> <span id="sumName"></span></p>
       <p><strong>Teléfono:</strong> <span id="sumPhone"></span></p>
-      <p><strong>Tipo:</strong> <span id="sumType"></span></p>
-      <p><strong>Capacidad:</strong> <span id="sumCapacity"></span></p>
-      <p><strong>Turno 1:</strong> <span id="sumShift1"></span></p>
-      <p><strong>Turno 2:</strong> <span id="sumShift2"></span></p>
-      <p><strong>Notas:</strong> <span id="sumNotes"></span></p>
+      <p><strong>Duración:</strong> <span id="sumDuration"></span> min</p>
       <br>
       <button class="btn" onclick="confirmarGuardado()">Confirmar y Guardar</button>
       <button class="btn btn-secondary" onclick="cerrarModal()" style="margin-top: 10px;">Cancelar</button>
     </div>
   </div>
 
-  <!-- Modal para Hacer Reserva -->
+  <!-- Modal Reserva Cliente -->
   <div id="reservationModal" class="modal">
     <div class="modal-content">
       <h3>Hacer Reserva</h3>
@@ -174,7 +175,7 @@
       <form id="reservationForm" onsubmit="enviarReserva(event)">
         <div class="form-group">
           <label>Nombre del Cliente:</label>
-          <input type="text" id="client_name" required placeholder="Ej: María Pérez">
+          <input type="text" id="client_name" required placeholder="Ej: Juan Pérez">
         </div>
         <div class="form-group">
           <label>Teléfono del Cliente:</label>
@@ -182,7 +183,7 @@
         </div>
         <div class="form-group">
           <label>Notas adicionales:</label>
-          <textarea id="reservation_notes" placeholder="Ej: Observaciones..."></textarea>
+          <textarea id="reservation_notes" placeholder="Observaciones..."></textarea>
         </div>
         <button type="submit" class="btn btn-success">Confirmar Reserva</button>
         <button type="button" class="btn btn-secondary" onclick="cerrarModalReserva()" style="margin-top: 10px;">Cancelar</button>
@@ -192,39 +193,45 @@
 
   <script>
     let tenantsCache = [];
-    let currentTenantToken = null;
     let selectedSlotTime = null;
 
-    // Detectar token en la URL (?token=...)
-    function obtenerTokenURL() {
+    function obtenerParametrosURL() {
       const params = new URLSearchParams(window.location.search);
-      return params.get('token');
+      return {
+        adminToken: params.get('admin_token'),
+        bookingToken: params.get('booking_token') || params.get('token')
+      };
     }
 
     async function inicializar() {
-      currentTenantToken = obtenerTokenURL();
+      const tokens = obtenerParametrosURL();
       document.getElementById('bookingDate').valueAsDate = new Date();
 
       await obtenerTenants();
 
-      if (currentTenantToken) {
-        // MODO CLIENTE FINAL POR TOKEN (Vía WhatsApp)
-        const tenant = tenantsCache.find(t => t.tenant_token === currentTenantToken);
+      if (tokens.adminToken) {
+        // MODO DUEÑO / ADMIN
+        const tenant = tenantsCache.find(t => t.admin_token === tokens.adminToken || t.tenant_token === tokens.adminToken);
         if (tenant) {
-          // Cambiamos el título principal y ocultamos por completo el panel de configuración
+          document.getElementById('panelTitle').innerText = `Panel de Gestión - ${tenant.name}`;
+          document.getElementById('tenantSelectGroup').style.display = 'none';
+          document.getElementById('tenantSelect').value = tenant.id;
+          cargarDatosEmpresa();
+          document.getElementById('bookingTenantSelectGroup').style.display = 'none';
+          document.getElementById('bookingTenantSelect').value = tenant.id;
+          verDisponibilidad();
+        }
+      } else if (tokens.bookingToken) {
+        // MODO CLIENTE FINAL (Limpio por WhatsApp)
+        const tenant = tenantsCache.find(t => t.booking_token === tokens.bookingToken || t.tenant_token === tokens.bookingToken);
+        if (tenant) {
           document.getElementById('panelTitle').innerText = `Reservas - ${tenant.name}`;
           document.getElementById('configCardContainer').style.display = 'none';
           document.getElementById('exportCard').style.display = 'none';
           document.getElementById('bookingCardTitle').innerText = `Consulta de Disponibilidad y Turnos`;
-
-          // Ocultamos el selector de empresa de reservas y fijamos el ID del negocio actual
           document.getElementById('bookingTenantSelectGroup').style.display = 'none';
           document.getElementById('bookingTenantSelect').value = tenant.id;
-
-          // Cargamos la disponibilidad directamente
           verDisponibilidad();
-        } else {
-          alert('Enlace o token de negocio no válido.');
         }
       }
     }
@@ -270,25 +277,30 @@
           document.getElementById('shift2_end').value = tenant.shift2_end ? tenant.shift2_end.slice(0, 5) : '';
           document.getElementById('notes').value = tenant.notes || '';
 
-          if (tenant.tenant_token) {
+          if (tenant.admin_token || tenant.tenant_token) {
             document.getElementById('tokenDisplay').style.display = 'block';
-            const urlPrivada = `${window.location.origin}/?token=${tenant.tenant_token}`;
-            document.getElementById('tokenUrlText').innerHTML = `<a href="${urlPrivada}" target="_blank">${urlPrivada}</a>`;
+            
+            const adminToken = tenant.admin_token || tenant.tenant_token;
+            const bookingToken = tenant.booking_token || tenant.tenant_token;
 
-            // Plantilla de mensaje automatizada para WhatsApp
-            const mensajeWA = `¡Hola! 👋 Gracias por contactar con ${tenant.name}.\n\nPuedes consultar nuestra disponibilidad en tiempo real y reservar tu cita aquí:\n👉 ${urlPrivada}\n\n¡Te esperamos!`;
+            const urlAdmin = `${window.location.origin}/?admin_token=${adminToken}`;
+            const urlCliente = `${window.location.origin}/?booking_token=${bookingToken}`;
+
+            document.getElementById('adminUrlText').innerHTML = `<a href="${urlAdmin}" target="_blank">${urlAdmin}</a>`;
+            document.getElementById('bookingUrlText').innerHTML = `<a href="${urlCliente}" target="_blank">${urlCliente}</a>`;
+
+            const mensajeWA = `¡Hola! 👋 Gracias por contactar con ${tenant.name}.\n\nPuedes consultar nuestra disponibilidad y reservar tu cita directamente aquí:\n👉 ${urlCliente}\n\n¡Te esperamos!`;
             document.getElementById('whatsappTemplateText').value = mensajeWA;
           }
         }
       }
     }
 
-    // Funciones para copiar y enviar por WhatsApp
     function copiarTextoWhatsApp() {
       const texto = document.getElementById('whatsappTemplateText');
       texto.select();
       document.execCommand('copy');
-      alert('¡Mensaje copiado al portapapeles! Listo para pegar en WhatsApp.');
+      alert('¡Mensaje copiado al portapapeles!');
     }
 
     function abrirWhatsAppWeb() {
@@ -300,15 +312,7 @@
       e.preventDefault();
       document.getElementById('sumName').innerText = document.getElementById('name').value;
       document.getElementById('sumPhone').innerText = document.getElementById('phone').value;
-      document.getElementById('sumType').innerText = document.getElementById('business_type').value;
-      document.getElementById('sumCapacity').innerText = document.getElementById('max_capacity').value;
-      document.getElementById('sumShift1').innerText = `${document.getElementById('shift1_start').value} - ${document.getElementById('shift1_end').value}`;
-      
-      const s2Start = document.getElementById('shift2_start').value;
-      const s2End = document.getElementById('shift2_end').value;
-      document.getElementById('sumShift2').innerText = (s2Start && s2End) ? `${s2Start} - ${s2End}` : 'No configurado';
-      
-      document.getElementById('sumNotes').innerText = document.getElementById('notes').value || 'Ninguna';
+      document.getElementById('sumDuration').innerText = document.getElementById('default_duration_min').value;
       document.getElementById('summaryModal').style.display = 'block';
     }
 
@@ -343,20 +347,15 @@
         if (res.ok) {
           cerrarModal();
           await obtenerTenants();
-          if (currentTenantToken) {
-            inicializar();
-          } else {
-            document.getElementById('tenantForm').reset();
-            document.getElementById('tenantId').value = '';
-          }
-          alert('¡Configuración guardada correctamente!');
+          alert('¡Configuración guardada con éxito!');
+          location.reload();
         } else {
           const errData = await res.json();
           alert('Error: ' + (errData.error || 'Desconocido'));
         }
       } catch (err) {
-        console.error('Error de red:', err);
-        alert('Error de conexión con el servidor.');
+        console.error('Error:', err);
+        alert('Error de conexión.');
       }
     }
 
@@ -366,7 +365,7 @@
       const container = document.getElementById('availabilityContainer');
 
       if (!tenantId || !date) {
-        container.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una fecha para ver la disponibilidad.</p>';
+        container.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una fecha para ver disponibilidad.</p>';
         return;
       }
 
@@ -375,7 +374,7 @@
         const data = await res.json();
 
         if (!res.ok) {
-          container.innerHTML = `<p style="color: red;">Error: ${data.error || 'No se pudo cargar la disponibilidad'}</p>`;
+          container.innerHTML = `<p style="color: red;">Error: ${data.error || 'No se pudo cargar disponibilidad'}</p>`;
           return;
         }
 
@@ -384,7 +383,7 @@
           return;
         }
 
-        let html = `<h4>Disponibilidad para ${data.business_name} (${date})</h4><div class="slot-grid">`;
+        let html = `<h4>Disponibilidad para ${data.business_name} (${date}) - Tramos de ${data.duration_min} min</h4><div class="slot-grid">`;
         data.slots.forEach(slot => {
           if (slot.available) {
             html += `<div class="slot-item slot-free" onclick="abrirModalReserva('${slot.time}')">
@@ -457,7 +456,6 @@
       window.location.href = '/api/tenants/export';
     }
 
-    // Ejecutar inicialización
     inicializar();
   </script>
 </body>
