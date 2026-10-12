@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,7 +12,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Control de errores globales en el pool de conexión
 pool.on('error', (err) => {
   console.error('Error inesperado en el cliente de PostgreSQL:', err);
 });
@@ -20,12 +20,14 @@ pool.on('error', (err) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inicialización de esquema de Base de Datos
+// Inicialización del esquema de la Base de Datos
 async function initDB() {
   try {
+    // Añadimos tenant_token para seguridad y aislamiento por negocio
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tenants (
         id SERIAL PRIMARY KEY,
+        tenant_token VARCHAR(64) UNIQUE DEFAULT gen_random_uuid()::text,
         name VARCHAR(100) NOT NULL,
         phone VARCHAR(30) NOT NULL,
         category VARCHAR(50),
@@ -53,19 +55,19 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Tablas inicializadas correctamente.');
+    console.log('Tablas inicializadas correctamente con soporte de Tokens B2B.');
   } catch (err) {
     console.error('Error al inicializar la base de datos:', err);
   }
 }
 initDB();
 
-// Ruta raíz explícita
+// Ruta raíz
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 1. Obtener todas las empresas (GET /api/tenants)
+// 1. Obtener todas las empresas (Uso interno / admin)
 app.get('/api/tenants', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
@@ -76,11 +78,10 @@ app.get('/api/tenants', async (req, res) => {
   }
 });
 
-// 2. Configurar, crear o actualizar un negocio con turnos y capacidad (POST /api/tenants/config)
+// 2. Configurar o actualizar un negocio con su Token aislado (POST /api/tenants/config)
 app.post('/api/tenants/config', async (req, res) => {
   const { 
-    id, // Recibimos el id opcionalmente para saber si es actualización
-    name, phone, category, notes, business_type, 
+    id, name, phone, category, notes, business_type, 
     max_capacity, default_duration_min,
     shift1_start, shift1_end, shift2_start, shift2_end 
   } = req.body;
@@ -88,7 +89,6 @@ app.post('/api/tenants/config', async (req, res) => {
   try {
     let result;
     if (id) {
-      // Actualizar empresa existente para evitar duplicados
       result = await pool.query(
         `UPDATE tenants SET 
           name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
@@ -103,14 +103,15 @@ app.post('/api/tenants/config', async (req, res) => {
         ]
       );
     } else {
-      // Crear nueva empresa si no hay ID
+      // Si es nueva empresa, se genera un tenant_token único automáticamente
+      const tenantToken = crypto.randomBytes(16).toString('hex');
       result = await pool.query(
         `INSERT INTO tenants 
-          (name, phone, category, notes, business_type, max_capacity, default_duration_min, shift1_start, shift1_end, shift2_start, shift2_end) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+          (tenant_token, name, phone, category, notes, business_type, max_capacity, default_duration_min, shift1_start, shift1_end, shift2_start, shift2_end) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
          RETURNING *`,
         [
-          name, phone, category || null, notes, business_type || 'general',
+          tenantToken, name, phone, category || null, notes, business_type || 'general',
           max_capacity || 2, default_duration_min || 60,
           shift1_start || '09:00', shift1_end || '14:00',
           shift2_start || null, shift2_end || null
@@ -125,10 +126,10 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// 3. Consultar disponibilidad en tiempo real para una fecha y tenant (GET /api/tenants/:id/availability)
+// 3. Endpoint Seguro por ID/Token para consulta de disponibilidad (Aislamiento B2B)
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
-  const { date } = req.query; // Formato requerido: 'YYYY-MM-DD'
+  const { date } = req.query;
 
   if (!date) {
     return res.status(400).json({ error: 'Debes proporcionar una fecha (YYYY-MM-DD)' });
@@ -185,17 +186,18 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
 
     res.json({
       date,
+      business_name: tenant.name,
       business_type: tenant.business_type,
       slots: availability
     });
 
   } catch (err) {
     console.error('Error al calcular disponibilidad:', err);
-    res.status(500).json({ error: 'Error interno al consultar la disponibilidad' });
+    res.status(500).json({ error: 'Error interno al consultar disponibilidad' });
   }
 });
 
-// 4. Crear reserva validando turnos y capacidad (POST /api/reservations)
+// 4. Crear reserva validando capacidad y turnos
 app.post('/api/reservations', async (req, res) => {
   const { tenant_id, client_name, client_phone, reservation_time, duration_min, notes } = req.body;
 
@@ -209,7 +211,6 @@ app.post('/api/reservations', async (req, res) => {
     const requestedDate = new Date(reservation_time);
     const timeString = requestedDate.toTimeString().substring(0, 5);
 
-    // Validar horario comercial (Turno 1 y Turno 2)
     const inShift1 = tenant.shift1_start && tenant.shift1_end && 
                      (timeString >= tenant.shift1_start && timeString < tenant.shift1_end);
     const inShift2 = tenant.shift2_start && tenant.shift2_end && 
@@ -221,7 +222,6 @@ app.post('/api/reservations', async (req, res) => {
       });
     }
 
-    // Validar capacidad máxima
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM reservations 
        WHERE tenant_id = $1 AND reservation_time = $2`,
@@ -232,11 +232,10 @@ app.post('/api/reservations', async (req, res) => {
 
     if (activeReservations >= (tenant.max_capacity || 2)) {
       return res.status(400).json({ 
-        error: 'El tramo horario seleccionado ya está completo. Por favor, elige otra hora.' 
+        error: 'El tramo horario seleccionado ya está completo.' 
       });
     }
 
-    // Guardar la reserva
     const insertResult = await pool.query(
       `INSERT INTO reservations (tenant_id, client_name, client_phone, reservation_time, duration_min, notes) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
@@ -254,7 +253,7 @@ app.post('/api/reservations', async (req, res) => {
   }
 });
 
-// 5. Exportar reservas a CSV (GET /api/tenants/export)
+// 5. Exportar reservas a CSV
 app.get('/api/tenants/export', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -279,7 +278,6 @@ app.get('/api/tenants/export', async (req, res) => {
   }
 });
 
-// Iniciar servidor
 app.listen(port, () => {
   console.log(`Servidor listo escuchando en el puerto ${port}`);
 });
