@@ -39,7 +39,7 @@
   </div>
 
   <!-- Sección de Configuración de Empresa -->
-  <div class="card">
+  <div class="card" id="configCardContainer">
     <div class="form-group" id="tenantSelectGroup">
       <label>Configurar Empresa:</label>
       <select id="tenantSelect" onchange="cargarDatosEmpresa()">
@@ -131,7 +131,7 @@
 
   <!-- Sección de Disponibilidad y Reservas -->
   <div class="card">
-    <h3>Gestión de Disponibilidad y Reservas</h3>
+    <h3 id="bookingCardTitle">Gestión de Disponibilidad y Reservas</h3>
     <div class="form-group" id="bookingTenantSelectGroup">
       <label>Seleccionar Empresa:</label>
       <select id="bookingTenantSelect" onchange="verDisponibilidad()">
@@ -208,23 +208,23 @@
       await obtenerTenants();
 
       if (currentTenantToken) {
-        // MODO NEGOCIO PRIVADO: Aislar vista para el tenant con este token
+        // MODO CLIENTE FINAL POR TOKEN (Vía WhatsApp)
         const tenant = tenantsCache.find(t => t.tenant_token === currentTenantToken);
         if (tenant) {
-          document.getElementById('panelTitle').innerText = `Panel de Gestión - ${tenant.name}`;
-          document.getElementById('tenantSelectGroup').style.display = 'none';
-          document.getElementById('bookingTenantSelectGroup').style.display = 'none';
+          // Cambiamos el título principal y ocultamos por completo el panel de configuración
+          document.getElementById('panelTitle').innerText = `Reservas - ${tenant.name}`;
+          document.getElementById('configCardContainer').style.display = 'none';
           document.getElementById('exportCard').style.display = 'none';
+          document.getElementById('bookingCardTitle').innerText = `Consulta de Disponibilidad y Turnos`;
 
-          // Precargar datos en los formularios
-          document.getElementById('tenantSelect').value = tenant.id;
-          cargarDatosEmpresa();
-          
-          // Preseleccionar en reservas
+          // Ocultamos el selector de empresa de reservas y fijamos el ID del negocio actual
+          document.getElementById('bookingTenantSelectGroup').style.display = 'none';
           document.getElementById('bookingTenantSelect').value = tenant.id;
+
+          // Cargamos la disponibilidad directamente
           verDisponibilidad();
         } else {
-          alert('Token de negocio no válido o no encontrado.');
+          alert('Enlace o token de negocio no válido.');
         }
       }
     }
