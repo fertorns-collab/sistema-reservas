@@ -109,6 +109,19 @@
       <div id="tokenDisplay" style="display: none;">
         <label>Enlace Privado del Negocio:</label>
         <div class="badge-token" id="tokenUrlText"></div>
+
+        <!-- Módulo de Mensajería para WhatsApp -->
+        <div id="whatsappSection" style="margin-top: 15px; padding: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px;">
+          <h4 style="margin-top: 0; color: #2e7d32;">💬 Plantilla de Reservas para WhatsApp</h4>
+          <p style="font-size: 0.9em; color: #555;">Copia este texto o envíalo directamente a tus clientes para que reserven en tu panel:</p>
+          
+          <textarea id="whatsappTemplateText" readonly style="background: #fff; font-family: sans-serif; font-size: 0.9em;"></textarea>
+          
+          <div style="margin-top: 10px; display: flex; gap: 10px;">
+            <button type="button" class="btn btn-success" onclick="copiarTextoWhatsApp()">📋 Copiar Mensaje</button>
+            <button type="button" class="btn" style="background: #25D366; color: white;" onclick="abrirWhatsAppWeb()">📲 Abrir en WhatsApp</button>
+          </div>
+        </div>
       </div>
 
       <br>
@@ -261,9 +274,26 @@
             document.getElementById('tokenDisplay').style.display = 'block';
             const urlPrivada = `${window.location.origin}/?token=${tenant.tenant_token}`;
             document.getElementById('tokenUrlText').innerHTML = `<a href="${urlPrivada}" target="_blank">${urlPrivada}</a>`;
+
+            // Plantilla de mensaje automatizada para WhatsApp
+            const mensajeWA = `¡Hola! 👋 Gracias por contactar con ${tenant.name}.\n\nPuedes consultar nuestra disponibilidad en tiempo real y reservar tu cita aquí:\n👉 ${urlPrivada}\n\n¡Te esperamos!`;
+            document.getElementById('whatsappTemplateText').value = mensajeWA;
           }
         }
       }
+    }
+
+    // Funciones para copiar y enviar por WhatsApp
+    function copiarTextoWhatsApp() {
+      const texto = document.getElementById('whatsappTemplateText');
+      texto.select();
+      document.execCommand('copy');
+      alert('¡Mensaje copiado al portapapeles! Listo para pegar en WhatsApp.');
+    }
+
+    function abrirWhatsAppWeb() {
+      const texto = encodeURIComponent(document.getElementById('whatsappTemplateText').value);
+      window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
     }
 
     function mostrarResumen(e) {
@@ -287,48 +317,48 @@
     }
 
     async function confirmarGuardado() {
-  const tenantId = document.getElementById('tenantId').value;
-  const data = {
-    id: tenantId ? parseInt(tenantId) : null,
-    name: document.getElementById('name').value,
-    phone: document.getElementById('phone').value,
-    category: null, // Evitamos 'undefined' para que PostgreSQL procese correctamente la consulta
-    business_type: document.getElementById('business_type').value,
-    max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
-    default_duration_min: parseInt(document.getElementById('default_duration_min').value) || 60,
-    shift1_start: document.getElementById('shift1_start').value || '09:00',
-    shift1_end: document.getElementById('shift1_end').value || '14:00',
-    shift2_start: document.getElementById('shift2_start').value || null,
-    shift2_end: document.getElementById('shift2_end').value || null,
-    notes: document.getElementById('notes').value || ''
-  };
+      const tenantId = document.getElementById('tenantId').value;
+      const data = {
+        id: tenantId ? parseInt(tenantId) : null,
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        category: null, 
+        business_type: document.getElementById('business_type').value,
+        max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
+        default_duration_min: parseInt(document.getElementById('default_duration_min').value) || 60,
+        shift1_start: document.getElementById('shift1_start').value || '09:00',
+        shift1_end: document.getElementById('shift1_end').value || '14:00',
+        shift2_start: document.getElementById('shift2_start').value || null,
+        shift2_end: document.getElementById('shift2_end').value || null,
+        notes: document.getElementById('notes').value || ''
+      };
 
-  try {
-    const res = await fetch('/api/tenants/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+      try {
+        const res = await fetch('/api/tenants/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
 
-    if (res.ok) {
-      cerrarModal();
-      await obtenerTenants();
-      if (currentTenantToken) {
-        inicializar();
-      } else {
-        document.getElementById('tenantForm').reset();
-        document.getElementById('tenantId').value = '';
+        if (res.ok) {
+          cerrarModal();
+          await obtenerTenants();
+          if (currentTenantToken) {
+            inicializar();
+          } else {
+            document.getElementById('tenantForm').reset();
+            document.getElementById('tenantId').value = '';
+          }
+          alert('¡Configuración guardada correctamente!');
+        } else {
+          const errData = await res.json();
+          alert('Error: ' + (errData.error || 'Desconocido'));
+        }
+      } catch (err) {
+        console.error('Error de red:', err);
+        alert('Error de conexión con el servidor.');
       }
-      alert('¡Configuración guardada correctamente!');
-    } else {
-      const errData = await res.json();
-      alert('Error: ' + (errData.error || 'Desconocido'));
     }
-  } catch (err) {
-    console.error('Error de red:', err);
-    alert('Error de conexión con el servidor.');
-  }
-}
 
     async function verDisponibilidad() {
       const tenantId = document.getElementById('bookingTenantSelect').value;
@@ -358,12 +388,12 @@
         data.slots.forEach(slot => {
           if (slot.available) {
             html += `<div class="slot-item slot-free" onclick="abrirModalReserva('${slot.time}')">
-                      ${slot.time}<br><small>Libres: ${slot.maxCapacity - slot.bookedCount}/${slot.maxCapacity}</small>
-                     </div>`;
+                       ${slot.time}<br><small>Libres: ${slot.maxCapacity - slot.bookedCount}/${slot.maxCapacity}</small>
+                      </div>`;
           } else {
             html += `<div class="slot-item slot-full">
-                      ${slot.time}<br><small>Completo (${slot.bookedCount}/${slot.maxCapacity})</small>
-                     </div>`;
+                       ${slot.time}<br><small>Completo (${slot.bookedCount}/${slot.maxCapacity})</small>
+                      </div>`;
           }
         });
         html += '</div>';
