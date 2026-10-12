@@ -35,7 +35,7 @@
   <!-- Sección CSV -->
   <div class="card" id="exportCard">
     <h3>Exportación de Datos</h3>
-    <button class="btn btn-success" onclick="exportarCSV()">Exportar a CSV</button>
+    <button class="btn btn-success" onclick="exportarCSV()">Exportar CSV de esta Empresa</button>
   </div>
 
   <!-- Configuración Empresa -->
@@ -70,12 +70,11 @@
         <input type="number" id="max_capacity" min="1" value="2" required>
       </div>
 
-      <!-- Gestión de Servicios (Duraciones flexibles elegidas por el cliente) -->
       <div class="form-group" id="servicesManagement" style="display:none; background: #fdfdfd; border: 1px solid #ddd; padding: 12px; border-radius: 6px;">
-        <label>🛠️ Catálogo de Servicios (Duraciones que el cliente elegirá):</label>
+        <label>🛠️ Catálogo de Servicios:</label>
         <div id="servicesList" style="margin-bottom: 10px;"></div>
         <div class="row">
-          <input type="text" id="newServiceName" placeholder="Nombre (ej. Pista 1.5h / Tinte)" style="flex: 2;">
+          <input type="text" id="newServiceName" placeholder="Nombre (ej. Pista 1.5h)" style="flex: 2;">
           <input type="number" id="newServiceDuration" placeholder="Minutos (ej. 90)" style="flex: 1;" min="10">
           <button type="button" class="btn btn-success" onclick="agregarServicio()">Añadir</button>
         </div>
@@ -144,7 +143,6 @@
       </select>
     </div>
 
-    <!-- Selección de Servicio por parte del Cliente -->
     <div class="form-group">
       <label>Selecciona el Servicio / Duración:</label>
       <select id="clientServiceSelect" onchange="verDisponibilidad()">
@@ -187,9 +185,24 @@
     </div>
   </div>
 
+  <!-- Modal de Confirmación de Reserva Exitosa con Plantilla WhatsApp para el Cliente -->
+  <div id="successModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <h3 style="color: #28a745;">¡Reserva Realizada con Éxito! 🎉</h3>
+      <p>Tu reserva ha sido registrada correctamente. Puedes enviar los detalles de confirmación por WhatsApp:</p>
+      <textarea id="successWhatsAppText" readonly style="background: #f9f9f9; font-size: 0.9em; height: 120px;"></textarea>
+      <div style="margin-top: 15px; display: flex; gap: 10px;">
+        <button type="button" class="btn btn-success" onclick="copiarMensajeExito()">📋 Copiar Mensaje</button>
+        <button type="button" class="btn" style="background: #25D366; color: white;" onclick="enviarWhatsAppExito()">📲 Enviar por WhatsApp</button>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="cerrarModalExito()" style="margin-top: 10px; width: 100%;">Cerrar</button>
+    </div>
+  </div>
+
   <script>
     let tenantsCache = [];
     let selectedSlotTime = null;
+    let ultimaReservaInfo = null;
 
     function obtenerParametrosURL() {
       const params = new URLSearchParams(window.location.search);
@@ -364,7 +377,7 @@
         const res = await fetch(`/api/tenants/${tenantId}/services`);
         const services = await res.json();
         services.forEach(s => {
-          select.innerHTML += `<option value="${s.id}">${s.name} (${s.duration_min} min)</option>`;
+          select.innerHTML += `<option value="${s.id}" data-name="${s.name}" data-duration="${s.duration_min}">${s.name} (${s.duration_min} min)</option>`;
         });
       } catch (err) {
         console.error('Error al cargar servicios del cliente:', err);
@@ -399,7 +412,7 @@
         let html = `<h4>Disponibilidad para ${data.business_name} (${date})</h4><p style="font-size:0.9em; color:#555;">Servicio: <b>${data.service_name}</b> (${data.duration_min} min)</p><div class="slot-grid">`;
         data.slots.forEach(slot => {
           if (slot.available) {
-            html += `<div class="slot-item slot-free" onclick="abrirModalReserva('${slot.time}', '${data.service_name}')">
+            html += `<div class="slot-item slot-free" onclick="abrirModalReserva('${slot.time}', '${data.service_name}', ${data.duration_min})">
                        ${slot.time}<br><small>Libres: ${slot.maxCapacity - slot.bookedCount}/${slot.maxCapacity}</small>
                       </div>`;
           } else {
@@ -417,9 +430,9 @@
       }
     }
 
-    function abrirModalReserva(timeStr, serviceName) {
+    function abrirModalReserva(timeStr, serviceName, durationMin) {
       selectedSlotTime = timeStr;
-      document.getElementById('modalServiceName').innerText = serviceName;
+      document.getElementById('modalServiceName').innerText = `${serviceName} (${durationMin} min)`;
       document.getElementById('modalSlotTime').innerText = `${document.getElementById('bookingDate').value} a las ${timeStr}`;
       document.getElementById('reservationForm').reset();
       document.getElementById('reservationModal').style.display = 'block';
@@ -433,10 +446,18 @@
       e.preventDefault();
       const tenantId = document.getElementById('bookingTenantSelect').value;
       const serviceId = document.getElementById('clientServiceSelect').value;
+      const serviceSelectEl = document.getElementById('clientServiceSelect');
+      const selectedOption = serviceSelectEl.options[serviceSelectEl.selectedIndex];
+      const serviceName = selectedOption.getAttribute('data-name');
+      const durationMin = selectedOption.getAttribute('data-duration');
+
       const date = document.getElementById('bookingDate').value;
       const clientName = document.getElementById('client_name').value;
       const clientPhone = document.getElementById('client_phone').value;
       const notes = document.getElementById('reservation_notes').value;
+
+      const tenantObj = tenantsCache.find(t => t.id == tenantId);
+      const businessName = tenantObj ? tenantObj.name : 'Negocio';
 
       const payload = {
         tenant_id: parseInt(tenantId),
@@ -455,8 +476,13 @@
         });
 
         if (res.ok) {
-          alert('¡Reserva realizada con éxito!');
           cerrarModalReserva();
+          
+          // Generar mensaje detallado de confirmación para WhatsApp
+          const mensajeExito = `✅ ¡Reserva Confirmada en ${businessName}!\n\n👤 Cliente: ${clientName}\n🛠️ Servicio: ${serviceName}\n⏱️ Duración: ${durationMin} minutos\n📅 Fecha: ${date}\n⏰ Hora: ${selectedSlotTime}\n📝 Notas: ${notes || 'Ninguna'}\n\n¡Te esperamos!`;
+          
+          document.getElementById('successWhatsAppText').value = mensajeExito;
+          document.getElementById('successModal').style.display = 'block';
           verDisponibilidad();
         } else {
           const resultData = await res.json();
@@ -468,8 +494,29 @@
       }
     }
 
+    function copiarMensajeExito() {
+      const texto = document.getElementById('successWhatsAppText');
+      texto.select();
+      document.execCommand('copy');
+      alert('¡Mensaje de confirmación copiado al portapapeles!');
+    }
+
+    function enviarWhatsAppExito() {
+      const texto = encodeURIComponent(document.getElementById('successWhatsAppText').value);
+      window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
+    }
+
+    function cerrarModalExito() {
+      document.getElementById('successModal').style.display = 'none';
+    }
+
     function exportarCSV() {
-      window.location.href = '/api/tenants/export';
+      const tenantId = document.getElementById('bookingTenantSelect').value || document.getElementById('tenantSelect').value;
+      if (tenantId && tenantId !== 'NEW') {
+        window.location.href = `/api/tenants/export?tenant_id=${tenantId}`;
+      } else {
+        window.location.href = '/api/tenants/export';
+      }
     }
 
     function copiarTextoWhatsApp() {

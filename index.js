@@ -40,7 +40,6 @@ async function initDB() {
       );
     `);
 
-    // Tabla para servicios flexibles por negocio
     await pool.query(`
       CREATE TABLE IF NOT EXISTS services (
         id SERIAL PRIMARY KEY,
@@ -65,12 +64,11 @@ async function initDB() {
       );
     `);
 
-    // Asegurar que la columna service_id existe si la tabla ya estaba creada previamente
     await pool.query(`
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS service_id INT REFERENCES services(id) ON DELETE SET NULL;
     `);
 
-    console.log('Base de datos inicializada y actualizada con soporte para servicios dinámicos.');
+    console.log('Base de datos inicializada correctamente.');
   } catch (err) {
     console.error('Error al inicializar BD:', err);
   }
@@ -81,7 +79,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Obtener tenants
 app.get('/api/tenants', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
@@ -91,7 +88,6 @@ app.get('/api/tenants', async (req, res) => {
   }
 });
 
-// Obtener servicios de un tenant
 app.get('/api/tenants/:id/services', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM services WHERE tenant_id = $1 ORDER BY id ASC', [req.params.id]);
@@ -101,7 +97,6 @@ app.get('/api/tenants/:id/services', async (req, res) => {
   }
 });
 
-// Guardar servicio
 app.post('/api/services', async (req, res) => {
   const { tenant_id, name, duration_min, price } = req.body;
   try {
@@ -115,7 +110,6 @@ app.post('/api/services', async (req, res) => {
   }
 });
 
-// Borrar servicio
 app.delete('/api/services/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM services WHERE id = $1', [req.params.id]);
@@ -125,7 +119,6 @@ app.delete('/api/services/:id', async (req, res) => {
   }
 });
 
-// Guardar/Actualizar empresa
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -177,7 +170,6 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad basada en la duración del servicio seleccionado por el cliente
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -259,7 +251,6 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Crear reserva vinculada al servicio y su duración
 app.post('/api/reservations', async (req, res) => {
   const { tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
@@ -287,16 +278,25 @@ app.post('/api/reservations', async (req, res) => {
   }
 });
 
-// Exportar CSV
+// Exportar CSV filtrado por tenant opcionalmente
 app.get('/api/tenants/export', async (req, res) => {
+  const tenantId = req.query.tenant_id;
   try {
-    const result = await pool.query(`
+    let query = `
       SELECT t.name as empresa, s.name as servicio, r.client_name, r.client_phone, r.reservation_time, r.duration_min, r.notes 
       FROM reservations r
       JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN services s ON r.service_id = s.id
-      ORDER BY r.reservation_time DESC
-    `);
+    `;
+    let queryParams = [];
+
+    if (tenantId) {
+      query += ` WHERE t.id = $1`;
+      queryParams.push(tenantId);
+    }
+    query += ` ORDER BY r.reservation_time DESC`;
+
+    const result = await pool.query(query, queryParams);
 
     let csvContent = 'Empresa,Servicio,Cliente,Telefono,Fecha Hora,Duracion (min),Notas\n';
     result.rows.forEach(row => {
@@ -305,7 +305,7 @@ app.get('/api/tenants/export', async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=reservas_servicios.csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=reservas_empresa.csv');
     res.status(200).send(csvContent);
   } catch (err) {
     res.status(500).json({ error: 'Error al exportar' });
