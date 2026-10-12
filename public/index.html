@@ -287,47 +287,48 @@
     }
 
     async function confirmarGuardado() {
-      const tenantId = document.getElementById('tenantId').value;
-      const data = {
-        id: tenantId ? parseInt(tenantId) : null,
-        name: document.getElementById('name').value,
-        phone: document.getElementById('phone').value,
-        business_type: document.getElementById('business_type').value,
-        max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
-        default_duration_min: parseInt(document.getElementById('default_duration_min').value) || 60,
-        shift1_start: document.getElementById('shift1_start').value,
-        shift1_end: document.getElementById('shift1_end').value,
-        shift2_start: document.getElementById('shift2_start').value || null,
-        shift2_end: document.getElementById('shift2_end').value || null,
-        notes: document.getElementById('notes').value
-      };
+  const tenantId = document.getElementById('tenantId').value;
+  const data = {
+    id: tenantId ? parseInt(tenantId) : null,
+    name: document.getElementById('name').value,
+    phone: document.getElementById('phone').value,
+    category: null, // Incluimos category para evitar undefined en el backend
+    business_type: document.getElementById('business_type').value,
+    max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
+    default_duration_min: parseInt(document.getElementById('default_duration_min').value) || 60,
+    shift1_start: document.getElementById('shift1_start').value || '09:00',
+    shift1_end: document.getElementById('shift1_end').value || '14:00',
+    shift2_start: document.getElementById('shift2_start').value || null,
+    shift2_end: document.getElementById('shift2_end').value || null,
+    notes: document.getElementById('notes').value || ''
+  };
 
-      try {
-        const res = await fetch('/api/tenants/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+  try {
+    const res = await fetch('/api/tenants/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
 
-        if (res.ok) {
-          cerrarModal();
-          await obtenerTenants();
-          if (currentTenantToken) {
-            inicializar();
-          } else {
-            document.getElementById('tenantForm').reset();
-            document.getElementById('tenantId').value = '';
-          }
-          alert('¡Configuración guardada correctamente!');
-        } else {
-          const errData = await res.json();
-          alert('Error: ' + (errData.error || 'Desconocido'));
-        }
-      } catch (err) {
-        console.error('Error de red:', err);
-        alert('Error de conexión con el servidor.');
+    if (res.ok) {
+      cerrarModal();
+      await obtenerTenants();
+      if (currentTenantToken) {
+        inicializar();
+      } else {
+        document.getElementById('tenantForm').reset();
+        document.getElementById('tenantId').value = '';
       }
+      alert('¡Configuración guardada correctamente!');
+    } else {
+      const errData = await res.json();
+      alert('Error: ' + (errData.error || 'Desconocido'));
     }
+  } catch (err) {
+    console.error('Error de red:', err);
+    alert('Error de conexión con el servidor.');
+  }
+}
 
     async function verDisponibilidad() {
       const tenantId = document.getElementById('bookingTenantSelect').value;
