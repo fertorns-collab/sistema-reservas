@@ -40,7 +40,7 @@ async function initDB() {
       );
     `);
 
-    // Nueva tabla para servicios flexibles por negocio (ej. 1h, 1.5h, Corte, Tinte)
+    // Tabla para servicios flexibles por negocio
     await pool.query(`
       CREATE TABLE IF NOT EXISTS services (
         id SERIAL PRIMARY KEY,
@@ -64,7 +64,13 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Base de datos inicializada con soporte para Servicios Dinámicos.');
+
+    // Asegurar que la columna service_id existe si la tabla ya estaba creada previamente
+    await pool.query(`
+      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS service_id INT REFERENCES services(id) ON DELETE SET NULL;
+    `);
+
+    console.log('Base de datos inicializada y actualizada con soporte para servicios dinámicos.');
   } catch (err) {
     console.error('Error al inicializar BD:', err);
   }
@@ -157,7 +163,6 @@ app.post('/api/tenants/config', async (req, res) => {
         ]
       );
       
-      // Crear un servicio por defecto (ej. Sesión 60 min)
       const newTenantId = result.rows[0].id;
       await pool.query(
         'INSERT INTO services (tenant_id, name, duration_min, price) VALUES ($1, $2, $3, $4)',
@@ -210,7 +215,6 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
       while (current < end) {
         const timeStr = current.toTimeString().substring(0, 5);
         slots.push(timeStr);
-        // Avanzamos en intervalos de 30 minutos para la rejilla de selección
         current = new Date(current.getTime() + 30 * 60000);
       }
     };
@@ -219,7 +223,6 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
 
     const availability = slots.map(slotTime => {
-      // Comprobar solapes basados en la duración del servicio
       const slotStart = new Date(`${date}T${slotTime}:00`).getTime();
       const slotEnd = slotStart + durationMin * 60000;
 
@@ -228,7 +231,6 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
         const rDuration = r.duration_min || 60;
         const rEnd = rStart + rDuration * 60000;
 
-        // Condición de solape entre intervalos
         return slotStart < rEnd && slotEnd > rStart;
       }).length;
 
@@ -257,7 +259,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Crear reserva vinculada al servicio y su duración (CORREGIDO)
+// Crear reserva vinculada al servicio y su duración
 app.post('/api/reservations', async (req, res) => {
   const { tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
@@ -267,7 +269,6 @@ app.post('/api/reservations', async (req, res) => {
       return res.status(404).json({ error: 'Servicio no válido' });
     }
     
-    // ACCESO CORREGIDO AL ARRAY ROWS[0]
     const durationMin = serviceRes.rows[0].duration_min || 60;
 
     const insertResult = await pool.query(
