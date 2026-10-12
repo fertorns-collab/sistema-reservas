@@ -292,7 +292,7 @@
     id: tenantId ? parseInt(tenantId) : null,
     name: document.getElementById('name').value,
     phone: document.getElementById('phone').value,
-    category: null, // Incluimos category para evitar undefined en el backend
+    category: null, // Evitamos 'undefined' para que PostgreSQL procese correctamente la consulta
     business_type: document.getElementById('business_type').value,
     max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
     default_duration_min: parseInt(document.getElementById('default_duration_min').value) || 60,
