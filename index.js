@@ -96,10 +96,18 @@ app.post('/api/tenants/config', async (req, res) => {
           shift1_end = $9, shift2_start = $10, shift2_end = $11 
          WHERE id = $12 RETURNING *`,
         [
-          name, phone, category || null, notes, business_type || 'general',
-          max_capacity || 2, default_duration_min || 60,
-          shift1_start || '09:00', shift1_end || '14:00',
-          shift2_start || null, shift2_end || null, id
+          name, 
+          phone, 
+          category || null, 
+          notes || '', 
+          business_type || 'general',
+          max_capacity || 2, 
+          default_duration_min || 60,
+          shift1_start || '09:00', 
+          shift1_end || '14:00',
+          shift2_start || null, 
+          shift2_end || null, 
+          id
         ]
       );
     } else {
@@ -111,10 +119,18 @@ app.post('/api/tenants/config', async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
          RETURNING *`,
         [
-          tenantToken, name, phone, category || null, notes, business_type || 'general',
-          max_capacity || 2, default_duration_min || 60,
-          shift1_start || '09:00', shift1_end || '14:00',
-          shift2_start || null, shift2_end || null
+          tenantToken, 
+          name, 
+          phone, 
+          category || null, 
+          notes || '', 
+          business_type || 'general',
+          max_capacity || 2, 
+          default_duration_min || 60,
+          shift1_start || '09:00', 
+          shift1_end || '14:00',
+          shift2_start || null, 
+          shift2_end || null
         ]
       );
     }
@@ -122,7 +138,7 @@ app.post('/api/tenants/config', async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Error al guardar configuración:', err);
-    res.status(500).json({ error: 'Error al guardar la configuración del negocio' });
+    res.status(500).json({ error: 'Error al guardar la configuración del negocio: ' + err.message });
   }
 });
 
