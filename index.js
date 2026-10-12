@@ -23,11 +23,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Inicialización del esquema de la Base de Datos
 async function initDB() {
   try {
-    // Añadimos tenant_token para seguridad y aislamiento por negocio
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tenants (
         id SERIAL PRIMARY KEY,
-        tenant_token VARCHAR(64) UNIQUE DEFAULT gen_random_uuid()::text,
+        tenant_token VARCHAR(64) UNIQUE,
         name VARCHAR(100) NOT NULL,
         phone VARCHAR(30) NOT NULL,
         category VARCHAR(50),
@@ -41,6 +40,11 @@ async function initDB() {
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Añadir la columna tenant_token si la tabla ya existía previamente sin ella
+    await pool.query(`
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tenant_token VARCHAR(64) UNIQUE;
     `);
 
     await pool.query(`
