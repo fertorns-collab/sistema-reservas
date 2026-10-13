@@ -113,7 +113,7 @@ app.get('/api/client/tenant/:token', async (req, res) => {
   }
 });
 
-// Endpoint para validar el token de administración
+// Endpoint para validar el token de administración (Seguro por Token Secreto)
 app.get('/api/admin/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -129,19 +129,27 @@ app.get('/api/admin/tenant/:token', async (req, res) => {
   }
 });
 
-// Búsqueda de accesos por teléfono (normalizado)
+// Búsqueda de accesos por teléfono robusta (normalizando caracteres especiales)
 app.get('/api/tenants/search/:phone', async (req, res) => {
   try {
-    const searchPhone = req.params.phone.replace(/[^0-9]/g, '');
+    const searchClean = req.params.phone.replace(/[^0-9]/g, '');
+    if (!searchClean) {
+      return res.status(400).json({ error: 'Introduce un número de teléfono válido' });
+    }
+    
+    // Compara eliminando símbolos +, espacios y guiones en la base de datos
     const result = await pool.query(
-      'SELECT id, name, phone, admin_token, booking_token FROM tenants WHERE REPLACE(REPLACE(REPLACE(phone, "+", ""), " ", ""), "-", "") LIKE $1',
-      [`%${searchPhone}%`]
+      `SELECT id, name, phone, admin_token, booking_token FROM tenants 
+       WHERE REGEXP_REPLACE(phone, '[^0-9]', '', 'g') LIKE $1`,
+      [`%${searchClean}%`]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'No se encontró ningún negocio con este teléfono.' });
     }
     res.json(result.rows);
   } catch (err) {
+    console.error('Error en búsqueda por teléfono:', err);
     res.status(500).json({ error: 'Error al buscar negocio' });
   }
 });
@@ -214,7 +222,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Configuración y alta de empresas (Soporte para múltiples closed_days y closing_times)
+// Configuración y alta de empresas
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -270,7 +278,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad con gestión de días cerrados múltiples y horarios personalizados por día
+// Disponibilidad inteligente
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -341,7 +349,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     };
 
     const closingTimes = tenant.closing_times || {};
-    const daySchedule = closingTimes[dayOfWeek]; // Puede ser {closed: true} o {start, end}
+    const daySchedule = closingTimes[dayOfWeek];
 
     if (daySchedule && daySchedule.closed) {
       return res.json({
