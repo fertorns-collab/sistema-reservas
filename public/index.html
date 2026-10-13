@@ -8,12 +8,12 @@
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800">
 
-  <!-- VISTA DE LANDING / ALTA B2B Y BUSCADOR DE ACCESOS -->
+  <!-- VISTA DE LANDING / ALTA B2B Y BUSCADOR SEGURO DE ACCESOS -->
   <div id="landing-view" class="max-w-2xl mx-auto mt-12 p-8 bg-white rounded-2xl shadow-xl hidden space-y-8 border border-slate-200">
     <div>
       <header class="mb-6 text-center">
         <h1 class="text-3xl font-extrabold text-indigo-600 tracking-tight">Crea tu Negocio de Reservas</h1>
-        <p class="text-slate-500 mt-2">Registra tu establecimiento y gestiona tus citas globalmente.</p>
+        <p class="text-slate-500 mt-2">Registra tu establecimiento y gestiona tus citas con total seguridad.</p>
       </header>
 
       <form id="register-business-form" class="space-y-4">
@@ -36,17 +36,18 @@
       </form>
     </div>
 
+    <!-- Recuperación segura mediante envío de enlaces con token -->
     <div class="border-t border-slate-200 pt-6">
       <header class="mb-4 text-center">
-        <h2 class="text-xl font-bold text-slate-700">¿Ya tienes un negocio registrado?</h2>
-        <p class="text-slate-500 text-sm mt-1">Introduce tu teléfono para consultar tus accesos directos.</p>
+        <h2 class="text-xl font-bold text-slate-700">¿Has olvidado tus accesos de administración?</h2>
+        <p class="text-slate-500 text-sm mt-1">Introduce tu teléfono registrado para recuperar tus enlaces secretos y privados.</p>
       </header>
 
       <form id="recover-access-form" class="space-y-4">
         <div>
-          <input type="text" id="recover-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-slate-500 outline-none" required placeholder="Introduce tu teléfono (ej. 600123456 o +34600123456)">
+          <input type="text" id="recover-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-slate-500 outline-none" required placeholder="Introduce tu teléfono (ej. 600123456)">
         </div>
-        <button type="submit" class="w-full bg-slate-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-900 transition">Buscar Mis Accesos</button>
+        <button type="submit" class="w-full bg-slate-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-900 transition">Recuperar Enlaces Seguros</button>
       </form>
 
       <div id="recover-results" class="mt-4 space-y-3 hidden"></div>
@@ -134,7 +135,7 @@
             <a id="client-booking-url" href="#" target="_blank" class="text-indigo-600 font-semibold text-sm hover:underline break-all">--</a>
           </div>
           <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="block text-xs font-bold text-slate-400 uppercase">Panel Privado de Gerencia:</span>
+            <span class="block text-xs font-bold text-slate-400 uppercase">Panel Privado de Gerencia (¡Guarda este enlace en favoritos!):</span>
             <a id="admin-panel-url" href="#" target="_blank" class="text-purple-600 font-semibold text-sm hover:underline break-all">--</a>
           </div>
         </div>
@@ -369,12 +370,14 @@
         });
         const tenant = await res.json();
         if (res.ok) {
+          // Redirige al panel privado usando estrictamente el token secreto de administrador
           window.location.href = `/?admin=${tenant.admin_token}`;
         } else {
           alert('Error al registrar el negocio');
         }
       });
 
+      // Búsqueda de teléfono SOLO para recuperar el enlace secreto (nunca para hacer login directo inseguro)
       document.getElementById('recover-access-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const phone = document.getElementById('recover-phone').value;
@@ -390,12 +393,12 @@
           return;
         }
 
-        results.innerHTML = '<h4 class="font-bold text-sm text-slate-700">Negocios Asociados:</h4>';
+        results.innerHTML = '<h4 class="font-bold text-sm text-slate-700">Enlaces de Acceso Seguro Encontrados:</h4>';
         data.forEach(t => {
           results.innerHTML += `
             <div class="p-3 bg-slate-50 border rounded-lg text-sm space-y-1">
               <p class="font-bold text-indigo-600">${t.name} <span class="text-xs text-slate-500">(${t.phone})</span></p>
-              <a href="/?admin=${t.admin_token}" class="block text-purple-600 font-medium hover:underline">Acceder al Panel de Administración</a>
+              <a href="/?admin=${t.admin_token}" class="block text-purple-600 font-medium hover:underline">Acceder al Panel Privado (con Token Secreto)</a>
               <a href="/?tenant=${t.booking_token}" target="_blank" class="block text-indigo-500 font-medium hover:underline">Ver Enlace Público de Reservas</a>
             </div>
           `;
@@ -547,13 +550,11 @@
         document.getElementById('shift2_end').value = currentTenant.shift2_end || '';
         document.getElementById('notes').value = currentTenant.notes || '';
 
-        // Marcar los checkboxes de días cerrados
         const closedDays = (currentTenant.closed_days || '').split(',').map(d => d.trim());
         document.querySelectorAll('.closed-day-cb').forEach(cb => {
           if (closedDays.includes(cb.value)) cb.checked = true;
         });
 
-        // Mostrar resumen de horarios especiales
         let closingTimes = currentTenant.closing_times || {};
         renderSpecialDaysSummary(closingTimes);
 
@@ -795,7 +796,7 @@
         });
 
       } catch (err) {
-        document.body.innerHTML = '<div class="text-center mt-20 text-rose-600 font-bold">Acceso de administración no válido.</div>';
+        document.body.innerHTML = '<div class="text-center mt-20 text-rose-600 font-bold">Acceso de administración no válido o token no autorizado.</div>';
       }
     }
   </script>
