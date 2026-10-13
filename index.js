@@ -36,7 +36,7 @@ async function initDB() {
         shift1_end TIME DEFAULT '14:00',
         shift2_start TIME,
         shift2_end TIME,
-        saturday_close TIME DEFAULT '14:00', -- Cierre específico para sábados
+        closing_times JSONB DEFAULT '{}', -- Objeto JSON con los cierres personalizados por día de la semana (ej: {"6": "14:00", "3": "15:00"})
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -80,7 +80,7 @@ async function initDB() {
 
     await pool.query(`
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closed_days VARCHAR(50) DEFAULT '0';
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS saturday_close TIME DEFAULT '14:00';
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closing_times JSONB DEFAULT '{}';
     `);
 
     console.log('Base de datos inicializada con éxito.');
@@ -172,26 +172,28 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Actualizar empresa con control de sábados
+// Guardar/Actualizar empresa con control flexible de cierres por día
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
-    max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, saturday_close 
+    max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, closing_times 
   } = req.body;
 
   try {
     let result;
+    const closingTimesJson = closing_times ? JSON.stringify(closing_times) : '{}';
+
     if (id) {
       result = await pool.query(
         `UPDATE tenants SET 
           name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
           max_capacity = $6, closed_days = $7, shift1_start = $8, shift1_end = $9, 
-          shift2_start = $10, shift2_end = $11, saturday_close = $12 
+          shift2_start = $10, shift2_end = $11, closing_times = $12 
          WHERE id = $13 RETURNING *`,
         [
           name, phone, category || null, notes || '', business_type || 'general',
           max_capacity || 2, closed_days || '0', shift1_start || '09:00', shift1_end || '14:00',
-          shift2_start || null, shift2_end || null, saturday_close || '14:00', id
+          shift2_start || null, shift2_end || null, closingTimesJson, id
         ]
       );
     } else {
@@ -200,14 +202,14 @@ app.post('/api/tenants/config', async (req, res) => {
 
       result = await pool.query(
         `INSERT INTO tenants 
-          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, saturday_close) 
+          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, closing_times) 
          VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
          RETURNING *`,
         [
           adminToken, bookingToken, name, phone, category || null, notes || '',
           business_type || 'general', max_capacity || 2, closed_days || '0',
           shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null,
-          saturday_close || '14:00'
+          closingTimesJson
         ]
       );
       
@@ -225,7 +227,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad inteligente con soporte para sábados y festivos
+// Disponibilidad inteligente con soporte para cierres personalizados por día de la semana y festivos
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -295,10 +297,13 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
       }
     };
 
-    // Si es Sábado (dayOfWeek === '6'), limitamos el turno de tarde o aplicamos el cierre especial del sábado
-    if (dayOfWeek === '6' && tenant.saturday_close) {
-      // Ajustamos el turno de mañana hasta el cierre de sábado y anulamos turno 2 si excede
-      addShiftsToSlots(tenant.shift1_start, tenant.saturday_close);
+    // Comprobamos si hay un cierre anticipado específico para este día de la semana
+    const closingTimes = tenant.closing_times || {};
+    const earlyCloseTime = closingTimes[dayOfWeek];
+
+    if (earlyCloseTime) {
+      // Ajustamos el turno de mañana hasta la hora de cierre personalizada y omitimos el turno de tarde si excede
+      addShiftsToSlots(tenant.shift1_start, earlyCloseTime);
     } else {
       addShiftsToSlots(tenant.shift1_start, tenant.shift1_end);
       addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
@@ -415,5 +420,5 @@ app.delete('/api/reservations/:id', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Servidor en puerto ${port}`);
+  console.log(`Server running on port ${port}`);
 });
