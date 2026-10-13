@@ -96,7 +96,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint para validar el token de cliente (Vista de Reserva)
+// Endpoint para validar el token de cliente
 app.get('/api/client/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -112,7 +112,7 @@ app.get('/api/client/tenant/:token', async (req, res) => {
   }
 });
 
-// Endpoint para validar el token de administración (Panel del Gerente)
+// Endpoint para validar el token de administración del gerente
 app.get('/api/admin/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -196,7 +196,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Actualizar empresa con control flexible de cierres por día y generación de tokens seguros
+// Guardar/Crear empresa con generación automática y segura de tokens
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -227,10 +227,10 @@ app.post('/api/tenants/config', async (req, res) => {
       result = await pool.query(
         `INSERT INTO tenants 
           (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, closing_times) 
-         VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
          RETURNING *`,
         [
-          adminToken, bookingToken, name, phone, category || null, notes || '',
+          adminToken, adminToken, bookingToken, name, phone, category || null, notes || '',
           business_type || 'general', max_capacity || 2, closed_days || '0',
           shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null,
           closingTimesJson
@@ -369,7 +369,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Endpoints de reservas y exportación
+// Endpoints de reservas
 app.get('/api/reservations', async (req, res) => {
   const { tenant_id, phone, code, start_date, end_date } = req.query;
   try {
