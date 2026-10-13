@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Sistema de Reservas B2B</title>
+  <title>Sistema de Reservas B2B - Seguro</title>
   <style>
-    /* Ocultar contenido inicial hasta validar tokens para evitar destellos visuales */
     body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f8; color: #333; display: none; }
     .card { background: white; padding: 20px; border-radius: 8px; max-width: 650px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .form-group { margin-bottom: 15px; }
@@ -34,7 +33,7 @@
 
   <h2 id="panelTitle">Panel de Gestión y Reservas</h2>
 
-  <!-- Sección Gerente / Admin: Consulta de Reservas y Exportación -->
+  <!-- Panel del Gerente -->
   <div class="card" id="adminManagerCard" style="display:none;">
     <h3>📊 Panel de Control y Consulta de Reservas</h3>
     <div class="row">
@@ -54,7 +53,7 @@
     <div id="gerenteReservasResult" style="margin-top: 15px; max-height: 250px; overflow-y: auto;"></div>
   </div>
 
-  <!-- Configuración Empresa (Admin) -->
+  <!-- Configuración de Empresa (Admin) -->
   <div class="card" id="configCardContainer">
     <div class="form-group" id="tenantSelectGroup">
       <label>Configurar Empresa:</label>
@@ -87,7 +86,7 @@
       </div>
 
       <div class="form-group" id="servicesManagement" style="display:none; background: #fdfdfd; border: 1px solid #ddd; padding: 12px; border-radius: 6px;">
-        <label>🛠️ Catálogo de Servicios (con duración en formato ej. 1:30):</label>
+        <label>🛠️ Catálogo de Servicios:</label>
         <div id="servicesList" style="margin-bottom: 10px;"></div>
         <div class="row">
           <input type="text" id="newServiceName" placeholder="Nombre (ej. Pista 1:30)" style="flex: 2;">
@@ -146,16 +145,17 @@
     </form>
   </div>
 
-  <!-- Zona Cliente: Consulta de Reservas / Modificación y Disponibilidad -->
+  <!-- Zona Cliente: Consulta y Autogestión Segura -->
   <div class="card" id="clientBookingCard">
     <h3 id="bookingCardTitle">Consulta de Disponibilidad y Reservas</h3>
     
-    <!-- Autogestión del cliente por Teléfono -->
+    <!-- Autogestión Segura: Teléfono + Código de Reserva -->
     <div style="background: #eef2f7; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-      <label>📱 ¿Ya tienes reservas o quieres consultar/modificar las tuyas?</label>
+      <label>📱 ¿Quieres consultar, modificar o anular tus reservas?</label>
       <div class="row" style="margin-top: 8px;">
-        <input type="tel" id="clientLookupPhone" placeholder="Introduce tu teléfono (ej: +34600000000)">
-        <button type="button" class="btn btn-secondary" onclick="consultarMisReservas()">Ver Mis Reservas</button>
+        <input type="tel" id="clientLookupPhone" placeholder="Tu Teléfono (ej: +34600000000)" style="flex: 1;">
+        <input type="text" id="clientLookupCode" placeholder="Código de Reserva (ej: RES-4829)" style="flex: 1;">
+        <button type="button" class="btn btn-secondary" onclick="consultarMisReservas()">Validar y Ver</button>
       </div>
       <div id="clientReservationsList" style="margin-top: 10px;"></div>
     </div>
@@ -197,7 +197,7 @@
           <input type="text" id="client_name" required placeholder="Ej: Juan Pérez">
         </div>
         <div class="form-group">
-          <label>Teléfono del Cliente (para WhatsApp automático):</label>
+          <label>Teléfono del Cliente:</label>
           <input type="tel" id="client_phone" required placeholder="Ej: +34611223344">
         </div>
         <div class="form-group">
@@ -210,16 +210,17 @@
     </div>
   </div>
 
-  <!-- Modal Confirmación Exitosa -->
+  <!-- Modal Confirmación Exitosa con Código de Reserva Visible -->
   <div id="successModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
-      <h3 style="color: #28a745;">¡Operación Realizada con Éxito! 🎉</h3>
-      <p>El WhatsApp con los detalles de tu reserva se abrirá automáticamente:</p>
-      <textarea id="successWhatsAppText" readonly style="background: #f9f9f9; font-size: 0.9em; height: 120px;"></textarea>
+      <h3 style="color: #28a745;">¡Reserva Realizada con Éxito! 🎉</h3>
+      <p>Guarda tu <strong>Código de Reserva</strong> para futuras consultas o modificaciones:</p>
+      <div id="successBookingCodeDisplay" class="badge-token" style="font-size: 1.2em; text-align: center; background: #e8f5e9; color: #2e7d32; font-weight: bold; margin-bottom: 10px;"></div>
+      <textarea id="successWhatsAppText" readonly style="background: #f9f9f9; font-size: 0.9em; height: 100px;"></textarea>
       
       <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
         <button type="button" class="btn" style="background: #25D366; color: white; flex: 1;" onclick="enviarWhatsAppExito()">📲 Abrir WhatsApp</button>
-        <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="descargarICS()">📅 Descargar Calendario (.ics)</button>
+        <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="descargarICS()">📅 Calendario (.ics)</button>
       </div>
       <button type="button" class="btn btn-secondary" onclick="cerrarModalExito()" style="margin-top: 10px; width: 100%;">Cerrar</button>
     </div>
@@ -251,7 +252,8 @@
       const params = new URLSearchParams(window.location.search);
       return {
         adminToken: params.get('admin_token'),
-        bookingToken: params.get('booking_token') || params.get('token')
+        bookingToken: params.get('booking_token') || params.get('token'),
+        codigoParam: params.get('codigo')
       };
     }
 
@@ -285,13 +287,15 @@
           document.getElementById('bookingTenantSelectGroup').style.display = 'none';
           document.getElementById('bookingTenantSelect').value = tenant.id;
           await cargarServiciosCliente();
+          
+          if (tokens.codigoParam) {
+            document.getElementById('clientLookupCode').value = tokens.codigoParam;
+          }
         }
       } else {
-        // Vista general por defecto
         document.getElementById('adminManagerCard').style.display = 'block';
       }
       
-      // Mostrar la página una vez aplicado el rol para evitar destellos visuales
       document.body.style.display = 'block';
     }
 
@@ -533,18 +537,24 @@
         });
 
         if (res.ok) {
+          const resData = await res.json();
           cerrarModalReserva();
           
+          const bookingCode = resData.reservation.booking_code;
+          const tenantTokenObj = tenantObj ? (tenantObj.booking_token || tenantObj.tenant_token) : '';
+          const urlAutorelleno = `${window.location.origin}/?booking_token=${tenantTokenObj}&codigo=${bookingCode}`;
+
           ultimaReservaInfo = {
-            businessName, clientName, serviceName, durationMin: formatearMinutosAHoras(parseInt(durationMin)), date, time: selectedSlotTime, clientPhone
+            businessName, clientName, serviceName, durationMin: formatearMinutosAHoras(parseInt(durationMin)), date, time: selectedSlotTime, clientPhone, bookingCode
           };
 
-          const mensajeExito = `✅ *Reserva Confirmada* en ${businessName}!\n\n👤 Cliente: ${clientName}\n🛠️ Servicio: ${serviceName}\n⏱️ Duración: ${formatearMinutosAHoras(parseInt(durationMin))}\n📅 Fecha: ${date}\n⏰ Hora: ${selectedSlotTime}\n📝 Notas: ${notes || 'Ninguna'}\n\n¡Te esperamos!`;
+          document.getElementById('successBookingCodeDisplay').innerText = `🔑 Código de Reserva: ${bookingCode}`;
+
+          const mensajeExito = `✅ *Reserva Confirmada* en ${businessName}!\n\n🔑 *Código:* ${bookingCode}\n👤 Cliente: ${clientName}\n🛠️ Servicio: ${serviceName}\n⏱️ Duración: ${formatearMinutosAHoras(parseInt(durationMin))}\n📅 Fecha: ${date}\n⏰ Hora: ${selectedSlotTime}\n\n🔗 Gestiona tu cita aquí:\n👉 ${urlAutorelleno}`;
           
           document.getElementById('successWhatsAppText').value = mensajeExito;
           document.getElementById('successModal').style.display = 'block';
           
-          // Abrir WhatsApp automáticamente al número del cliente
           setTimeout(() => {
             window.open(`https://api.whatsapp.com/send?phone=${encodeURIComponent(clientPhone)}&text=${encodeURIComponent(mensajeExito)}`, '_blank');
           }, 500);
@@ -559,32 +569,34 @@
       }
     }
 
+    // Consulta segura exigiendo Teléfono + Código de Reserva
     async function consultarMisReservas() {
       const tenantId = document.getElementById('bookingTenantSelect').value;
       const phone = document.getElementById('clientLookupPhone').value;
+      const code = document.getElementById('clientLookupCode').value;
       const container = document.getElementById('clientReservationsList');
 
-      if (!tenantId || !phone) {
-        alert('Selecciona una empresa e introduce tu teléfono.');
+      if (!tenantId || !phone || !code) {
+        alert('Selecciona una empresa, introduce tu teléfono y tu código de reserva.');
         return;
       }
 
       try {
-        const res = await fetch(`/api/reservations?tenant_id=${tenantId}&phone=${encodeURIComponent(phone)}`);
+        const res = await fetch(`/api/reservations?tenant_id=${tenantId}&phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}`);
         const reservations = await res.json();
 
         if (reservations.length === 0) {
-          container.innerHTML = '<p style="color: #666; font-size: 0.9em; margin-top: 5px;">No se encontraron reservas para este teléfono.</p>';
+          container.innerHTML = '<p style="color: red; font-size: 0.9em; margin-top: 5px;">❌ No se encontró ninguna reserva con ese teléfono y código.</p>';
           return;
         }
 
-        let html = '<div style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px;"><b>Tus Reservas:</b>';
+        let html = '<div style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 5px;"><b style="color: #28a745;">✅ Reservas Verificadas:</b>';
         reservations.forEach(r => {
           const fechaHora = new Date(r.reservation_time).toLocaleString();
           html += `
             <div class="reservation-item">
               <div>
-                <b>${r.service_name || 'Servicio'}</b><br>
+                <b>${r.service_name || 'Servicio'}</b> (Código: <code>${r.booking_code}</code>)<br>
                 📅 ${fechaHora} (${formatearMinutosAHoras(r.duration_min)})
               </div>
               <div style="display: flex; gap: 5px;">
@@ -654,7 +666,7 @@
           html += `
             <div class="reservation-item">
               <div>
-                👤 <b>${r.client_name}</b> (${r.client_phone})<br>
+                👤 <b>${r.client_name}</b> (${r.client_phone}) - <code style="background:#eee; padding:2px 4px; border-radius:3px;">${r.booking_code || 'N/A'}</code><br>
                 🛠️ ${r.service_name} - 📅 ${fechaHora} (${formatearMinutosAHoras(r.duration_min)})
               </div>
             </div>`;
@@ -686,7 +698,7 @@
 
       const formatDateICS = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-      const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//SaaS B2B//Reservas//ES\nBEGIN:VEVENT\nSUMMARY:${serviceName} en ${businessName}\nDESCRIPTION:Reserva confirmada en ${businessName}.\nDTSTART:${formatDateICS(startDateTime)}\nDTEND:${formatDateICS(endDateTime)}\nEND:VEVENT\nEND:VCALENDAR`;
+      const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//SaaS B2B//Reservas//ES\nBEGIN:VEVENT\nSUMMARY:${serviceName} en ${businessName}\nDESCRIPTION:Reserva confirmada.\nDTSTART:${formatDateICS(startDateTime)}\nDTEND:${formatDateICS(endDateTime)}\nEND:VEVENT\nEND:VCALENDAR`;
 
       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
