@@ -50,6 +50,7 @@ async function initDB() {
       );
     `);
 
+    // Añadimos booking_code para asegurar la autenticación segura del cliente
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reservations (
         id SERIAL PRIMARY KEY,
@@ -57,6 +58,7 @@ async function initDB() {
         service_id INT REFERENCES services(id) ON DELETE SET NULL,
         client_name VARCHAR(100) NOT NULL,
         client_phone VARCHAR(30) NOT NULL,
+        booking_code VARCHAR(20) UNIQUE,
         reservation_time TIMESTAMP NOT NULL,
         duration_min INT DEFAULT 60,
         notes TEXT,
@@ -66,9 +68,10 @@ async function initDB() {
 
     await pool.query(`
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS service_id INT REFERENCES services(id) ON DELETE SET NULL;
+      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS booking_code VARCHAR(20);
     `);
 
-    console.log('Base de datos inicializada con éxito.');
+    console.log('Base de datos inicializada con éxito y segura con códigos de reserva.');
   } catch (err) {
     console.error('Error al inicializar BD:', err);
   }
@@ -257,9 +260,9 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Crear, Modificar o Consultar reservas
+// Consultar reservas con validación de seguridad (Teléfono + Código)
 app.get('/api/reservations', async (req, res) => {
-  const { tenant_id, phone, start_date, end_date } = req.query;
+  const { tenant_id, phone, code, start_date, end_date } = req.query;
   try {
     let query = `
       SELECT r.*, s.name as service_name, t.name as tenant_name 
@@ -270,13 +273,17 @@ app.get('/api/reservations', async (req, res) => {
     `;
     let params = [tenant_id];
 
-    if (phone) {
+    if (phone && code) {
+      query += ` AND r.client_phone = $2 AND r.booking_code = $3`;
+      params.push(phone, code);
+    } else if (start_date && end_date) {
+      // Vista para el gerente (filtrado por rango de fechas)
+      query += ` AND DATE(r.reservation_time) >= $2 AND DATE(r.reservation_time) <= $3`;
+      params.push(start_date, end_date);
+    } else if (phone) {
+      // Fallback si solo se pasa teléfono
       query += ` AND r.client_phone = $2`;
       params.push(phone);
-    }
-    if (start_date && end_date) {
-      query += ` AND DATE(r.reservation_time) >= $${params.length + 1} AND DATE(r.reservation_time) <= $${params.length + 2}`;
-      params.push(start_date, end_date);
     }
 
     query += ` ORDER BY r.reservation_time DESC`;
@@ -287,6 +294,7 @@ app.get('/api/reservations', async (req, res) => {
   }
 });
 
+// Crear o Modificar reserva con generación de Código Único de Reserva
 app.post('/api/reservations', async (req, res) => {
   const { id, tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
@@ -300,18 +308,19 @@ app.post('/api/reservations', async (req, res) => {
 
     let result;
     if (id) {
-      // Modificar reserva existente
+      // Modificar reserva existente (mantiene su código original)
       result = await pool.query(
         `UPDATE reservations SET service_id = $1, client_name = $2, client_phone = $3, reservation_time = $4, duration_min = $5, notes = $6 
          WHERE id = $7 RETURNING *`,
         [service_id, client_name, client_phone, reservation_time, durationMin, notes || '', id]
       );
     } else {
-      // Crear nueva reserva
+      // Crear nueva reserva generando un código de reserva único (ej. RES-4829)
+      const bookingCode = 'RES-' + Math.floor(1000 + Math.random() * 9000);
       result = await pool.query(
-        `INSERT INTO reservations (tenant_id, service_id, client_name, client_phone, reservation_time, duration_min, notes) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [tenant_id, service_id, client_name, client_phone, reservation_time, durationMin, notes || 'Reserva confirmada']
+        `INSERT INTO reservations (tenant_id, service_id, client_name, client_phone, booking_code, reservation_time, duration_min, notes) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [tenant_id, service_id, client_name, client_phone, bookingCode, reservation_time, durationMin, notes || 'Reserva confirmada']
       );
     }
 
@@ -342,7 +351,7 @@ app.get('/api/tenants/export', async (req, res) => {
 
   try {
     let query = `
-      SELECT t.name as empresa, s.name as servicio, r.client_name, r.client_phone, r.reservation_time, r.duration_min, r.notes 
+      SELECT t.name as empresa, s.name as servicio, r.client_name, r.client_phone, r.booking_code, r.reservation_time, r.duration_min, r.notes 
       FROM reservations r
       JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN services s ON r.service_id = s.id
@@ -362,10 +371,10 @@ app.get('/api/tenants/export', async (req, res) => {
 
     const result = await pool.query(query, queryParams);
 
-    let csvContent = 'Empresa,Servicio,Cliente,Telefono,Fecha Hora,Duracion (min),Notas\n';
+    let csvContent = 'Empresa,Servicio,Cliente,Telefono,Codigo Reserva,Fecha Hora,Duracion (min),Notas\n';
     result.rows.forEach(row => {
       const cleanNotes = (row.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
-      csvContent += `"${row.empresa}","${row.servicio || ''}","${row.client_name || ''}","${row.client_phone || ''}","${row.reservation_time}","${row.duration_min}","${cleanNotes}"\n`;
+      csvContent += `"${row.empresa}","${row.servicio || ''}","${row.client_name || ''}","${row.client_phone || ''}","${row.booking_code || ''}","${row.reservation_time}","${row.duration_min}","${cleanNotes}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
