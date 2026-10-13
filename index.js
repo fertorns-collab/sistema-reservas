@@ -81,6 +81,8 @@ async function initDB() {
     await pool.query(`
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closed_days VARCHAR(50) DEFAULT '0';
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closing_times JSONB DEFAULT '{}';
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS admin_token VARCHAR(64) UNIQUE;
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS booking_token VARCHAR(64) UNIQUE;
     `);
 
     console.log('Base de datos inicializada con éxito.');
@@ -94,7 +96,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint para que el cliente cargue el negocio por su token único
+// Endpoint para validar el token de cliente (Vista de Reserva)
 app.get('/api/client/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -110,13 +112,19 @@ app.get('/api/client/tenant/:token', async (req, res) => {
   }
 });
 
-// Obtener tenants
-app.get('/api/tenants', async (req, res) => {
+// Endpoint para validar el token de administración (Panel del Gerente)
+app.get('/api/admin/tenant/:token', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
-    res.json(result.rows);
+    const result = await pool.query(
+      'SELECT * FROM tenants WHERE admin_token = $1',
+      [req.params.token]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Acceso de administración no autorizado' });
+    }
+    res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener registros' });
+    res.status(500).json({ error: 'Error al verificar credenciales' });
   }
 });
 
@@ -188,7 +196,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Actualizar empresa con control flexible de cierres por día
+// Guardar/Actualizar empresa con control flexible de cierres por día y generación de tokens seguros
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -361,7 +369,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Endpoints de reservas y exportación (con soporte completo de filtros por fecha)
+// Endpoints de reservas y exportación
 app.get('/api/reservations', async (req, res) => {
   const { tenant_id, phone, code, start_date, end_date } = req.query;
   try {
