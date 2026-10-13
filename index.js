@@ -31,11 +31,12 @@ async function initDB() {
         category VARCHAR(50),
         business_type VARCHAR(100) DEFAULT 'general',
         max_capacity INT DEFAULT 2,
-        closed_days VARCHAR(50) DEFAULT '0', -- Días cerrados (ej: '0' para domingo, '0,6' para fin de semana)
+        closed_days VARCHAR(50) DEFAULT '0',
         shift1_start TIME DEFAULT '09:00',
         shift1_end TIME DEFAULT '14:00',
         shift2_start TIME,
         shift2_end TIME,
+        saturday_close TIME DEFAULT '14:00', -- Cierre específico para sábados
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -66,7 +67,6 @@ async function initDB() {
       );
     `);
 
-    // Tabla para excepciones de calendario (festivos, vacaciones o aperturas extraordinarias)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS business_exceptions (
         id SERIAL PRIMARY KEY,
@@ -80,9 +80,10 @@ async function initDB() {
 
     await pool.query(`
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closed_days VARCHAR(50) DEFAULT '0';
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS saturday_close TIME DEFAULT '14:00';
     `);
 
-    console.log('Base de datos inicializada con control de descansos y excepciones.');
+    console.log('Base de datos inicializada con éxito.');
   } catch (err) {
     console.error('Error al inicializar BD:', err);
   }
@@ -113,7 +114,6 @@ app.get('/api/tenants/:id/services', async (req, res) => {
   }
 });
 
-// Guardar servicio
 app.post('/api/services', async (req, res) => {
   const { tenant_id, name, duration_min, price } = req.body;
   try {
@@ -127,7 +127,6 @@ app.post('/api/services', async (req, res) => {
   }
 });
 
-// Borrar servicio
 app.delete('/api/services/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM services WHERE id = $1', [req.params.id]);
@@ -137,7 +136,7 @@ app.delete('/api/services/:id', async (req, res) => {
   }
 });
 
-// Gestionar Excepciones (Festivos / Cierres)
+// Excepciones
 app.get('/api/tenants/:id/exceptions', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM business_exceptions WHERE tenant_id = $1 ORDER BY exception_date ASC', [req.params.id]);
@@ -156,7 +155,7 @@ app.post('/api/tenants/exceptions', async (req, res) => {
        ON CONFLICT (tenant_id, exception_date) 
        DO UPDATE SET is_closed = EXCLUDED.is_closed, reason = EXCLUDED.reason 
        RETURNING *`,
-      [tenant_id, exception_date, is_closed ?? true, reason || 'Festivo / Cierre']
+      [tenant_id, exception_date, is_closed ?? true, reason || 'Festivo']
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -173,11 +172,11 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Actualizar empresa
+// Guardar/Actualizar empresa con control de sábados
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
-    max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end 
+    max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, saturday_close 
   } = req.body;
 
   try {
@@ -187,12 +186,12 @@ app.post('/api/tenants/config', async (req, res) => {
         `UPDATE tenants SET 
           name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
           max_capacity = $6, closed_days = $7, shift1_start = $8, shift1_end = $9, 
-          shift2_start = $10, shift2_end = $11 
-         WHERE id = $12 RETURNING *`,
+          shift2_start = $10, shift2_end = $11, saturday_close = $12 
+         WHERE id = $13 RETURNING *`,
         [
           name, phone, category || null, notes || '', business_type || 'general',
           max_capacity || 2, closed_days || '0', shift1_start || '09:00', shift1_end || '14:00',
-          shift2_start || null, shift2_end || null, id
+          shift2_start || null, shift2_end || null, saturday_close || '14:00', id
         ]
       );
     } else {
@@ -201,13 +200,14 @@ app.post('/api/tenants/config', async (req, res) => {
 
       result = await pool.query(
         `INSERT INTO tenants 
-          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end) 
-         VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, saturday_close) 
+         VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
          RETURNING *`,
         [
           adminToken, bookingToken, name, phone, category || null, notes || '',
           business_type || 'general', max_capacity || 2, closed_days || '0',
-          shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null
+          shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null,
+          saturday_close || '14:00'
         ]
       );
       
@@ -225,7 +225,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad con validación de días cerrados y excepciones
+// Disponibilidad inteligente con soporte para sábados y festivos
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -246,15 +246,12 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     const service = serviceRes.rows[0];
     const durationMin = service.duration_min;
 
-    // Comprobar día de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
-    // Usamos fecha UTC para evitar desajustes horarios
     const targetDateObj = new Date(date + 'T00:00:00Z');
-    const dayOfWeek = targetDateObj.getUTCDay().toString();
+    const dayOfWeek = targetDateObj.getUTCDay().toString(); // 0 = Dom, 6 = Sáb
     const closedDaysArray = (tenant.closed_days || '').split(',').map(d => d.trim());
 
     let isClosedByDefault = closedDaysArray.includes(dayOfWeek);
 
-    // Comprobar excepciones de calendario para esta fecha exacta
     const exceptionRes = await pool.query(
       'SELECT * FROM business_exceptions WHERE tenant_id = $1 AND exception_date = $2',
       [tenantId, date]
@@ -262,7 +259,6 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
 
     let finalIsClosed = isClosedByDefault;
     if (exceptionRes.rows.length > 0) {
-      // Si hay excepción, sobrescribe la regla general
       finalIsClosed = exceptionRes.rows[0].is_closed;
     }
 
@@ -299,8 +295,14 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
       }
     };
 
-    addShiftsToSlots(tenant.shift1_start, tenant.shift1_end);
-    addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
+    // Si es Sábado (dayOfWeek === '6'), limitamos el turno de tarde o aplicamos el cierre especial del sábado
+    if (dayOfWeek === '6' && tenant.saturday_close) {
+      // Ajustamos el turno de mañana hasta el cierre de sábado y anulamos turno 2 si excede
+      addShiftsToSlots(tenant.shift1_start, tenant.saturday_close);
+    } else {
+      addShiftsToSlots(tenant.shift1_start, tenant.shift1_end);
+      addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
+    }
 
     const availability = slots.map(slotTime => {
       const slotStart = new Date(`${date}T${slotTime}:00`).getTime();
@@ -340,7 +342,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Consultar reservas
+// Endpoints de reservas y exportación
 app.get('/api/reservations', async (req, res) => {
   const { tenant_id, phone, code, start_date, end_date } = req.query;
   try {
@@ -377,9 +379,7 @@ app.post('/api/reservations', async (req, res) => {
 
   try {
     const serviceRes = await pool.query('SELECT duration_min FROM services WHERE id = $1', [service_id]);
-    if (serviceRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Servicio no válido' });
-    }
+    if (serviceRes.rows.length === 0) return res.status(404).json({ error: 'Servicio no válido' });
     
     const durationMin = serviceRes.rows[0].duration_min || 60;
 
@@ -399,12 +399,8 @@ app.post('/api/reservations', async (req, res) => {
       );
     }
 
-    res.status(201).json({
-      message: 'Reserva procesada con éxito',
-      reservation: result.rows[0]
-    });
+    res.status(201).json({ message: 'Reserva procesada con éxito', reservation: result.rows[0] });
   } catch (err) {
-    console.error('Error reserva:', err);
     res.status(500).json({ error: 'Error al procesar reserva: ' + err.message });
   }
 });
@@ -415,48 +411,6 @@ app.delete('/api/reservations/:id', async (req, res) => {
     res.json({ message: 'Reserva anulada con éxito' });
   } catch (err) {
     res.status(500).json({ error: 'Error al anular reserva' });
-  }
-});
-
-// Exportar CSV
-app.get('/api/tenants/export', async (req, res) => {
-  const tenantId = req.query.tenant_id;
-  const startDate = req.query.start_date;
-  const endDate = req.query.end_date;
-
-  try {
-    let query = `
-      SELECT t.name as empresa, s.name as servicio, r.client_name, r.client_phone, r.booking_code, r.reservation_time, r.duration_min, r.notes 
-      FROM reservations r
-      JOIN tenants t ON r.tenant_id = t.id
-      LEFT JOIN services s ON r.service_id = s.id
-      WHERE 1=1
-    `;
-    let queryParams = [];
-
-    if (tenantId) {
-      queryParams.push(tenantId);
-      query += ` AND t.id = $${queryParams.length}`;
-    }
-    if (startDate && endDate) {
-      queryParams.push(startDate, endDate);
-      query += ` AND DATE(r.reservation_time) >= $${queryParams.length - 1} AND DATE(r.reservation_time) <= $${queryParams.length}`;
-    }
-    query += ` ORDER BY r.reservation_time DESC`;
-
-    const result = await pool.query(query, queryParams);
-
-    let csvContent = 'Empresa,Servicio,Cliente,Telefono,Codigo Reserva,Fecha Hora,Duracion (min),Notas\n';
-    result.rows.forEach(row => {
-      const cleanNotes = (row.notes || '').replace(/"/g, '""').replace(/\n/g, ' ');
-      csvContent += `"${row.empresa}","${row.servicio || ''}","${row.client_name || ''}","${row.client_phone || ''}","${row.booking_code || ''}","${row.reservation_time}","${row.duration_min}","${cleanNotes}"\n`;
-    });
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=reservas_filtradas.csv');
-    res.status(200).send(csvContent);
-  } catch (err) {
-    res.status(500).json({ error: 'Error al exportar' });
   }
 });
 
