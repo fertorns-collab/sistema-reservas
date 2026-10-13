@@ -94,7 +94,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint clave para que el cliente cargue el negocio por su token único
+// Endpoint para que el cliente cargue el negocio por su token único
 app.get('/api/client/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
