@@ -83,6 +83,7 @@ async function initDB() {
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closing_times JSONB DEFAULT '{}';
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS admin_token VARCHAR(64) UNIQUE;
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS booking_token VARCHAR(64) UNIQUE;
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tenant_token VARCHAR(64) UNIQUE;
     `);
 
     console.log('Base de datos inicializada con éxito.');
@@ -221,6 +222,7 @@ app.post('/api/tenants/config', async (req, res) => {
         ]
       );
     } else {
+      const tenantToken = crypto.randomBytes(16).toString('hex');
       const adminToken = crypto.randomBytes(16).toString('hex');
       const bookingToken = crypto.randomBytes(16).toString('hex');
 
@@ -230,7 +232,7 @@ app.post('/api/tenants/config', async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
          RETURNING *`,
         [
-          adminToken, adminToken, bookingToken, name, phone, category || null, notes || '',
+          tenantToken, adminToken, bookingToken, name, phone, category || null, notes || '',
           business_type || 'general', max_capacity || 2, closed_days || '0',
           shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null,
           closingTimesJson
@@ -246,8 +248,8 @@ app.post('/api/tenants/config', async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error al guardar:', err);
-    res.status(500).json({ error: 'Error al guardar configuración' });
+    console.error('Error al guardar configuración:', err);
+    res.status(500).json({ error: 'Error al guardar configuración: ' + err.message });
   }
 });
 
