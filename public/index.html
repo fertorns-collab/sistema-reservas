@@ -3,20 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS de Reservas - Configuración Flexible</title>
+  <title>SaaS de Reservas - Panel de Administración</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
   <div class="max-w-4xl mx-auto p-6">
     <header class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-indigo-600">Gestión de Horarios y Reservas</h1>
-      <p class="text-gray-600 mt-2">Configura los cierres anticipados y disponibilidad de tu negocio para cualquier día de la semana[cite: 4].</p>
+      <h1 class="text-3xl font-bold text-indigo-600">Gestión de Horarios y Reservas B2B</h1>
+      <p class="text-gray-600 mt-2">Panel de control del propietario para configurar turnos, aforo y cierres personalizados.</p>
     </header>
 
     <main class="bg-white rounded-xl shadow-md p-6 space-y-6">
+      <!-- Selector de Negocio / Tenant -->
+      <section class="bg-indigo-50 p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <label for="tenant-select" class="block text-sm font-semibold text-indigo-900">Seleccionar Negocio:</label>
+          <select id="tenant-select" class="mt-1 block w-full md:w-64 rounded-md border-gray-300 shadow-sm border p-2 bg-white">
+            <option value="">-- Nuevo Negocio --</option>
+          </select>
+        </div>
+        <button id="new-tenant-btn" type="button" class="mt-4 md:mt-0 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-indigo-700 transition">
+          + Crear Nuevo Negocio
+        </button>
+      </section>
+
+      <!-- Formulario de Configuración del Negocio -->
       <section>
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración de Horarios de Cierre</h2>
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración General del Negocio</h2>
         <form id="config-form" class="space-y-4">
+          <input type="hidden" id="tenant_id" name="id">
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">Nombre del Negocio</label>
@@ -30,6 +46,22 @@
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
+              <label class="block text-sm font-medium text-gray-700">Categoría</label>
+              <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Peluquería">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Tipo de Negocio</label>
+              <input type="text" id="business_type" name="business_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="general">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Aforo Máximo simultáneo</label>
+              <input type="number" id="max_capacity" name="max_capacity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="2">
+            </div>
+          </div>
+
+          <!-- Turnos de Trabajo -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
+            <div>
               <label class="block text-sm font-medium text-gray-700">Turno 1 Inicio</label>
               <input type="time" id="shift1_start" name="shift1_start" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="09:00">
             </div>
@@ -38,69 +70,95 @@
               <input type="time" id="shift1_end" name="shift1_end" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="14:00">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Aforo Máximo</label>
-              <input type="number" id="max_capacity" name="max_capacity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="2">
+              <label class="block text-sm font-medium text-gray-700">Turno 2 Inicio (Opcional)</label>
+              <input type="time" id="shift2_start" name="shift2_start" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Turno 2 Fin (Opcional)</label>
+              <input type="time" id="shift2_end" name="shift2_end" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
             </div>
           </div>
 
-          <!-- Cierres personalizados por día de la semana -->
+          <!-- Cierres Anticipados Flexible por Día de la Semana -->
           <div class="border-t pt-4 mt-4">
             <h3 class="text-lg font-medium text-gray-700 mb-2">Cierres Anticipados por Día de la Semana</h3>
-            <p class="text-xs text-gray-500 mb-4">Selecciona la hora de cierre para los días que necesites cerrar antes del horario habitual[cite: 4].</p>
+            <p class="text-xs text-gray-500 mb-4">Marca los días que necesites cerrar antes de lo habitual y especifica la hora límite de cierre.</p>
             
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="closing-days-container">
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="1" class="day-check" data-day="1">
-                <span>Lunes</span>
-              </label>
-              <input type="time" id="close_time_1" class="border p-1 rounded text-sm" value="14:00" disabled>
-
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="2" class="day-check" data-day="2">
-                <span>Martes</span>
-              </label>
-              <input type="time" id="close_time_2" class="border p-1 rounded text-sm" value="14:00" disabled>
-
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="3" class="day-check" data-day="3">
-                <span>Miércoles</span>
-              </label>
-              <input type="time" id="close_time_3" class="border p-1 rounded text-sm" value="14:00" disabled>
-
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="4" class="day-check" data-day="4">
-                <span>Jueves</span>
-              </label>
-              <input type="time" id="close_time_4" class="border p-1 rounded text-sm" value="14:00" disabled>
-
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="5" class="day-check" data-day="5">
-                <span>Viernes</span>
-              </label>
-              <input type="time" id="close_time_5" class="border p-1 rounded text-sm" value="14:00" disabled>
-
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="6" class="day-check" data-day="6">
-                <span>Sábado</span>
-              </label>
-              <input type="time" id="close_time_6" class="border p-1 rounded text-sm" value="14:00" disabled>
-
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" value="0" class="day-check" data-day="0">
-                <span>Domingo</span>
-              </label>
-              <input type="time" id="close_time_0" class="border p-1 rounded text-sm" value="14:00" disabled>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="closing-days-container">
+              <!-- Lunes (1) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="1" class="day-check" data-day="1">
+                  <span class="text-sm font-medium">Lunes</span>
+                </label>
+                <input type="time" id="close_time_1" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
+              <!-- Martes (2) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="2" class="day-check" data-day="2">
+                  <span class="text-sm font-medium">Martes</span>
+                </label>
+                <input type="time" id="close_time_2" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
+              <!-- Miércoles (3) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="3" class="day-check" data-day="3">
+                  <span class="text-sm font-medium">Miércoles</span>
+                </label>
+                <input type="time" id="close_time_3" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
+              <!-- Jueves (4) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="4" class="day-check" data-day="4">
+                  <span class="text-sm font-medium">Jueves</span>
+                </label>
+                <input type="time" id="close_time_4" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
+              <!-- Viernes (5) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="5" class="day-check" data-day="5">
+                  <span class="text-sm font-medium">Viernes</span>
+                </label>
+                <input type="time" id="close_time_5" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
+              <!-- Sábado (6) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="6" class="day-check" data-day="6">
+                  <span class="text-sm font-medium">Sábado</span>
+                </label>
+                <input type="time" id="close_time_6" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
+              <!-- Domingo (0) -->
+              <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                <label class="flex items-center space-x-2">
+                  <input type="checkbox" value="0" class="day-check" data-day="0">
+                  <span class="text-sm font-medium">Domingo</span>
+                </label>
+                <input type="time" id="close_time_0" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+              </div>
             </div>
           </div>
 
-          <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition">Guardar Configuración</button>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Notas / Información adicional</label>
+            <textarea id="notes" name="notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" rows="2"></textarea>
+          </div>
+
+          <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Guardar Configuración del Negocio</button>
         </form>
       </section>
     </main>
   </div>
 
   <script>
-    // Habilitar/deshabilitar input de hora según checkbox[cite: 4]
+    let tenantsList = [];
+
+    // Habilitar/deshabilitar input de hora según checkbox
     document.querySelectorAll('.day-check').forEach(chk => {
       chk.addEventListener('change', (e) => {
         const day = e.target.getAttribute('data-day');
@@ -108,6 +166,128 @@
         timeInput.disabled = !e.target.checked;
       });
     });
+
+    async function loadTenants() {
+      try {
+        const res = await fetch('/api/tenants');
+        tenantsList = await res.json();
+        const select = document.getElementById('tenant-select');
+        select.innerHTML = '<option value="">-- Nuevo Negocio --</option>';
+        tenantsList.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = `${t.name} (${t.phone})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error('Error al cargar negocios:', err);
+      }
+    }
+
+    document.getElementById('tenant-select').addEventListener('change', (e) => {
+      const id = e.target.value;
+      if (!id) {
+        document.getElementById('config-form').reset();
+        document.getElementById('tenant_id').value = '';
+        resetClosingTimes();
+        return;
+      }
+      const tenant = tenantsList.find(t => t.id == id);
+      if (tenant) {
+        document.getElementById('tenant_id').value = tenant.id;
+        document.getElementById('name').value = tenant.name || '';
+        document.getElementById('phone').value = tenant.phone || '';
+        document.getElementById('category').value = tenant.category || '';
+        document.getElementById('business_type').value = tenant.business_type || 'general';
+        document.getElementById('max_capacity').value = tenant.max_capacity || 2;
+        document.getElementById('shift1_start').value = tenant.shift1_start || '09:00';
+        document.getElementById('shift1_end').value = tenant.shift1_end || '14:00';
+        document.getElementById('shift2_start').value = tenant.shift2_start || '';
+        document.getElementById('shift2_end').value = tenant.shift2_end || '';
+        document.getElementById('notes').value = tenant.notes || '';
+
+        // Rellenar cierres personalizados
+        resetClosingTimes();
+        const closingTimes = tenant.closing_times || {};
+        for (const [day, time] of Object.entries(closingTimes)) {
+          const chk = document.querySelector(`.day-check[data-day="${day}"]`);
+          const timeInput = document.getElementById(`close_time_${day}`);
+          if (chk && timeInput) {
+            chk.checked = true;
+            timeInput.disabled = false;
+            timeInput.value = time;
+          }
+        }
+      }
+    });
+
+    function resetClosingTimes() {
+      document.querySelectorAll('.day-check').forEach(chk => {
+        chk.checked = false;
+        const day = chk.getAttribute('data-day');
+        const timeInput = document.getElementById(`close_time_${day}`);
+        timeInput.disabled = true;
+        timeInput.value = '14:00';
+      });
+    }
+
+    document.getElementById('new-tenant-btn').addEventListener('click', () => {
+      document.getElementById('tenant-select').value = '';
+      document.getElementById('config-form').reset();
+      document.getElementById('tenant_id').value = '';
+      resetClosingTimes();
+    });
+
+    document.getElementById('config-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('tenant_id').value;
+      
+      // Construir objeto closing_times
+      const closing_times = {};
+      document.querySelectorAll('.day-check').forEach(chk => {
+        if (chk.checked) {
+          const day = chk.getAttribute('data-day');
+          const timeInput = document.getElementById(`close_time_${day}`);
+          closing_times[day] = timeInput.value;
+        }
+      });
+
+      const bodyData = {
+        id: id ? parseInt(id) : null,
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        category: document.getElementById('category').value,
+        business_type: document.getElementById('business_type').value,
+        max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
+        shift1_start: document.getElementById('shift1_start').value,
+        shift1_end: document.getElementById('shift1_end').value,
+        shift2_start: document.getElementById('shift2_start').value || null,
+        shift2_end: document.getElementById('shift2_end').value || null,
+        closing_times: closing_times,
+        notes: document.getElementById('notes').value
+      };
+
+      try {
+        const res = await fetch('/api/tenants/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyData)
+        });
+
+        if (res.ok) {
+          alert('¡Configuración guardada con éxito!');
+          loadTenants();
+        } else {
+          alert('Error al guardar la configuración');
+        }
+      } catch (err) {
+        console.error('Error de red:', err);
+        alert('Error de red al guardar');
+      }
+    });
+
+    // Cargar negocios al iniciar
+    loadTenants();
   </script>
 </body>
 </html>
