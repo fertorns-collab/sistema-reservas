@@ -8,28 +8,51 @@
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
   
-  <!-- VISTA DE LANDING / ALTA B2B -->
-  <div id="landing-view" class="max-w-xl mx-auto mt-16 p-6 bg-white rounded-xl shadow-md hidden">
-    <header class="mb-6 text-center">
-      <h1 class="text-3xl font-bold text-indigo-600">Crea tu Negocio de Reservas</h1>
-      <p class="text-gray-600 mt-1">Registra tu establecimiento en segundos y obtén tus enlaces privados de gestión y reserva.</p>
-    </header>
+  <!-- VISTA DE LANDING / ALTA B2B Y RECUPERACIÓN DE ACCESO -->
+  <div id="landing-view" class="max-w-xl mx-auto mt-12 p-6 bg-white rounded-xl shadow-md hidden space-y-8">
+    
+    <!-- Sección 1: Crear Nuevo Negocio -->
+    <div>
+      <header class="mb-6 text-center">
+        <h1 class="text-3xl font-bold text-indigo-600">Crea tu Negocio de Reservas</h1>
+        <p class="text-gray-600 mt-1">Registra tu establecimiento en segundos y obtén tus enlaces privados de gestión y reserva.</p>
+      </header>
 
-    <form id="register-business-form" class="space-y-4">
-      <div>
-        <label class="block text-sm font-semibold text-gray-700">Nombre del Negocio</label>
-        <input type="text" id="reg-name" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. Padel Club">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700">Teléfono de Contacto</label>
-        <input type="text" id="reg-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. 600123456">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700">Categoría</label>
-        <input type="text" id="reg-category" class="w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Deportes">
-      </div>
-      <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Crear mi SaaS de Reservas</button>
-    </form>
+      <form id="register-business-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Nombre del Negocio</label>
+          <input type="text" id="reg-name" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. Padel Club">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Teléfono de Contacto</label>
+          <input type="text" id="reg-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. 600123456">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Categoría</label>
+          <input type="text" id="reg-category" class="w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Deportes">
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Crear mi SaaS de Reservas</button>
+      </form>
+    </div>
+
+    <!-- Sección 2: Recuperar Acceso Existente por Teléfono -->
+    <div class="border-t pt-6">
+      <header class="mb-4 text-center">
+        <h2 class="text-xl font-bold text-gray-700">¿Ya tienes un negocio registrado?</h2>
+        <p class="text-gray-500 text-sm mt-1">Busca tu panel de administración introduciendo tu teléfono.</p>
+      </header>
+
+      <form id="recover-access-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Teléfono de Registro</label>
+          <input type="text" id="recover-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. 600123456">
+        </div>
+        <button type="submit" class="w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-900 transition">Buscar Mis Accesos</button>
+      </form>
+
+      <!-- Resultados de la Búsqueda -->
+      <div id="recover-results" class="mt-4 space-y-3 hidden"></div>
+    </div>
   </div>
 
   <!-- VISTA DE CLIENTE (?tenant=...) -->
@@ -247,6 +270,7 @@
     }
 
     async function initLandingView() {
+      // Registro de negocio nuevo
       document.getElementById('register-business-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('reg-name').value;
@@ -265,6 +289,44 @@
           window.location.href = adminUrl;
         } else {
           alert('Error al registrar el negocio');
+        }
+      });
+
+      // Recuperación de acceso por teléfono
+      document.getElementById('recover-access-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phone = document.getElementById('recover-phone').value;
+        const resultsContainer = document.getElementById('recover-results');
+        resultsContainer.innerHTML = '<p class="text-sm text-gray-500 text-center">Buscando...</p>';
+        resultsContainer.classList.remove('hidden');
+
+        try {
+          const res = await fetch(`/api/tenants/search/${phone}`);
+          const tenants = await res.json();
+
+          if (!res.ok || tenants.length === 0) {
+            resultsContainer.innerHTML = '<p class="text-sm text-red-600 text-center">No se encontró ningún negocio con este teléfono.</p>';
+            return;
+          }
+
+          resultsContainer.innerHTML = '<h3 class="text-sm font-semibold text-gray-700">Negocios encontrados:</h3>';
+          tenants.forEach(t => {
+            const adminUrl = `${window.location.origin}/?admin=${t.admin_token}`;
+            const clientUrl = `${window.location.origin}/?tenant=${t.booking_token}`;
+            
+            const div = document.createElement('div');
+            div.className = 'p-3 bg-gray-50 rounded border space-y-1';
+            div.innerHTML = `
+              <p class="font-bold text-indigo-600">${t.name}</p>
+              <div class="text-xs space-y-1">
+                <a href="${adminUrl}" class="block text-purple-600 hover:underline">Panel de Administración</a>
+                <a href="${clientUrl}" target="_blank" class="block text-indigo-500 hover:underline">Enlace de Reservas (Cliente)</a>
+              </div>
+            `;
+            resultsContainer.appendChild(div);
+          });
+        } catch (err) {
+          resultsContainer.innerHTML = '<p class="text-sm text-red-600 text-center">Error al realizar la búsqueda.</p>';
         }
       });
     }

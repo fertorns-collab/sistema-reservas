@@ -129,6 +129,23 @@ app.get('/api/admin/tenant/:token', async (req, res) => {
   }
 });
 
+// NUEVO: Endpoint para buscar accesos de administración por número de teléfono
+app.get('/api/tenants/search/:phone', async (req, res) => {
+  const phoneQuery = req.params.phone;
+  try {
+    const result = await pool.query(
+      'SELECT id, name, phone, admin_token, booking_token FROM tenants WHERE phone = $1',
+      [phoneQuery]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No se encontró ningún negocio asociado a este teléfono.' });
+    }
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al buscar el negocio' });
+  }
+});
+
 // Obtener servicios de un tenant
 app.get('/api/tenants/:id/services', async (req, res) => {
   try {
@@ -197,7 +214,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Crear empresa con control completo de turnos, horarios y generación segura de tokens
+// Guardar/Crear empresa con control completo de turnos, horarios y tokens únicos (15 columnas)
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
