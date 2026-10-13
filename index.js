@@ -226,16 +226,16 @@ app.post('/api/tenants/config', async (req, res) => {
       const adminToken = crypto.randomBytes(16).toString('hex');
       const bookingToken = crypto.randomBytes(16).toString('hex');
 
+      // Se declaran exactamente 12 columnas y se pasan 12 valores ($1 al $12)
       result = await pool.query(
         `INSERT INTO tenants 
-          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, closing_times) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, closing_times) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
          RETURNING *`,
         [
           tenantToken, adminToken, bookingToken, name, phone, category || null, notes || '',
           business_type || 'general', max_capacity || 2, closed_days || '0',
-          shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null,
-          closingTimesJson
+          shift1_start || '09:00', shift1_end || '14:00', closingTimesJson
         ]
       );
       
