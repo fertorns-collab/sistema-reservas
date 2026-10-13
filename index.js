@@ -113,7 +113,7 @@ app.get('/api/client/tenant/:token', async (req, res) => {
   }
 });
 
-// Endpoint para validar el token de administración del gerente
+// Endpoint para validar el token de administración
 app.get('/api/admin/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -129,24 +129,23 @@ app.get('/api/admin/tenant/:token', async (req, res) => {
   }
 });
 
-// NUEVO: Endpoint para buscar accesos de administración por número de teléfono
+// Búsqueda de accesos por teléfono
 app.get('/api/tenants/search/:phone', async (req, res) => {
-  const phoneQuery = req.params.phone;
   try {
     const result = await pool.query(
       'SELECT id, name, phone, admin_token, booking_token FROM tenants WHERE phone = $1',
-      [phoneQuery]
+      [req.params.phone]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No se encontró ningún negocio asociado a este teléfono.' });
+      return res.status(404).json({ error: 'No se encontró ningún negocio con este teléfono.' });
     }
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: 'Error al buscar el negocio' });
+    res.status(500).json({ error: 'Error al buscar negocio' });
   }
 });
 
-// Obtener servicios de un tenant
+// Gestión de Servicios
 app.get('/api/tenants/:id/services', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM services WHERE tenant_id = $1 ORDER BY id ASC', [req.params.id]);
@@ -214,7 +213,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Crear empresa con control completo de turnos, horarios y tokens únicos (15 columnas)
+// Guardar/Crear empresa
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -259,7 +258,7 @@ app.post('/api/tenants/config', async (req, res) => {
       const newTenantId = result.rows[0].id;
       await pool.query(
         'INSERT INTO services (tenant_id, name, duration_min, price) VALUES ($1, $2, $3, $4)',
-        [newTenantId, 'Sesión Estándar', 60, 0]
+        [newTenantId, 'Servicio Estándar', 60, 0]
       );
     }
 

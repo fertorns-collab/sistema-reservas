@@ -3,54 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS de Reservas y Gestión</title>
+  <title>Plataforma SaaS de Reservas y Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
   
-  <!-- VISTA DE LANDING / ALTA B2B Y RECUPERACIÓN DE ACCESO -->
-  <div id="landing-view" class="max-w-xl mx-auto mt-12 p-6 bg-white rounded-xl shadow-md hidden space-y-8">
-    
-    <!-- Sección 1: Crear Nuevo Negocio -->
+  <!-- VISTA DE LANDING / ALTA B2B Y BUSCADOR POR TELÉFONO -->
+  <div id="landing-view" class="max-w-2xl mx-auto mt-12 p-8 bg-white rounded-xl shadow-lg hidden space-y-8">
     <div>
       <header class="mb-6 text-center">
-        <h1 class="text-3xl font-bold text-indigo-600">Crea tu Negocio de Reservas</h1>
-        <p class="text-gray-600 mt-1">Registra tu establecimiento en segundos y obtén tus enlaces privados de gestión y reserva.</p>
+        <h1 class="text-3xl font-extrabold text-indigo-600">Crea tu Negocio de Reservas</h1>
+        <p class="text-gray-600 mt-2">Registra tu establecimiento y obtén inmediatamente tu panel de administración.</p>
       </header>
 
       <form id="register-business-form" class="space-y-4">
         <div>
           <label class="block text-sm font-semibold text-gray-700">Nombre del Negocio</label>
-          <input type="text" id="reg-name" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. Padel Club">
+          <input type="text" id="reg-name" class="w-full rounded-md border-gray-300 shadow-sm border p-3" required placeholder="Ej. Pádel Center">
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700">Teléfono de Contacto</label>
-          <input type="text" id="reg-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. 600123456">
+          <input type="text" id="reg-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-3" required placeholder="Ej. 600123456">
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700">Categoría</label>
-          <input type="text" id="reg-category" class="w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Deportes">
+          <input type="text" id="reg-category" class="w-full rounded-md border-gray-300 shadow-sm border p-3" placeholder="Ej. Deportes / Estética">
         </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Crear mi SaaS de Reservas</button>
+        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Crear mi SaaS de Reservas</button>
       </form>
     </div>
 
-    <!-- Sección 2: Recuperar Acceso Existente por Teléfono -->
+    <!-- Recuperación de Acceso por Teléfono -->
     <div class="border-t pt-6">
       <header class="mb-4 text-center">
         <h2 class="text-xl font-bold text-gray-700">¿Ya tienes un negocio registrado?</h2>
-        <p class="text-gray-500 text-sm mt-1">Busca tu panel de administración introduciendo tu teléfono.</p>
+        <p class="text-gray-500 text-sm mt-1">Busca tu panel de administración introduciendo tu número de teléfono.</p>
       </header>
 
       <form id="recover-access-form" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700">Teléfono de Registro</label>
-          <input type="text" id="recover-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required placeholder="Ej. 600123456">
+          <input type="text" id="recover-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-3" required placeholder="Introduce tu teléfono">
         </div>
-        <button type="submit" class="w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-900 transition">Buscar Mis Accesos</button>
+        <button type="submit" class="w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-md hover:bg-gray-900 transition">Recuperar Mis Accesos</button>
       </form>
 
-      <!-- Resultados de la Búsqueda -->
       <div id="recover-results" class="mt-4 space-y-3 hidden"></div>
     </div>
   </div>
@@ -59,7 +55,7 @@
   <div id="client-view" class="max-w-xl mx-auto p-6 hidden">
     <header class="mb-6 text-center">
       <h1 id="client-business-title" class="text-3xl font-bold text-indigo-600">Reservar Cita</h1>
-      <p id="client-business-subtitle" class="text-gray-600 mt-1">Selecciona un servicio, fecha y hora disponible.</p>
+      <p id="client-business-subtitle" class="text-gray-600 mt-1">Selecciona tu servicio y horario.</p>
     </header>
 
     <div class="bg-white rounded-xl shadow-md p-6 space-y-6">
@@ -98,35 +94,42 @@
         </div>
         <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Confirmar Reserva</button>
       </form>
+
+      <!-- Botón WhatsApp de Contacto -->
+      <div class="border-t pt-4 text-center">
+        <a id="client-whatsapp-btn" href="#" target="_blank" class="inline-flex items-center gap-2 bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition">
+          Contactar por WhatsApp
+        </a>
+      </div>
     </div>
   </div>
 
   <!-- VISTA DE ADMINISTRADOR / GERENTE (?admin=...) -->
-  <div id="admin-view" class="max-w-5xl mx-auto p-6 hidden">
+  <div id="admin-view" class="max-w-6xl mx-auto p-6 hidden">
     <header class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-indigo-600">Gestión Integral de Reservas y Horarios</h1>
-      <p class="text-gray-600 mt-2">Panel del Propietario: Configuración, Turnos, Festivos e Informes.</p>
+      <h1 class="text-3xl font-bold text-indigo-600">Panel Integral de Control del Negocio</h1>
+      <p class="text-gray-600 mt-2">Gestión de Servicios, Horarios, Excepciones y Reservas.</p>
     </header>
 
     <main class="space-y-8">
-      <!-- Enlaces Privados -->
+      <!-- Enlaces Privados y Accesos Directos -->
       <section class="bg-indigo-50 rounded-xl shadow-md p-6">
-        <h2 class="text-lg font-semibold mb-3 text-indigo-900">Enlaces y Accesos Privados</h2>
+        <h2 class="text-lg font-semibold mb-3 text-indigo-900">Enlaces Privados del Negocio</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white p-3 rounded border">
-            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Reserva para el Cliente:</span>
+          <div class="bg-white p-4 rounded border">
+            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Reserva para Clientes:</span>
             <a id="client-booking-url" href="#" target="_blank" class="text-indigo-600 text-sm font-medium hover:underline break-all">--</a>
           </div>
-          <div class="bg-white p-3 rounded border">
-            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Administración Privada (Gerente):</span>
+          <div class="bg-white p-4 rounded border">
+            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Administración Privada:</span>
             <a id="admin-panel-url" href="#" target="_blank" class="text-purple-600 text-sm font-medium hover:underline break-all">--</a>
           </div>
         </div>
       </section>
 
-      <!-- Configuración de Horarios y Turnos -->
+      <!-- Configuración General del Negocio -->
       <section class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración de Horarios y Turnos</h2>
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración General y Horarios</h2>
         <form id="config-form" class="space-y-4">
           <input type="hidden" id="tenant_id">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -135,7 +138,7 @@
               <input type="text" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Teléfono</label>
+              <label class="block text-sm font-medium text-gray-700">Teléfono (WhatsApp)</label>
               <input type="text" id="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
             </div>
           </div>
@@ -154,7 +157,7 @@
             </div>
           </div>
 
-          <!-- Turnos -->
+          <!-- Turnos Habituales -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">Turno 1 Inicio</label>
@@ -175,31 +178,46 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700">Notas / Información adicional</label>
+            <label class="block text-sm font-medium text-gray-700">Notas Adicionales</label>
             <textarea id="notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" rows="2"></textarea>
           </div>
 
-          <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Guardar Cambios del Negocio</button>
+          <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Guardar Configuración General</button>
         </form>
       </section>
 
-      <!-- Excepciones / Festivos -->
+      <!-- Gestión de Servicios -->
       <section class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Días de Cierre Excepcional o Festivos</h2>
-        <form id="exception-form" class="space-y-4 mb-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Fecha de Excepción</label>
-              <input type="date" id="exception_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Motivo</label>
-              <input type="text" id="exception_reason" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Festivo local">
-            </div>
-            <div class="flex items-end">
-              <button type="submit" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition">Añadir Cierre</button>
-            </div>
-          </div>
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Catálogo de Servicios</h2>
+        <form id="service-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <input type="text" id="service_name" placeholder="Nombre del servicio" class="rounded-md border-gray-300 border p-2" required>
+          <input type="number" id="service_duration" placeholder="Duración (min)" class="rounded-md border-gray-300 border p-2" value="60" required>
+          <input type="number" step="0.01" id="service_price" placeholder="Precio (€)" class="rounded-md border-gray-300 border p-2" value="0.00">
+          <button type="submit" class="bg-green-600 text-white font-semibold rounded-md py-2 hover:bg-green-700 transition">Añadir Servicio</button>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Servicio</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duración</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="services-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Días de Cierre Excepcional o Festivos -->
+      <section class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Días de Cierre Excepcional y Festivos</h2>
+        <form id="exception-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <input type="date" id="exception_date" class="rounded-md border-gray-300 border p-2" required>
+          <input type="text" id="exception_reason" placeholder="Motivo del cierre" class="rounded-md border-gray-300 border p-2">
+          <button type="submit" class="bg-red-600 text-white font-semibold rounded-md py-2 hover:bg-red-700 transition">Añadir Excepción</button>
         </form>
 
         <div class="overflow-x-auto">
@@ -216,22 +234,17 @@
         </div>
       </section>
 
-      <!-- Filtrado y Reservas -->
+      <!-- Gestión y Exportación de Reservas -->
       <section class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Gestión de Reservas</h2>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-700">Listado de Reservas</h2>
+          <button id="export-csv-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition">Exportar a CSV</button>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Desde Fecha</label>
-            <input type="date" id="filter-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Hasta Fecha</label>
-            <input type="date" id="filter-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
-          </div>
-          <div class="flex items-end gap-2">
-            <button id="filter-reservations-btn" type="button" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition">Filtrar</button>
-            <button id="export-csv-btn" type="button" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition">Exportar CSV</button>
-          </div>
+          <input type="date" id="filter-start-date" class="rounded-md border-gray-300 border p-2">
+          <input type="date" id="filter-end-date" class="rounded-md border-gray-300 border p-2">
+          <button id="filter-reservations-btn" type="button" class="bg-indigo-600 text-white font-semibold py-2 rounded-md hover:bg-indigo-700 transition">Filtrar Fechas</button>
         </div>
 
         <div class="overflow-x-auto">
@@ -269,76 +282,63 @@
       initLandingView();
     }
 
-    async function initLandingView() {
-      // Registro de negocio nuevo
+    function initLandingView() {
       document.getElementById('register-business-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('reg-name').value;
-        const phone = document.getElementById('reg-phone').value;
-        const category = document.getElementById('reg-category').value;
-
         const res = await fetch('/api/tenants/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, phone, category })
+          body: JSON.stringify({
+            name: document.getElementById('reg-name').value,
+            phone: document.getElementById('reg-phone').value,
+            category: document.getElementById('reg-category').value
+          })
         });
         const tenant = await res.json();
         if (res.ok) {
-          const adminUrl = `${window.location.origin}/?admin=${tenant.admin_token}`;
-          alert(`¡Negocio creado con éxito!\n\nGuarda tu enlace de administración:\n${adminUrl}`);
-          window.location.href = adminUrl;
+          window.location.href = `/?admin=${tenant.admin_token}`;
         } else {
-          alert('Error al registrar el negocio');
+          alert('Error al crear el negocio');
         }
       });
 
-      // Recuperación de acceso por teléfono
       document.getElementById('recover-access-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const phone = document.getElementById('recover-phone').value;
-        const resultsContainer = document.getElementById('recover-results');
-        resultsContainer.innerHTML = '<p class="text-sm text-gray-500 text-center">Buscando...</p>';
-        resultsContainer.classList.remove('hidden');
+        const results = document.getElementById('recover-results');
+        results.classList.remove('hidden');
+        results.innerHTML = '<p class="text-sm text-gray-500 text-center">Buscando...</p>';
 
-        try {
-          const res = await fetch(`/api/tenants/search/${phone}`);
-          const tenants = await res.json();
+        const res = await fetch(`/api/tenants/search/${phone}`);
+        const data = await res.json();
 
-          if (!res.ok || tenants.length === 0) {
-            resultsContainer.innerHTML = '<p class="text-sm text-red-600 text-center">No se encontró ningún negocio con este teléfono.</p>';
-            return;
-          }
-
-          resultsContainer.innerHTML = '<h3 class="text-sm font-semibold text-gray-700">Negocios encontrados:</h3>';
-          tenants.forEach(t => {
-            const adminUrl = `${window.location.origin}/?admin=${t.admin_token}`;
-            const clientUrl = `${window.location.origin}/?tenant=${t.booking_token}`;
-            
-            const div = document.createElement('div');
-            div.className = 'p-3 bg-gray-50 rounded border space-y-1';
-            div.innerHTML = `
-              <p class="font-bold text-indigo-600">${t.name}</p>
-              <div class="text-xs space-y-1">
-                <a href="${adminUrl}" class="block text-purple-600 hover:underline">Panel de Administración</a>
-                <a href="${clientUrl}" target="_blank" class="block text-indigo-500 hover:underline">Enlace de Reservas (Cliente)</a>
-              </div>
-            `;
-            resultsContainer.appendChild(div);
-          });
-        } catch (err) {
-          resultsContainer.innerHTML = '<p class="text-sm text-red-600 text-center">Error al realizar la búsqueda.</p>';
+        if (!res.ok || data.length === 0) {
+          results.innerHTML = '<p class="text-sm text-red-600 text-center">No se encontraron negocios con ese número.</p>';
+          return;
         }
+
+        results.innerHTML = '<h4 class="font-bold text-sm text-gray-700">Tus Negocios:</h4>';
+        data.forEach(t => {
+          results.innerHTML += `
+            <div class="p-3 bg-gray-50 border rounded text-sm space-y-1">
+              <p class="font-bold text-indigo-600">${t.name}</p>
+              <a href="/?admin=${t.admin_token}" class="block text-purple-600 hover:underline">Acceder al Panel de Administración</a>
+              <a href="/?tenant=${t.booking_token}" target="_blank" class="block text-indigo-500 hover:underline">Ver Página de Reservas</a>
+            </div>
+          `;
+        });
       });
     }
 
     async function initClientView(token) {
       try {
         const res = await fetch(`/api/client/tenant/${token}`);
-        if (!res.ok) throw new Error('Negocio no encontrado');
+        if (!res.ok) throw new Error('Inválido');
         const tenant = await res.json();
 
         document.getElementById('client-business-title').textContent = tenant.name;
-        document.getElementById('client-business-subtitle').textContent = `Reserva tu cita en ${tenant.name}`;
+        document.getElementById('client-business-subtitle').textContent = `Reservas en ${tenant.name}`;
+        document.getElementById('client-whatsapp-btn').href = `https://wa.me/${tenant.phone.replace(/[^0-9]/g, '')}`;
 
         const sRes = await fetch(`/api/tenants/${tenant.id}/services`);
         const services = await sRes.json();
@@ -397,39 +397,38 @@
 
         document.getElementById('client-booking-form').addEventListener('submit', async (e) => {
           e.preventDefault();
-          if (!selectedTime) return alert('Selecciona una hora');
-
-          const bodyData = {
-            tenant_id: tenant.id,
-            service_id: parseInt(serviceSelect.value),
-            client_name: document.getElementById('client-name').value,
-            client_phone: document.getElementById('client-phone').value,
-            reservation_time: selectedTime,
-            notes: document.getElementById('client-notes').value
-          };
+          if (!selectedTime) return alert('Selecciona hora');
 
           const res = await fetch('/api/reservations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyData)
+            body: JSON.stringify({
+              tenant_id: tenant.id,
+              service_id: parseInt(serviceSelect.value),
+              client_name: document.getElementById('client-name').value,
+              client_phone: document.getElementById('client-phone').value,
+              reservation_time: selectedTime,
+              notes: document.getElementById('client-notes').value
+            })
           });
           const result = await res.json();
           if (res.ok) {
             alert(`¡Reserva confirmada! Código: ${result.reservation.booking_code}`);
             window.location.reload();
           } else {
-            alert('Error: ' + (result.error || 'Inténtalo de nuevo'));
+            alert('Error al reservar');
           }
         });
+
       } catch (err) {
-        document.body.innerHTML = '<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow text-center text-red-600 font-bold">Negocio no encontrado.</div>';
+        document.body.innerHTML = '<div class="text-center mt-20 text-red-600 font-bold">Enlace no válido</div>';
       }
     }
 
     async function initAdminView(token) {
       try {
         const res = await fetch(`/api/admin/tenant/${token}`);
-        if (!res.ok) throw new Error('Token no válido');
+        if (!res.ok) throw new Error('Inválido');
         const currentTenant = await res.json();
 
         document.getElementById('tenant_id').value = currentTenant.id;
@@ -446,48 +445,86 @@
 
         const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
         const adminUrl = `${window.location.origin}/?admin=${currentTenant.admin_token}`;
-        
         document.getElementById('client-booking-url').href = clientUrl;
         document.getElementById('client-booking-url').textContent = clientUrl;
         document.getElementById('admin-panel-url').href = adminUrl;
         document.getElementById('admin-panel-url').textContent = adminUrl;
 
+        loadServices(currentTenant.id);
         loadExceptions(currentTenant.id);
         loadReservations(currentTenant.id);
 
         document.getElementById('config-form').addEventListener('submit', async (e) => {
           e.preventDefault();
-          const bodyData = {
-            id: currentTenant.id,
-            name: document.getElementById('name').value,
-            phone: document.getElementById('phone').value,
-            category: document.getElementById('category').value,
-            business_type: document.getElementById('business_type').value,
-            max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
-            shift1_start: document.getElementById('shift1_start').value,
-            shift1_end: document.getElementById('shift1_end').value,
-            shift2_start: document.getElementById('shift2_start').value || null,
-            shift2_end: document.getElementById('shift2_end').value || null,
-            notes: document.getElementById('notes').value
-          };
-
           const updateRes = await fetch('/api/tenants/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyData)
+            body: JSON.stringify({
+              id: currentTenant.id,
+              name: document.getElementById('name').value,
+              phone: document.getElementById('phone').value,
+              category: document.getElementById('category').value,
+              business_type: document.getElementById('business_type').value,
+              max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
+              shift1_start: document.getElementById('shift1_start').value,
+              shift1_end: document.getElementById('shift1_end').value,
+              shift2_start: document.getElementById('shift2_start').value || null,
+              shift2_end: document.getElementById('shift2_end').value || null,
+              notes: document.getElementById('notes').value
+            })
           });
-
           if (updateRes.ok) {
             alert('¡Configuración guardada!');
             window.location.reload();
-          } else {
-            alert('Error al guardar');
           }
         });
 
+        async function loadServices(tenantId) {
+          const sRes = await fetch(`/api/tenants/${tenantId}/services`);
+          const services = await sRes.json();
+          const tbody = document.getElementById('services-tbody');
+          tbody.innerHTML = '';
+          services.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="px-6 py-4 text-sm font-semibold text-gray-900">${s.name}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${s.duration_min} min</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${s.price} €</td>
+              <td class="px-6 py-4 text-right text-sm">
+                <button onclick="deleteService(${s.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        document.getElementById('service-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const res = await fetch('/api/services', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tenant_id: currentTenant.id,
+              name: document.getElementById('service_name').value,
+              duration_min: parseInt(document.getElementById('service_duration').value),
+              price: parseFloat(document.getElementById('service_price').value)
+            })
+          });
+          if (res.ok) {
+            document.getElementById('service_name').value = '';
+            loadServices(currentTenant.id);
+          }
+        });
+
+        window.deleteService = async function(id) {
+          if (!confirm('¿Eliminar servicio?')) return;
+          await fetch(`/api/services/${id}`, { method: 'DELETE' });
+          loadServices(currentTenant.id);
+        };
+
         async function loadExceptions(tenantId) {
-          const res = await fetch(`/api/tenants/${tenantId}/exceptions`);
-          const exceptions = await res.json();
+          const exRes = await fetch(`/api/tenants/${tenantId}/exceptions`);
+          const exceptions = await exRes.json();
           const tbody = document.getElementById('exceptions-tbody');
           tbody.innerHTML = '';
           exceptions.forEach(exc => {
@@ -505,15 +542,16 @@
 
         document.getElementById('exception-form').addEventListener('submit', async (e) => {
           e.preventDefault();
-          const exception_date = document.getElementById('exception_date').value;
-          const reason = document.getElementById('exception_reason').value;
-
           const res = await fetch('/api/tenants/exceptions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tenant_id: currentTenant.id, exception_date, is_closed: true, reason })
+            body: JSON.stringify({
+              tenant_id: currentTenant.id,
+              exception_date: document.getElementById('exception_date').value,
+              is_closed: true,
+              reason: document.getElementById('exception_reason').value
+            })
           });
-
           if (res.ok) {
             document.getElementById('exception_date').value = '';
             document.getElementById('exception_reason').value = '';
@@ -580,7 +618,7 @@
         });
 
       } catch (err) {
-        document.body.innerHTML = '<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow text-center text-red-600 font-bold">Enlace de administración no válido.</div>';
+        document.body.innerHTML = '<div class="text-center mt-20 text-red-600 font-bold">Acceso de administración no válido</div>';
       }
     }
   </script>
