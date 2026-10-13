@@ -101,6 +101,13 @@
         </div>
       </div>
 
+      <!-- Hora de Cierre de los Sábados -->
+      <div class="form-group">
+        <label>🕒 Hora de Cierre de los Sábados:</label>
+        <input type="time" id="saturday_close" value="14:00">
+        <small style="color: #666;">Hora límite en la que la empresa cierra los sábados (ej. 14:00).</small>
+      </div>
+
       <div class="form-group" id="servicesManagement" style="display:none; background: #fdfdfd; border: 1px solid #ddd; padding: 12px; border-radius: 6px;">
         <label>🛠️ Catálogo de Servicios:</label>
         <div id="servicesList" style="margin-bottom: 10px;"></div>
@@ -353,11 +360,12 @@
           document.getElementById('business_type').value = tenant.business_type || '';
           document.getElementById('max_capacity').value = tenant.max_capacity || 2;
           
-          // Marcar días cerrados
           const closedDays = (tenant.closed_days || '').split(',');
           document.querySelectorAll('input[name="closedDay"]').forEach(cb => {
             cb.checked = closedDays.includes(cb.value);
           });
+
+          document.getElementById('saturday_close').value = tenant.saturday_close ? tenant.saturday_close.slice(0, 5) : '14:00';
 
           document.getElementById('shift1_start').value = tenant.shift1_start ? tenant.shift1_start.slice(0, 5) : '09:00';
           document.getElementById('shift1_end').value = tenant.shift1_end ? tenant.shift1_end.slice(0, 5) : '14:00';
@@ -618,7 +626,7 @@
     async function consultarReservasGerente() {
       const tenantId = document.getElementById('tenantSelect').value;
       const startDate = document.getElementById('filterStartDate').value;
-      const endDate = document.getElementById('filterEndDate').value;
+      const endDate = document.getElementById('filterEndDate'.value);
       const container = document.getElementById('gerenteReservasResult');
       if (!tenantId || tenantId === 'NEW') return;
 
@@ -667,6 +675,7 @@
         shift1_end: document.getElementById('shift1_end').value || '14:00',
         shift2_start: document.getElementById('shift2_start').value || null,
         shift2_end: document.getElementById('shift2_end').value || null,
+        saturday_close: document.getElementById('saturday_close').value || '14:00',
         notes: document.getElementById('notes').value || ''
       };
 
