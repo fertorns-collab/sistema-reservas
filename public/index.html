@@ -6,45 +6,44 @@
   <title>Plataforma SaaS de Reservas y Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
-  
-  <!-- VISTA DE LANDING / ALTA B2B Y BUSCADOR POR TELÉFONO -->
-  <div id="landing-view" class="max-w-2xl mx-auto mt-12 p-8 bg-white rounded-xl shadow-lg hidden space-y-8">
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+
+  <!-- VISTA DE LANDING / ALTA B2B Y BUSCADOR DE ACCESOS -->
+  <div id="landing-view" class="max-w-2xl mx-auto mt-12 p-8 bg-white rounded-2xl shadow-xl hidden space-y-8 border border-slate-200">
     <div>
       <header class="mb-6 text-center">
-        <h1 class="text-3xl font-extrabold text-indigo-600">Crea tu Negocio de Reservas</h1>
-        <p class="text-gray-600 mt-2">Registra tu establecimiento y obtén inmediatamente tu panel de administración.</p>
+        <h1 class="text-3xl font-extrabold text-indigo-600 tracking-tight">Crea tu Negocio de Reservas</h1>
+        <p class="text-slate-500 mt-2">Registra tu establecimiento en segundos y gestiona tus citas sin complicaciones.</p>
       </header>
 
       <form id="register-business-form" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700">Nombre del Negocio</label>
-          <input type="text" id="reg-name" class="w-full rounded-md border-gray-300 shadow-sm border p-3" required placeholder="Ej. Pádel Center">
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Negocio</label>
+          <input type="text" id="reg-name" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-indigo-500 outline-none" required placeholder="Ej. Pádel Club Barcelona">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700">Teléfono de Contacto</label>
-          <input type="text" id="reg-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-3" required placeholder="Ej. 600123456">
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Teléfono de Contacto (WhatsApp)</label>
+          <input type="text" id="reg-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-indigo-500 outline-none" required placeholder="Ej. 34600123456">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700">Categoría</label>
-          <input type="text" id="reg-category" class="w-full rounded-md border-gray-300 shadow-sm border p-3" placeholder="Ej. Deportes / Estética">
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Categoría</label>
+          <input type="text" id="reg-category" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ej. Deportes / Estética">
         </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Crear mi SaaS de Reservas</button>
+        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-lg hover:bg-indigo-700 transition shadow-md">Crear mi SaaS de Reservas</button>
       </form>
     </div>
 
-    <!-- Recuperación de Acceso por Teléfono -->
-    <div class="border-t pt-6">
+    <div class="border-t border-slate-200 pt-6">
       <header class="mb-4 text-center">
-        <h2 class="text-xl font-bold text-gray-700">¿Ya tienes un negocio registrado?</h2>
-        <p class="text-gray-500 text-sm mt-1">Busca tu panel de administración introduciendo tu número de teléfono.</p>
+        <h2 class="text-xl font-bold text-slate-700">¿Ya tienes un negocio registrado?</h2>
+        <p class="text-slate-500 text-sm mt-1">Introduce tu teléfono para consultar tus accesos directos.</p>
       </header>
 
       <form id="recover-access-form" class="space-y-4">
         <div>
-          <input type="text" id="recover-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-3" required placeholder="Introduce tu teléfono">
+          <input type="text" id="recover-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-slate-500 outline-none" required placeholder="Introduce tu teléfono de registro">
         </div>
-        <button type="submit" class="w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-md hover:bg-gray-900 transition">Recuperar Mis Accesos</button>
+        <button type="submit" class="w-full bg-slate-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-900 transition">Buscar Mis Accesos</button>
       </form>
 
       <div id="recover-results" class="mt-4 space-y-3 hidden"></div>
@@ -54,52 +53,63 @@
   <!-- VISTA DE CLIENTE (?tenant=...) -->
   <div id="client-view" class="max-w-xl mx-auto p-6 hidden">
     <header class="mb-6 text-center">
-      <h1 id="client-business-title" class="text-3xl font-bold text-indigo-600">Reservar Cita</h1>
-      <p id="client-business-subtitle" class="text-gray-600 mt-1">Selecciona tu servicio y horario.</p>
+      <h1 id="client-business-title" class="text-3xl font-extrabold text-indigo-600">Reservar Cita</h1>
+      <p id="client-business-subtitle" class="text-slate-500 mt-1">Selecciona servicio, fecha y hora.</p>
     </header>
 
-    <div class="bg-white rounded-xl shadow-md p-6 space-y-6">
+    <div class="bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-slate-200">
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Servicio</label>
-        <select id="client-service-select" class="w-full rounded-md border-gray-300 shadow-sm border p-2 bg-white">
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Servicio</label>
+        <select id="client-service-select" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
           <option value="">-- Selecciona un servicio --</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
-        <input type="date" id="client-date" class="w-full rounded-md border-gray-300 shadow-sm border p-2">
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
+        <input type="date" id="client-date" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-indigo-500 outline-none">
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Horarios Disponibles</label>
-        <div id="client-slots-container" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md bg-gray-50">
-          <span class="text-sm text-gray-500 col-span-3 text-center py-4">Selecciona fecha y servicio para ver horas.</span>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Horarios Disponibles</label>
+        <div id="client-slots-container" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-lg bg-slate-50">
+          <span class="text-sm text-slate-400 col-span-3 text-center py-4">Elige fecha y servicio para ver turnos disponibles.</span>
         </div>
       </div>
 
       <form id="client-booking-form" class="space-y-4 border-t pt-4 hidden">
-        <h3 class="font-semibold text-gray-700">Tus Datos de Contacto</h3>
+        <h3 class="font-semibold text-slate-700">Tus Datos de Contacto</h3>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Nombre y Apellidos</label>
-          <input type="text" id="client-name" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+          <label class="block text-sm font-medium text-slate-700">Nombre y Apellidos</label>
+          <input type="text" id="client-name" class="w-full rounded-lg border-slate-300 shadow-sm border p-2.5" required>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Teléfono</label>
-          <input type="text" id="client-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+          <label class="block text-sm font-medium text-slate-700">Teléfono</label>
+          <input type="text" id="client-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-2.5" required>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Notas (Opcional)</label>
-          <textarea id="client-notes" class="w-full rounded-md border-gray-300 shadow-sm border p-2" rows="2"></textarea>
+          <label class="block text-sm font-medium text-slate-700">Notas adicionales (Opcional)</label>
+          <textarea id="client-notes" class="w-full rounded-lg border-slate-300 shadow-sm border p-2.5" rows="2"></textarea>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Confirmar Reserva</button>
+        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-lg hover:bg-indigo-700 transition shadow">Confirmar Reserva</button>
       </form>
 
-      <!-- Botón WhatsApp de Contacto -->
-      <div class="border-t pt-4 text-center">
-        <a id="client-whatsapp-btn" href="#" target="_blank" class="inline-flex items-center gap-2 bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition">
-          Contactar por WhatsApp
-        </a>
+      <!-- MODAL/SECCIÓN DE CONFIRMACIÓN CON WHATSAPP, GOOGLE CALENDAR E .ICS -->
+      <div id="confirmation-card" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 space-y-4 hidden text-center">
+        <div class="text-emerald-700 font-bold text-lg">¡Reserva Confirmada con Éxito!</div>
+        <p class="text-sm text-slate-600" id="confirmation-details"></p>
+        
+        <div class="flex flex-col gap-2 pt-2">
+          <a id="btn-whatsapp-confirm" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            Notificar por WhatsApp
+          </a>
+          <a id="btn-gcalendar-confirm" href="#" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2">
+            Añadir a Google Calendar
+          </a>
+          <button id="btn-ics-confirm" type="button" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-lg transition">
+            Descargar Archivo de Calendario (.ics)
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -107,159 +117,158 @@
   <!-- VISTA DE ADMINISTRADOR / GERENTE (?admin=...) -->
   <div id="admin-view" class="max-w-6xl mx-auto p-6 hidden">
     <header class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-indigo-600">Panel Integral de Control del Negocio</h1>
-      <p class="text-gray-600 mt-2">Gestión de Servicios, Horarios, Excepciones y Reservas.</p>
+      <h1 class="text-3xl font-extrabold text-indigo-600">Panel de Control del Propietario</h1>
+      <p class="text-slate-500 mt-2">Gestión Integral de Configuración, Servicios, Excepciones y Reservas.</p>
     </header>
 
     <main class="space-y-8">
-      <!-- Enlaces Privados y Accesos Directos -->
-      <section class="bg-indigo-50 rounded-xl shadow-md p-6">
-        <h2 class="text-lg font-semibold mb-3 text-indigo-900">Enlaces Privados del Negocio</h2>
+      <!-- Tarjetas de Accesos Privados -->
+      <section class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-sm">
+        <h2 class="text-lg font-bold mb-3 text-indigo-900">Accesos Privados y Directos</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white p-4 rounded border">
-            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Reserva para Clientes:</span>
-            <a id="client-booking-url" href="#" target="_blank" class="text-indigo-600 text-sm font-medium hover:underline break-all">--</a>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="block text-xs font-bold text-slate-400 uppercase">Página Pública para Clientes:</span>
+            <a id="client-booking-url" href="#" target="_blank" class="text-indigo-600 font-semibold text-sm hover:underline break-all">--</a>
           </div>
-          <div class="bg-white p-4 rounded border">
-            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Administración Privada:</span>
-            <a id="admin-panel-url" href="#" target="_blank" class="text-purple-600 text-sm font-medium hover:underline break-all">--</a>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="block text-xs font-bold text-slate-400 uppercase">Panel Privado de Gerencia:</span>
+            <a id="admin-panel-url" href="#" target="_blank" class="text-purple-600 font-semibold text-sm hover:underline break-all">--</a>
           </div>
         </div>
       </section>
 
-      <!-- Configuración General del Negocio -->
-      <section class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración General y Horarios</h2>
+      <!-- Configuración del Negocio -->
+      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
+        <h2 class="text-xl font-bold mb-4 text-slate-800">Configuración General y Turnos</h2>
         <form id="config-form" class="space-y-4">
           <input type="hidden" id="tenant_id">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700">Nombre del Negocio</label>
-              <input type="text" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+              <label class="block text-sm font-semibold text-slate-700">Nombre del Negocio</label>
+              <input type="text" id="name" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" required>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Teléfono (WhatsApp)</label>
-              <input type="text" id="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+              <label class="block text-sm font-semibold text-slate-700">Teléfono (WhatsApp)</label>
+              <input type="text" id="phone" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" required>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700">Categoría</label>
-              <input type="text" id="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+              <label class="block text-sm font-semibold text-slate-700">Categoría</label>
+              <input type="text" id="category" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Tipo de Negocio</label>
-              <input type="text" id="business_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="general">
+              <label class="block text-sm font-semibold text-slate-700">Tipo de Negocio</label>
+              <input type="text" id="business_type" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="general">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Aforo Máximo Simultáneo</label>
-              <input type="number" id="max_capacity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="2">
+              <label class="block text-sm font-semibold text-slate-700">Aforo Simultáneo</label>
+              <input type="number" id="max_capacity" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="2">
             </div>
           </div>
 
-          <!-- Turnos Habituales -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700">Turno 1 Inicio</label>
-              <input type="time" id="shift1_start" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="09:00">
+              <label class="block text-sm font-semibold text-slate-700">Turno 1 Inicio</label>
+              <input type="time" id="shift1_start" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="09:00">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Turno 1 Fin</label>
-              <input type="time" id="shift1_end" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" value="14:00">
+              <label class="block text-sm font-semibold text-slate-700">Turno 1 Fin</label>
+              <input type="time" id="shift1_end" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="14:00">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Turno 2 Inicio (Opcional)</label>
-              <input type="time" id="shift2_start" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+              <label class="block text-sm font-semibold text-slate-700">Turno 2 Inicio</label>
+              <input type="time" id="shift2_start" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">Turno 2 Fin (Opcional)</label>
-              <input type="time" id="shift2_end" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+              <label class="block text-sm font-semibold text-slate-700">Turno 2 Fin</label>
+              <input type="time" id="shift2_end" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5">
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700">Notas Adicionales</label>
-            <textarea id="notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" rows="2"></textarea>
+            <label class="block text-sm font-semibold text-slate-700">Notas e Información del Local</label>
+            <textarea id="notes" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" rows="2"></textarea>
           </div>
 
-          <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Guardar Configuración General</button>
+          <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition shadow">Guardar Cambios</button>
         </form>
       </section>
 
-      <!-- Gestión de Servicios -->
-      <section class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Catálogo de Servicios</h2>
+      <!-- Catálogo de Servicios -->
+      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
+        <h2 class="text-xl font-bold mb-4 text-slate-800">Catálogo de Servicios</h2>
         <form id="service-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <input type="text" id="service_name" placeholder="Nombre del servicio" class="rounded-md border-gray-300 border p-2" required>
-          <input type="number" id="service_duration" placeholder="Duración (min)" class="rounded-md border-gray-300 border p-2" value="60" required>
-          <input type="number" step="0.01" id="service_price" placeholder="Precio (€)" class="rounded-md border-gray-300 border p-2" value="0.00">
-          <button type="submit" class="bg-green-600 text-white font-semibold rounded-md py-2 hover:bg-green-700 transition">Añadir Servicio</button>
+          <input type="text" id="service_name" placeholder="Nombre del servicio" class="rounded-lg border-slate-300 border p-2.5" required>
+          <input type="number" id="service_duration" placeholder="Duración (min)" class="rounded-lg border-slate-300 border p-2.5" value="60" required>
+          <input type="number" step="0.01" id="service_price" placeholder="Precio (€)" class="rounded-lg border-slate-300 border p-2.5" value="0.00">
+          <button type="submit" class="bg-emerald-600 text-white font-bold rounded-lg py-2.5 hover:bg-emerald-700 transition">Añadir Servicio</button>
         </form>
 
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Servicio</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duración</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Servicio</th>
+                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Duración</th>
+                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Precio</th>
+                <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody id="services-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+            <tbody id="services-tbody" class="bg-white divide-y divide-slate-200"></tbody>
           </table>
         </div>
       </section>
 
-      <!-- Días de Cierre Excepcional o Festivos -->
-      <section class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Días de Cierre Excepcional y Festivos</h2>
+      <!-- Cierres Excepcionales -->
+      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
+        <h2 class="text-xl font-bold mb-4 text-slate-800">Días de Cierre Excepcional o Festivos</h2>
         <form id="exception-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <input type="date" id="exception_date" class="rounded-md border-gray-300 border p-2" required>
-          <input type="text" id="exception_reason" placeholder="Motivo del cierre" class="rounded-md border-gray-300 border p-2">
-          <button type="submit" class="bg-red-600 text-white font-semibold rounded-md py-2 hover:bg-red-700 transition">Añadir Excepción</button>
+          <input type="date" id="exception_date" class="rounded-lg border-slate-300 border p-2.5" required>
+          <input type="text" id="exception_reason" placeholder="Motivo del cierre" class="rounded-lg border-slate-300 border p-2.5">
+          <button type="submit" class="bg-rose-600 text-white font-bold rounded-lg py-2.5 hover:bg-rose-700 transition">Añadir Cierre</button>
         </form>
 
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Fecha</th>
+                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Motivo</th>
+                <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody id="exceptions-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+            <tbody id="exceptions-tbody" class="bg-white divide-y divide-slate-200"></tbody>
           </table>
         </div>
       </section>
 
-      <!-- Gestión y Exportación de Reservas -->
-      <section class="bg-white rounded-xl shadow-md p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold text-gray-700">Listado de Reservas</h2>
-          <button id="export-csv-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition">Exportar a CSV</button>
+      <!-- Listado de Reservas y CSV -->
+      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+          <h2 class="text-xl font-bold text-slate-800">Gestión de Reservas</h2>
+          <button id="export-csv-btn" class="bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-emerald-700 transition">Exportar a CSV</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <input type="date" id="filter-start-date" class="rounded-md border-gray-300 border p-2">
-          <input type="date" id="filter-end-date" class="rounded-md border-gray-300 border p-2">
-          <button id="filter-reservations-btn" type="button" class="bg-indigo-600 text-white font-semibold py-2 rounded-md hover:bg-indigo-700 transition">Filtrar Fechas</button>
+          <input type="date" id="filter-start-date" class="rounded-lg border-slate-300 border p-2.5">
+          <input type="date" id="filter-end-date" class="rounded-lg border-slate-300 border p-2.5">
+          <button id="filter-reservations-btn" type="button" class="bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition">Filtrar Fechas</button>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
               <tr>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha y Hora</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Servicio</th>
-                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Código</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Cliente</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Teléfono</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Fecha y Hora</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Servicio</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody id="reservations-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+            <tbody id="reservations-tbody" class="bg-white divide-y divide-slate-200"></tbody>
           </table>
         </div>
       </section>
@@ -298,7 +307,7 @@
         if (res.ok) {
           window.location.href = `/?admin=${tenant.admin_token}`;
         } else {
-          alert('Error al crear el negocio');
+          alert('Error al registrar el negocio');
         }
       });
 
@@ -307,23 +316,23 @@
         const phone = document.getElementById('recover-phone').value;
         const results = document.getElementById('recover-results');
         results.classList.remove('hidden');
-        results.innerHTML = '<p class="text-sm text-gray-500 text-center">Buscando...</p>';
+        results.innerHTML = '<p class="text-sm text-slate-500 text-center">Buscando...</p>';
 
         const res = await fetch(`/api/tenants/search/${phone}`);
         const data = await res.json();
 
         if (!res.ok || data.length === 0) {
-          results.innerHTML = '<p class="text-sm text-red-600 text-center">No se encontraron negocios con ese número.</p>';
+          results.innerHTML = '<p class="text-sm text-rose-600 text-center">No se encontraron negocios con ese número.</p>';
           return;
         }
 
-        results.innerHTML = '<h4 class="font-bold text-sm text-gray-700">Tus Negocios:</h4>';
+        results.innerHTML = '<h4 class="font-bold text-sm text-slate-700">Negocios Asociados:</h4>';
         data.forEach(t => {
           results.innerHTML += `
-            <div class="p-3 bg-gray-50 border rounded text-sm space-y-1">
+            <div class="p-3 bg-slate-50 border rounded-lg text-sm space-y-1">
               <p class="font-bold text-indigo-600">${t.name}</p>
-              <a href="/?admin=${t.admin_token}" class="block text-purple-600 hover:underline">Acceder al Panel de Administración</a>
-              <a href="/?tenant=${t.booking_token}" target="_blank" class="block text-indigo-500 hover:underline">Ver Página de Reservas</a>
+              <a href="/?admin=${t.admin_token}" class="block text-purple-600 font-medium hover:underline">Acceder al Panel de Administración</a>
+              <a href="/?tenant=${t.booking_token}" target="_blank" class="block text-indigo-500 font-medium hover:underline">Ver Enlace Público de Reservas</a>
             </div>
           `;
         });
@@ -333,12 +342,11 @@
     async function initClientView(token) {
       try {
         const res = await fetch(`/api/client/tenant/${token}`);
-        if (!res.ok) throw new Error('Inválido');
+        if (!res.ok) throw new Error('Enlace no válido');
         const tenant = await res.json();
 
         document.getElementById('client-business-title').textContent = tenant.name;
         document.getElementById('client-business-subtitle').textContent = `Reservas en ${tenant.name}`;
-        document.getElementById('client-whatsapp-btn').href = `https://wa.me/${tenant.phone.replace(/[^0-9]/g, '')}`;
 
         const sRes = await fetch(`/api/tenants/${tenant.id}/services`);
         const services = await sRes.json();
@@ -368,7 +376,7 @@
           const data = await availRes.json();
 
           if (data.closed) {
-            slotsContainer.innerHTML = `<div class="col-span-3 text-center py-4 text-red-600 font-semibold">Cerrado: ${data.reason || 'Día no laborable'}</div>`;
+            slotsContainer.innerHTML = `<div class="col-span-3 text-center py-4 text-rose-600 font-semibold">Cerrado: ${data.reason || 'Día no laborable'}</div>`;
             return;
           }
 
@@ -376,7 +384,7 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.textContent = slot.time;
-            btn.className = `py-2 px-3 rounded text-sm font-medium transition border ${slot.available ? 'bg-white hover:bg-indigo-50 border-gray-300 text-indigo-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
+            btn.className = `py-2 px-3 rounded-lg text-sm font-semibold transition border ${slot.available ? 'bg-white hover:bg-indigo-50 border-slate-300 text-indigo-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`;
             
             if (slot.available) {
               btn.addEventListener('click', () => {
@@ -397,7 +405,7 @@
 
         document.getElementById('client-booking-form').addEventListener('submit', async (e) => {
           e.preventDefault();
-          if (!selectedTime) return alert('Selecciona hora');
+          if (!selectedTime) return alert('Por favor, selecciona una hora.');
 
           const res = await fetch('/api/reservations', {
             method: 'POST',
@@ -413,15 +421,52 @@
           });
           const result = await res.json();
           if (res.ok) {
-            alert(`¡Reserva confirmada! Código: ${result.reservation.booking_code}`);
-            window.location.reload();
+            const r = result.reservation;
+            const startTime = new Date(r.reservation_time);
+            const endTime = new Date(startTime.getTime() + (r.duration_min || 60) * 60000);
+
+            // Muestra la tarjeta de confirmación
+            document.getElementById('client-booking-form').classList.add('hidden');
+            const confCard = document.getElementById('confirmation-card');
+            confCard.classList.remove('hidden');
+
+            document.getElementById('confirmation-details').innerHTML = `
+              <strong>Código:</strong> ${r.booking_code}<br>
+              <strong>Fecha:</strong> ${startTime.toLocaleString('es-ES')}<br>
+              <strong>Servicio:</strong> ${r.service_name || 'Servicio'}
+            `;
+
+            // 1. WhatsApp Auto-Notificación
+            const cleanPhone = tenant.phone.replace(/[^0-9]/g, '');
+            const msg = encodeURIComponent(`Hola ${tenant.name}, he realizado la reserva ${r.booking_code} para el servicio ${r.service_name || ''} el día ${startTime.toLocaleDateString('es-ES')} a las ${startTime.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}. Nombre: ${r.client_name}`);
+            const waUrl = `https://wa.me/${cleanPhone}?text=${msg}`;
+            document.getElementById('btn-whatsapp-confirm').href = waUrl;
+
+            // 2. Google Calendar
+            const formatGDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenant.name)}&dates=${formatGDate(startTime)}/${formatGDate(endTime)}&details=${encodeURIComponent('Código de Reserva: ' + r.booking_code)}`;
+            document.getElementById('btn-gcalendar-confirm').href = gCalUrl;
+
+            // 3. Generación del archivo .ICS
+            document.getElementById('btn-ics-confirm').onclick = () => {
+              const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Reserva en ${tenant.name}\nDESCRIPTION:Código: ${r.booking_code}\nDTSTART:${formatGDate(startTime)}\nDTEND:${formatGDate(endTime)}\nEND:VEVENT\nEND:VCALENDAR`;
+              const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8;' });
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = `reserva_${r.booking_code}.ics`;
+              link.click();
+            };
+
+            // Abrir automáticamente WhatsApp en una pestaña nueva
+            window.open(waUrl, '_blank');
+
           } else {
-            alert('Error al reservar');
+            alert('Error al realizar la reserva.');
           }
         });
 
       } catch (err) {
-        document.body.innerHTML = '<div class="text-center mt-20 text-red-600 font-bold">Enlace no válido</div>';
+        document.body.innerHTML = '<div class="text-center mt-20 text-rose-600 font-bold">Enlace de reserva no válido.</div>';
       }
     }
 
@@ -487,11 +532,11 @@
           services.forEach(s => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td class="px-6 py-4 text-sm font-semibold text-gray-900">${s.name}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${s.duration_min} min</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${s.price} €</td>
+              <td class="px-6 py-4 text-sm font-semibold text-slate-900">${s.name}</td>
+              <td class="px-6 py-4 text-sm text-slate-500">${s.duration_min} min</td>
+              <td class="px-6 py-4 text-sm text-slate-500">${s.price} €</td>
               <td class="px-6 py-4 text-right text-sm">
-                <button onclick="deleteService(${s.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
+                <button onclick="deleteService(${s.id})" class="text-rose-600 font-semibold hover:text-rose-900">Eliminar</button>
               </td>
             `;
             tbody.appendChild(tr);
@@ -530,10 +575,10 @@
           exceptions.forEach(exc => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td class="px-6 py-4 text-sm text-gray-900">${exc.exception_date.substring(0, 10)}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${exc.reason}</td>
+              <td class="px-6 py-4 text-sm text-slate-900">${exc.exception_date.substring(0, 10)}</td>
+              <td class="px-6 py-4 text-sm text-slate-500">${exc.reason}</td>
               <td class="px-6 py-4 text-right text-sm">
-                <button onclick="deleteException(${exc.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
+                <button onclick="deleteException(${exc.id})" class="text-rose-600 font-semibold hover:text-rose-900">Eliminar</button>
               </td>
             `;
             tbody.appendChild(tr);
@@ -574,20 +619,20 @@
           tbody.innerHTML = '';
 
           if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-sm text-gray-500">No hay reservas.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-sm text-slate-500">No hay reservas registradas.</td></tr>';
             return;
           }
 
           data.forEach(r => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td class="px-4 py-2 text-sm font-semibold text-indigo-600">${r.booking_code}</td>
-              <td class="px-4 py-2 text-sm text-gray-900">${r.client_name}</td>
-              <td class="px-4 py-2 text-sm text-gray-600">${r.client_phone}</td>
-              <td class="px-4 py-2 text-sm text-gray-600">${r.reservation_time.replace('T', ' ').substring(0, 16)}</td>
-              <td class="px-4 py-2 text-sm text-gray-600">${r.service_name || 'General'}</td>
-              <td class="px-4 py-2 text-right text-sm">
-                <button onclick="cancelReservation(${r.id})" class="text-red-600 hover:text-red-900 font-medium">Anular</button>
+              <td class="px-4 py-3 text-sm font-bold text-indigo-600">${r.booking_code}</td>
+              <td class="px-4 py-3 text-sm font-semibold text-slate-900">${r.client_name}</td>
+              <td class="px-4 py-3 text-sm text-slate-600">${r.client_phone}</td>
+              <td class="px-4 py-3 text-sm text-slate-600">${r.reservation_time.replace('T', ' ').substring(0, 16)}</td>
+              <td class="px-4 py-3 text-sm text-slate-600">${r.service_name || 'General'}</td>
+              <td class="px-4 py-3 text-right text-sm">
+                <button onclick="cancelReservation(${r.id})" class="text-rose-600 font-semibold hover:text-rose-900">Anular</button>
               </td>
             `;
             tbody.appendChild(tr);
@@ -618,7 +663,7 @@
         });
 
       } catch (err) {
-        document.body.innerHTML = '<div class="text-center mt-20 text-red-600 font-bold">Acceso de administración no válido</div>';
+        document.body.innerHTML = '<div class="text-center mt-20 text-rose-600 font-bold">Acceso de administración no válido.</div>';
       }
     }
   </script>

@@ -213,7 +213,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Guardar/Crear empresa
+// Configuración y alta de empresas
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -269,7 +269,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad inteligente
+// Disponibilidad
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -423,9 +423,10 @@ app.post('/api/reservations', async (req, res) => {
   const { id, tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
   try {
-    const serviceRes = await pool.query('SELECT duration_min FROM services WHERE id = $1', [service_id]);
+    const serviceRes = await pool.query('SELECT name, duration_min FROM services WHERE id = $1', [service_id]);
     if (serviceRes.rows.length === 0) return res.status(404).json({ error: 'Servicio no válido' });
     
+    const serviceName = serviceRes.rows[0].name;
     const durationMin = serviceRes.rows[0].duration_min || 60;
 
     let result;
@@ -444,7 +445,13 @@ app.post('/api/reservations', async (req, res) => {
       );
     }
 
-    res.status(201).json({ message: 'Reserva procesada con éxito', reservation: result.rows[0] });
+    res.status(201).json({ 
+      message: 'Reserva procesada con éxito', 
+      reservation: {
+        ...result.rows[0],
+        service_name: serviceName
+      } 
+    });
   } catch (err) {
     res.status(500).json({ error: 'Error al procesar reserva: ' + err.message });
   }
