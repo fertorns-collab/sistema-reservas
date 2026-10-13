@@ -68,7 +68,7 @@ async function initDB() {
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS service_id INT REFERENCES services(id) ON DELETE SET NULL;
     `);
 
-    console.log('Base de datos inicializada correctamente.');
+    console.log('Base de datos inicializada con éxito.');
   } catch (err) {
     console.error('Error al inicializar BD:', err);
   }
@@ -79,6 +79,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Obtener tenants
 app.get('/api/tenants', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tenants ORDER BY created_at DESC');
@@ -88,6 +89,7 @@ app.get('/api/tenants', async (req, res) => {
   }
 });
 
+// Obtener servicios de un tenant
 app.get('/api/tenants/:id/services', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM services WHERE tenant_id = $1 ORDER BY id ASC', [req.params.id]);
@@ -97,6 +99,7 @@ app.get('/api/tenants/:id/services', async (req, res) => {
   }
 });
 
+// Guardar servicio
 app.post('/api/services', async (req, res) => {
   const { tenant_id, name, duration_min, price } = req.body;
   try {
@@ -110,6 +113,7 @@ app.post('/api/services', async (req, res) => {
   }
 });
 
+// Borrar servicio
 app.delete('/api/services/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM services WHERE id = $1', [req.params.id]);
@@ -119,6 +123,7 @@ app.delete('/api/services/:id', async (req, res) => {
   }
 });
 
+// Guardar/Actualizar empresa
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -170,6 +175,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
+// Disponibilidad
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -251,8 +257,38 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
+// Crear, Modificar o Consultar reservas
+app.get('/api/reservations', async (req, res) => {
+  const { tenant_id, phone, start_date, end_date } = req.query;
+  try {
+    let query = `
+      SELECT r.*, s.name as service_name, t.name as tenant_name 
+      FROM reservations r
+      LEFT JOIN services s ON r.service_id = s.id
+      JOIN tenants t ON r.tenant_id = t.id
+      WHERE r.tenant_id = $1
+    `;
+    let params = [tenant_id];
+
+    if (phone) {
+      query += ` AND r.client_phone = $2`;
+      params.push(phone);
+    }
+    if (start_date && end_date) {
+      query += ` AND DATE(r.reservation_time) >= $${params.length + 1} AND DATE(r.reservation_time) <= $${params.length + 2}`;
+      params.push(start_date, end_date);
+    }
+
+    query += ` ORDER BY r.reservation_time DESC`;
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener reservas' });
+  }
+});
+
 app.post('/api/reservations', async (req, res) => {
-  const { tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
+  const { id, tenant_id, service_id, client_name, client_phone, reservation_time, notes } = req.body;
 
   try {
     const serviceRes = await pool.query('SELECT duration_min FROM services WHERE id = $1', [service_id]);
@@ -262,15 +298,26 @@ app.post('/api/reservations', async (req, res) => {
     
     const durationMin = serviceRes.rows[0].duration_min || 60;
 
-    const insertResult = await pool.query(
-      `INSERT INTO reservations (tenant_id, service_id, client_name, client_phone, reservation_time, duration_min, notes) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [tenant_id, service_id, client_name, client_phone, reservation_time, durationMin, notes || 'Reserva confirmada']
-    );
+    let result;
+    if (id) {
+      // Modificar reserva existente
+      result = await pool.query(
+        `UPDATE reservations SET service_id = $1, client_name = $2, client_phone = $3, reservation_time = $4, duration_min = $5, notes = $6 
+         WHERE id = $7 RETURNING *`,
+        [service_id, client_name, client_phone, reservation_time, durationMin, notes || '', id]
+      );
+    } else {
+      // Crear nueva reserva
+      result = await pool.query(
+        `INSERT INTO reservations (tenant_id, service_id, client_name, client_phone, reservation_time, duration_min, notes) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [tenant_id, service_id, client_name, client_phone, reservation_time, durationMin, notes || 'Reserva confirmada']
+      );
+    }
 
     res.status(201).json({
-      message: 'Reserva realizada con éxito',
-      reservation: insertResult.rows[0]
+      message: 'Reserva procesada con éxito',
+      reservation: result.rows[0]
     });
   } catch (err) {
     console.error('Error reserva:', err);
@@ -278,21 +325,38 @@ app.post('/api/reservations', async (req, res) => {
   }
 });
 
-// Exportar CSV filtrado por tenant opcionalmente
+app.delete('/api/reservations/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM reservations WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Reserva anulada con éxito' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al anular reserva' });
+  }
+});
+
+// Exportar CSV filtrado
 app.get('/api/tenants/export', async (req, res) => {
   const tenantId = req.query.tenant_id;
+  const startDate = req.query.start_date;
+  const endDate = req.query.end_date;
+
   try {
     let query = `
       SELECT t.name as empresa, s.name as servicio, r.client_name, r.client_phone, r.reservation_time, r.duration_min, r.notes 
       FROM reservations r
       JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN services s ON r.service_id = s.id
+      WHERE 1=1
     `;
     let queryParams = [];
 
     if (tenantId) {
-      query += ` WHERE t.id = $1`;
       queryParams.push(tenantId);
+      query += ` AND t.id = $${queryParams.length}`;
+    }
+    if (startDate && endDate) {
+      queryParams.push(startDate, endDate);
+      query += ` AND DATE(r.reservation_time) >= $${queryParams.length - 1} AND DATE(r.reservation_time) <= $${queryParams.length}`;
     }
     query += ` ORDER BY r.reservation_time DESC`;
 
@@ -305,7 +369,7 @@ app.get('/api/tenants/export', async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=reservas_empresa.csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=reservas_filtradas.csv');
     res.status(200).send(csvContent);
   } catch (err) {
     res.status(500).json({ error: 'Error al exportar' });
