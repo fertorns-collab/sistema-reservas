@@ -94,7 +94,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint para obtener tenant mediante booking_token para la vista de cliente
+// Endpoint clave para que el cliente cargue el negocio por su token único
 app.get('/api/client/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -243,7 +243,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad inteligente con soporte para cierres personalizados por día de la semana y festivos
+// Disponibilidad inteligente
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -265,7 +265,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     const durationMin = service.duration_min;
 
     const targetDateObj = new Date(date + 'T00:00:00Z');
-    const dayOfWeek = targetDateObj.getUTCDay().toString(); // 0 = Dom, 6 = Sáb
+    const dayOfWeek = targetDateObj.getUTCDay().toString();
     const closedDaysArray = (tenant.closed_days || '').split(',').map(d => d.trim());
 
     let isClosedByDefault = closedDaysArray.includes(dayOfWeek);
@@ -361,7 +361,7 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
   }
 });
 
-// Endpoints de reservas y exportación
+// Endpoints de reservas y exportación (con soporte completo de filtros por fecha)
 app.get('/api/reservations', async (req, res) => {
   const { tenant_id, phone, code, start_date, end_date } = req.query;
   try {

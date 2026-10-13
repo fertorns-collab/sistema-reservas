@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS de Reservas</title>
+  <title>SaaS de Reservas y Gestión</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
   
-  <!-- VISTA DE CLIENTE (Oculta por defecto, se muestra si hay ?tenant=... en la URL) -->
+  <!-- VISTA DE CLIENTE (Se muestra si hay ?tenant=... en la URL) -->
   <div id="client-view" class="max-w-xl mx-auto p-6 hidden">
     <header class="mb-6 text-center">
       <h1 id="client-business-title" class="text-3xl font-bold text-indigo-600">Reservar Cita</h1>
@@ -16,7 +16,6 @@
     </header>
 
     <div class="bg-white rounded-xl shadow-md p-6 space-y-6">
-      <!-- Selección de Servicio -->
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">Servicio</label>
         <select id="client-service-select" class="w-full rounded-md border-gray-300 shadow-sm border p-2 bg-white">
@@ -24,13 +23,11 @@
         </select>
       </div>
 
-      <!-- Selección de Fecha -->
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
         <input type="date" id="client-date" class="w-full rounded-md border-gray-300 shadow-sm border p-2">
       </div>
 
-      <!-- Horarios Disponibles -->
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">Horarios Disponibles</label>
         <div id="client-slots-container" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md bg-gray-50">
@@ -38,7 +35,6 @@
         </div>
       </div>
 
-      <!-- Formulario de Datos del Cliente -->
       <form id="client-booking-form" class="space-y-4 border-t pt-4 hidden">
         <h3 class="font-semibold text-gray-700">Tus Datos de Contacto</h3>
         <div>
@@ -62,7 +58,7 @@
   <div id="admin-view" class="max-w-5xl mx-auto p-6">
     <header class="mb-8 text-center">
       <h1 class="text-3xl font-bold text-indigo-600">Gestión Integral de Reservas y Horarios</h1>
-      <p class="text-gray-600 mt-2">Panel del Propietario: Configuración, Cierres Flexibles, Festivos y Enlaces de Cliente.</p>
+      <p class="text-gray-600 mt-2">Panel del Propietario: Configuración, Cierres Flexibles, Festivos, Informes y Enlaces de Cliente.</p>
     </header>
 
     <main class="space-y-8">
@@ -159,7 +155,6 @@
             <p class="text-xs text-gray-500 mb-4">Marca los días que necesites cerrar antes de lo habitual y especifica la hora límite.</p>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Lunes (1) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="1" class="day-check" data-day="1">
@@ -167,7 +162,6 @@
                 </label>
                 <input type="time" id="close_time_1" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
-              <!-- Martes (2) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="2" class="day-check" data-day="2">
@@ -175,7 +169,6 @@
                 </label>
                 <input type="time" id="close_time_2" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
-              <!-- Miércoles (3) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="3" class="day-check" data-day="3">
@@ -183,7 +176,6 @@
                 </label>
                 <input type="time" id="close_time_3" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
-              <!-- Jueves (4) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="4" class="day-check" data-day="4">
@@ -191,7 +183,6 @@
                 </label>
                 <input type="time" id="close_time_4" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
-              <!-- Viernes (5) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="5" class="day-check" data-day="5">
@@ -199,7 +190,6 @@
                 </label>
                 <input type="time" id="close_time_5" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
-              <!-- Sábado (6) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="6" class="day-check" data-day="6">
@@ -207,7 +197,6 @@
                 </label>
                 <input type="time" id="close_time_6" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
-              <!-- Domingo (0) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="0" class="day-check" data-day="0">
@@ -255,41 +244,63 @@
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody id="exceptions-tbody" class="bg-white divide-y divide-gray-200">
-              <!-- Dinámico -->
-            </tbody>
+            <tbody id="exceptions-tbody" class="bg-white divide-y divide-gray-200"></tbody>
           </table>
         </div>
       </section>
 
-      <!-- Exportación e Informes -->
+      <!-- Filtrado, Informes y Exportación de Reservas -->
       <section id="export-section" class="bg-white rounded-xl shadow-md p-6 hidden">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Exportación y Reportes</h2>
-        <div class="flex flex-wrap gap-4">
-          <button id="export-csv-btn" type="button" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition">
-            Exportar Reservas (CSV / Sheets)
-          </button>
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Filtrado y Exportación de Reservas</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Desde Fecha</label>
+            <input type="date" id="filter-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Hasta Fecha</label>
+            <input type="date" id="filter-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2">
+          </div>
+          <div class="flex items-end gap-2">
+            <button id="filter-reservations-btn" type="button" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition">Filtrar</button>
+            <button id="export-csv-btn" type="button" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition">Exportar CSV</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha y Hora</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Servicio</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="reservations-tbody" class="bg-white divide-y divide-gray-200">
+              <tr><td colspan="6" class="text-center py-4 text-sm text-gray-500">Selecciona un negocio para ver sus reservas.</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </main>
   </div>
 
   <script>
-    // --- LÓGICA DE DETECCIÓN CLIENTE VS ADMIN ---
     const urlParams = new URLSearchParams(window.location.search);
     const tenantToken = urlParams.get('tenant');
 
     if (tenantToken) {
-      // MODO CLIENTE
       document.getElementById('admin-view').classList.add('hidden');
       document.getElementById('client-view').classList.remove('hidden');
       initClientView(tenantToken);
     } else {
-      // MODO ADMINISTRADOR
       initAdminView();
     }
 
-    // --- FUNCIONES MODO CLIENTE ---
     async function initClientView(token) {
       try {
         const res = await fetch(`/api/client/tenant/${token}`);
@@ -297,9 +308,8 @@
         const tenant = await res.json();
 
         document.getElementById('client-business-title').textContent = tenant.name;
-        document.getElementById('client-business-subtitle').textContent = `Reserva tu cita en ${tenant.name} (${tenant.category || 'Servicios'})`;
+        document.getElementById('client-business-subtitle').textContent = `Reserva tu cita en ${tenant.name}`;
 
-        // Cargar servicios
         const sRes = await fetch(`/api/tenants/${tenant.id}/services`);
         const services = await sRes.json();
         const serviceSelect = document.getElementById('client-service-select');
@@ -337,7 +347,7 @@
             }
 
             if (!data.slots || data.slots.length === 0) {
-              slotsContainer.innerHTML = '<span class="text-sm text-gray-500 col-span-3 text-center py-4">No hay horarios disponibles para esta fecha.</span>';
+              slotsContainer.innerHTML = '<span class="text-sm text-gray-500 col-span-3 text-center py-4">No hay horarios disponibles.</span>';
               return;
             }
 
@@ -360,8 +370,7 @@
               slotsContainer.appendChild(btn);
             });
           } catch (err) {
-            console.error('Error al consultar disponibilidad:', err);
-            slotsContainer.innerHTML = '<span class="text-sm text-red-500 col-span-3 text-center py-4">Error al cargar disponibilidad.</span>';
+            console.error('Error:', err);
           }
         };
 
@@ -381,32 +390,26 @@
             notes: document.getElementById('client-notes').value
           };
 
-          try {
-            const res = await fetch('/api/reservations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(bodyData)
-            });
-            const result = await res.json();
-            if (res.ok) {
-              alert(`¡Reserva confirmada con éxito! Código de reserva: ${result.reservation.booking_code}`);
-              window.location.reload();
-            } else {
-              alert('Error al reservar: ' + (result.error || 'Inténtalo de nuevo'));
-            }
-          } catch (err) {
-            console.error('Error al enviar reserva:', err);
-            alert('Error de conexión al procesar la reserva.');
+          const res = await fetch('/api/reservations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyData)
+          });
+          const result = await res.json();
+          if (res.ok) {
+            alert(`¡Reserva confirmada! Código: ${result.reservation.booking_code}`);
+            window.location.reload();
+          } else {
+            alert('Error: ' + (result.error || 'Inténtalo de nuevo'));
           }
         });
 
       } catch (err) {
-        console.error('Error cargando cliente:', err);
+        console.error(err);
         document.body.innerHTML = '<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow text-center text-red-600 font-bold">Enlace de reserva no válido o negocio no encontrado.</div>';
       }
     }
 
-    // --- FUNCIONES MODO ADMINISTRADOR ---
     function initAdminView() {
       let tenantsList = [];
       let currentTenant = null;
@@ -432,7 +435,7 @@
             select.appendChild(opt);
           });
         } catch (err) {
-          console.error('Error al cargar negocios:', err);
+          console.error(err);
         }
       }
 
@@ -483,10 +486,11 @@
           bookingLinkEl.href = clientUrl;
           bookingLinkEl.textContent = clientUrl;
 
-          const whatsappText = encodeURIComponent(`¡Hola! Puedes reservar tu cita en ${currentTenant.name} a través de este enlace: ${clientUrl}`);
+          const whatsappText = encodeURIComponent(`¡Hola! Puedes reservar tu cita en ${currentTenant.name} aquí: ${clientUrl}`);
           document.getElementById('whatsapp-share-btn').href = `https://api.whatsapp.com/send?phone=${currentTenant.phone}&text=${whatsappText}`;
 
           loadExceptions(currentTenant.id);
+          loadReservations(currentTenant.id);
         }
       });
 
@@ -539,45 +543,36 @@
           notes: document.getElementById('notes').value
         };
 
-        try {
-          const res = await fetch('/api/tenants/config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyData)
-          });
+        const res = await fetch('/api/tenants/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyData)
+        });
 
-          if (res.ok) {
-            alert('¡Configuración guardada con éxito!');
-            loadTenants();
-          } else {
-            alert('Error al guardar la configuración');
-          }
-        } catch (err) {
-          console.error('Error de red:', err);
-          alert('Error de red al guardar');
+        if (res.ok) {
+          alert('¡Configuración guardada!');
+          loadTenants();
+        } else {
+          alert('Error al guardar');
         }
       });
 
       async function loadExceptions(tenantId) {
-        try {
-          const res = await fetch(`/api/tenants/${tenantId}/exceptions`);
-          const exceptions = await res.json();
-          const tbody = document.getElementById('exceptions-tbody');
-          tbody.innerHTML = '';
-          exceptions.forEach(exc => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${exc.exception_date.substring(0, 10)}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${exc.reason}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button onclick="deleteException(${exc.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        } catch (err) {
-          console.error('Error al cargar excepciones:', err);
-        }
+        const res = await fetch(`/api/tenants/${tenantId}/exceptions`);
+        const exceptions = await res.json();
+        const tbody = document.getElementById('exceptions-tbody');
+        tbody.innerHTML = '';
+        exceptions.forEach(exc => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-6 py-4 text-sm text-gray-900">${exc.exception_date.substring(0, 10)}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">${exc.reason}</td>
+            <td class="px-6 py-4 text-right text-sm">
+              <button onclick="deleteException(${exc.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
 
       document.getElementById('exception-form').addEventListener('submit', async (e) => {
@@ -587,57 +582,93 @@
         const exception_date = document.getElementById('exception_date').value;
         const reason = document.getElementById('exception_reason').value;
 
-        try {
-          const res = await fetch('/api/tenants/exceptions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tenant_id: currentTenant.id, exception_date, is_closed: true, reason })
-          });
+        const res = await fetch('/api/tenants/exceptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_id: currentTenant.id, exception_date, is_closed: true, reason })
+        });
 
-          if (res.ok) {
-            document.getElementById('exception_date').value = '';
-            document.getElementById('exception_reason').value = '';
-            loadExceptions(currentTenant.id);
-          } else {
-            alert('Error al guardar excepción');
-          }
-        } catch (err) {
-          console.error('Error:', err);
+        if (res.ok) {
+          document.getElementById('exception_date').value = '';
+          document.getElementById('exception_reason').value = '';
+          loadExceptions(currentTenant.id);
         }
       });
 
       window.deleteException = async function(id) {
-        if (!confirm('¿Eliminar este día excepcional?')) return;
-        try {
-          await fetch(`/api/tenants/exceptions/${id}`, { method: 'DELETE' });
-          if (currentTenant) loadExceptions(currentTenant.id);
-        } catch (err) {
-          console.error('Error:', err);
+        if (!confirm('¿Eliminar excepción?')) return;
+        await fetch(`/api/tenants/exceptions/${id}`, { method: 'DELETE' });
+        if (currentTenant) loadExceptions(currentTenant.id);
+      };
+
+      async function loadReservations(tenantId, startDate = '', endDate = '') {
+        let url = `/api/reservations?tenant_id=${tenantId}`;
+        if (startDate && endDate) {
+          url += `&start_date=${startDate}&end_date=${endDate}`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        const tbody = document.getElementById('reservations-tbody');
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-sm text-gray-500">No hay reservas en este rango de fechas.</td></tr>';
+          return;
+        }
+
+        data.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-4 py-2 text-sm font-semibold text-indigo-600">${r.booking_code}</td>
+            <td class="px-4 py-2 text-sm text-gray-900">${r.client_name}</td>
+            <td class="px-4 py-2 text-sm text-gray-600">${r.client_phone}</td>
+            <td class="px-4 py-2 text-sm text-gray-600">${r.reservation_time.replace('T', ' ').substring(0, 16)}</td>
+            <td class="px-4 py-2 text-sm text-gray-600">${r.service_name || 'General'}</td>
+            <td class="px-4 py-2 text-right text-sm">
+              <button onclick="cancelReservation(${r.id})" class="text-red-600 hover:text-red-900 font-medium">Anular</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('filter-reservations-btn').addEventListener('click', () => {
+        if (!currentTenant) return;
+        const start = document.getElementById('filter-start-date').value;
+        const end = document.getElementById('filter-end-date').value;
+        loadReservations(currentTenant.id, start, end);
+      });
+
+      window.cancelReservation = async function(resId) {
+        if (!confirm('¿Anular esta reserva?')) return;
+        await fetch(`/api/reservations/${resId}`, { method: 'DELETE' });
+        if (currentTenant) {
+          const start = document.getElementById('filter-start-date').value;
+          const end = document.getElementById('filter-end-date').value;
+          loadReservations(currentTenant.id, start, end);
         }
       };
 
       document.getElementById('export-csv-btn').addEventListener('click', async () => {
         if (!currentTenant) return;
-        try {
-          const res = await fetch(`/api/reservations?tenant_id=${currentTenant.id}`);
-          const data = await res.json();
-          if (data.length === 0) {
-            alert('No hay reservas para exportar.');
-            return;
-          }
-          let csv = 'ID,Cliente,Teléfono,Código,Fecha Hora,Servicio\n';
-          data.forEach(r => {
-            csv += `${r.id},"${r.client_name}",${r.client_phone},${r.booking_code},${r.reservation_time},"${r.service_name || ''}"\n`;
-          });
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `reservas_${currentTenant.name}.csv`;
-          a.click();
-        } catch (err) {
-          console.error('Error al exportar:', err);
-        }
+        const start = document.getElementById('filter-start-date').value;
+        const end = document.getElementById('filter-end-date').value;
+        let url = `/api/reservations?tenant_id=${currentTenant.id}`;
+        if (start && end) url += `&start_date=${start}&end_date=${end}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.length === 0) return alert('No hay reservas para exportar.');
+
+        let csv = 'ID,Código,Cliente,Teléfono,Fecha Hora,Servicio\n';
+        data.forEach(r => {
+          csv += `${r.id},${r.booking_code},"${r.client_name}",${r.client_phone},"${r.reservation_time}","${r.service_name || ''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `reservas_${currentTenant.name}.csv`;
+        link.click();
       });
 
       loadTenants();
