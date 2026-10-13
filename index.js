@@ -129,12 +129,13 @@ app.get('/api/admin/tenant/:token', async (req, res) => {
   }
 });
 
-// Búsqueda de accesos por teléfono
+// Búsqueda de accesos por teléfono (normalizado)
 app.get('/api/tenants/search/:phone', async (req, res) => {
   try {
+    const searchPhone = req.params.phone.replace(/[^0-9]/g, '');
     const result = await pool.query(
-      'SELECT id, name, phone, admin_token, booking_token FROM tenants WHERE phone = $1',
-      [req.params.phone]
+      'SELECT id, name, phone, admin_token, booking_token FROM tenants WHERE REPLACE(REPLACE(REPLACE(phone, "+", ""), " ", ""), "-", "") LIKE $1',
+      [`%${searchPhone}%`]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'No se encontró ningún negocio con este teléfono.' });
@@ -213,7 +214,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Configuración y alta de empresas
+// Configuración y alta de empresas (Soporte para múltiples closed_days y closing_times)
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -269,7 +270,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad
+// Disponibilidad con gestión de días cerrados múltiples y horarios personalizados por día
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
@@ -340,14 +341,27 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
     };
 
     const closingTimes = tenant.closing_times || {};
-    const earlyCloseTime = closingTimes[dayOfWeek];
+    const daySchedule = closingTimes[dayOfWeek]; // Puede ser {closed: true} o {start, end}
 
-    if (earlyCloseTime) {
-      addShiftsToSlots(tenant.shift1_start, earlyCloseTime);
-    } else {
-      addShiftsToSlots(tenant.shift1_start, tenant.shift1_end);
-      addShiftsToSlots(tenant.shift2_start, tenant.shift2_end);
+    if (daySchedule && daySchedule.closed) {
+      return res.json({
+        date,
+        business_name: tenant.name,
+        service_name: service.name,
+        duration_min: durationMin,
+        closed: true,
+        reason: 'Cierre especial programado para este día',
+        slots: []
+      });
     }
+
+    const shift1End = (daySchedule && daySchedule.shift1_end) ? daySchedule.shift1_end : tenant.shift1_end;
+    const shift1Start = (daySchedule && daySchedule.shift1_start) ? daySchedule.shift1_start : tenant.shift1_start;
+    const shift2Start = (daySchedule && daySchedule.shift2_start) !== undefined ? daySchedule.shift2_start : tenant.shift2_start;
+    const shift2End = (daySchedule && daySchedule.shift2_end) !== undefined ? daySchedule.shift2_end : tenant.shift2_end;
+
+    addShiftsToSlots(shift1Start, shift1End);
+    addShiftsToSlots(shift2Start, shift2End);
 
     const availability = slots.map(slotTime => {
       const slotStart = new Date(`${date}T${slotTime}:00`).getTime();

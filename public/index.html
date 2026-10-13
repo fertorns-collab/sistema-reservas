@@ -13,7 +13,7 @@
     <div>
       <header class="mb-6 text-center">
         <h1 class="text-3xl font-extrabold text-indigo-600 tracking-tight">Crea tu Negocio de Reservas</h1>
-        <p class="text-slate-500 mt-2">Registra tu establecimiento en segundos y gestiona tus citas sin complicaciones.</p>
+        <p class="text-slate-500 mt-2">Registra tu establecimiento y gestiona tus citas globalmente.</p>
       </header>
 
       <form id="register-business-form" class="space-y-4">
@@ -23,7 +23,10 @@
         </div>
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Teléfono de Contacto (WhatsApp)</label>
-          <input type="text" id="reg-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-indigo-500 outline-none" required placeholder="Ej. 34600123456">
+          <div class="flex gap-2">
+            <input type="text" id="reg-prefix" class="w-24 rounded-lg border-slate-300 shadow-sm border p-3 text-center bg-slate-50 font-semibold" value="+34" required>
+            <input type="text" id="reg-phone-local" class="flex-1 rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-indigo-500 outline-none" required placeholder="Ej. 600123456">
+          </div>
         </div>
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Categoría</label>
@@ -41,7 +44,7 @@
 
       <form id="recover-access-form" class="space-y-4">
         <div>
-          <input type="text" id="recover-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-slate-500 outline-none" required placeholder="Introduce tu teléfono de registro">
+          <input type="text" id="recover-phone" class="w-full rounded-lg border-slate-300 shadow-sm border p-3 focus:ring-2 focus:ring-slate-500 outline-none" required placeholder="Introduce tu teléfono (ej. 600123456 o +34600123456)">
         </div>
         <button type="submit" class="w-full bg-slate-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-900 transition">Buscar Mis Accesos</button>
       </form>
@@ -94,7 +97,7 @@
         <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-lg hover:bg-indigo-700 transition shadow">Confirmar Reserva</button>
       </form>
 
-      <!-- MODAL/SECCIÓN DE CONFIRMACIÓN CON WHATSAPP, GOOGLE CALENDAR E .ICS -->
+      <!-- CONFIRMACIÓN CON WHATSAPP, GOOGLE CALENDAR E .ICS -->
       <div id="confirmation-card" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 space-y-4 hidden text-center">
         <div class="text-emerald-700 font-bold text-lg">¡Reserva Confirmada con Éxito!</div>
         <p class="text-sm text-slate-600" id="confirmation-details"></p>
@@ -118,11 +121,11 @@
   <div id="admin-view" class="max-w-6xl mx-auto p-6 hidden">
     <header class="mb-8 text-center">
       <h1 class="text-3xl font-extrabold text-indigo-600">Panel de Control del Propietario</h1>
-      <p class="text-slate-500 mt-2">Gestión Integral de Configuración, Servicios, Excepciones y Reservas.</p>
+      <p class="text-slate-500 mt-2">Configuración, Días de Descanso Múltiples, Horarios Especiales y Reservas.</p>
     </header>
 
     <main class="space-y-8">
-      <!-- Tarjetas de Accesos Privados -->
+      <!-- Accesos Privados -->
       <section class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-sm">
         <h2 class="text-lg font-bold mb-3 text-indigo-900">Accesos Privados y Directos</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -137,9 +140,9 @@
         </div>
       </section>
 
-      <!-- Configuración del Negocio -->
+      <!-- Configuración General del Negocio -->
       <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
-        <h2 class="text-xl font-bold mb-4 text-slate-800">Configuración General y Turnos</h2>
+        <h2 class="text-xl font-bold mb-4 text-slate-800">Configuración General y Días de Descanso</h2>
         <form id="config-form" class="space-y-4">
           <input type="hidden" id="tenant_id">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,7 +152,7 @@
             </div>
             <div>
               <label class="block text-sm font-semibold text-slate-700">Teléfono (WhatsApp)</label>
-              <input type="text" id="phone" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" required>
+              <input type="text" id="phone" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" required placeholder="+34600123456">
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -167,6 +170,21 @@
             </div>
           </div>
 
+          <!-- Días de descanso múltiples -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Días de Descanso Semanal (Selecciona uno o varios)</label>
+            <div id="closed-days-container" class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border">
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="0" class="closed-day-cb"> Domingo</label>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="1" class="closed-day-cb"> Lunes</label>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="2" class="closed-day-cb"> Martes</label>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="3" class="closed-day-cb"> Miércoles</label>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="4" class="closed-day-cb"> Jueves</label>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="5" class="closed-day-cb"> Viernes</label>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="6" class="closed-day-cb"> Sábado</label>
+            </div>
+          </div>
+
+          <!-- Turnos Habituales -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
             <div>
               <label class="block text-sm font-semibold text-slate-700">Turno 1 Inicio</label>
@@ -191,8 +209,50 @@
             <textarea id="notes" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" rows="2"></textarea>
           </div>
 
-          <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition shadow">Guardar Cambios</button>
+          <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition shadow">Guardar Configuración General</button>
         </form>
+      </section>
+
+      <!-- Horarios Especiales por Día Específico -->
+      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
+        <h2 class="text-xl font-bold mb-2 text-slate-800">Horarios Especiales o Reducidos por Día de la Semana</h2>
+        <p class="text-xs text-slate-500 mb-4">Si algún día específico de la semana (por ejemplo, el sábado) quieres que cierre antes o tenga otro horario diferente al habitual, configúralo aquí.</p>
+        
+        <form id="special-day-form" class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4 items-end">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Día</label>
+            <select id="special_day_idx" class="w-full rounded-lg border-slate-300 border p-2 text-sm bg-white">
+              <option value="1">Lunes</option>
+              <option value="2">Martes</option>
+              <option value="3">Miércoles</option>
+              <option value="4">Jueves</option>
+              <option value="5">Viernes</option>
+              <option value="6">Sábado</option>
+              <option value="0">Domingo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Inic. Turno 1</label>
+            <input type="time" id="special_s1_start" class="w-full rounded-lg border-slate-300 border p-2 text-sm" value="09:00">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Fin Turno 1</label>
+            <input type="time" id="special_s1_end" class="w-full rounded-lg border-slate-300 border p-2 text-sm" value="14:00">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Inic. Turno 2</label>
+            <input type="time" id="special_s2_start" class="w-full rounded-lg border-slate-300 border p-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Fin Turno 2</label>
+            <input type="time" id="special_s2_end" class="w-full rounded-lg border-slate-300 border p-2 text-sm">
+          </div>
+          <div>
+            <button type="submit" class="w-full bg-slate-800 text-white font-bold rounded-lg py-2.5 text-sm hover:bg-slate-900 transition">Guardar Horario</button>
+          </div>
+        </form>
+
+        <div id="special-days-summary" class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border"></div>
       </section>
 
       <!-- Catálogo de Servicios -->
@@ -294,12 +354,16 @@
     function initLandingView() {
       document.getElementById('register-business-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const prefix = document.getElementById('reg-prefix').value.trim();
+        const localPhone = document.getElementById('reg-phone-local').value.trim();
+        const fullPhone = prefix + localPhone;
+
         const res = await fetch('/api/tenants/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: document.getElementById('reg-name').value,
-            phone: document.getElementById('reg-phone').value,
+            phone: fullPhone,
             category: document.getElementById('reg-category').value
           })
         });
@@ -330,7 +394,7 @@
         data.forEach(t => {
           results.innerHTML += `
             <div class="p-3 bg-slate-50 border rounded-lg text-sm space-y-1">
-              <p class="font-bold text-indigo-600">${t.name}</p>
+              <p class="font-bold text-indigo-600">${t.name} <span class="text-xs text-slate-500">(${t.phone})</span></p>
               <a href="/?admin=${t.admin_token}" class="block text-purple-600 font-medium hover:underline">Acceder al Panel de Administración</a>
               <a href="/?tenant=${t.booking_token}" target="_blank" class="block text-indigo-500 font-medium hover:underline">Ver Enlace Público de Reservas</a>
             </div>
@@ -425,7 +489,6 @@
             const startTime = new Date(r.reservation_time);
             const endTime = new Date(startTime.getTime() + (r.duration_min || 60) * 60000);
 
-            // Muestra la tarjeta de confirmación
             document.getElementById('client-booking-form').classList.add('hidden');
             const confCard = document.getElementById('confirmation-card');
             confCard.classList.remove('hidden');
@@ -436,18 +499,15 @@
               <strong>Servicio:</strong> ${r.service_name || 'Servicio'}
             `;
 
-            // 1. WhatsApp Auto-Notificación
             const cleanPhone = tenant.phone.replace(/[^0-9]/g, '');
             const msg = encodeURIComponent(`Hola ${tenant.name}, he realizado la reserva ${r.booking_code} para el servicio ${r.service_name || ''} el día ${startTime.toLocaleDateString('es-ES')} a las ${startTime.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}. Nombre: ${r.client_name}`);
             const waUrl = `https://wa.me/${cleanPhone}?text=${msg}`;
             document.getElementById('btn-whatsapp-confirm').href = waUrl;
 
-            // 2. Google Calendar
             const formatGDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
             const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenant.name)}&dates=${formatGDate(startTime)}/${formatGDate(endTime)}&details=${encodeURIComponent('Código de Reserva: ' + r.booking_code)}`;
             document.getElementById('btn-gcalendar-confirm').href = gCalUrl;
 
-            // 3. Generación del archivo .ICS
             document.getElementById('btn-ics-confirm').onclick = () => {
               const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Reserva en ${tenant.name}\nDESCRIPTION:Código: ${r.booking_code}\nDTSTART:${formatGDate(startTime)}\nDTEND:${formatGDate(endTime)}\nEND:VEVENT\nEND:VCALENDAR`;
               const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8;' });
@@ -457,7 +517,6 @@
               link.click();
             };
 
-            // Abrir automáticamente WhatsApp en una pestaña nueva
             window.open(waUrl, '_blank');
 
           } else {
@@ -488,6 +547,16 @@
         document.getElementById('shift2_end').value = currentTenant.shift2_end || '';
         document.getElementById('notes').value = currentTenant.notes || '';
 
+        // Marcar los checkboxes de días cerrados
+        const closedDays = (currentTenant.closed_days || '').split(',').map(d => d.trim());
+        document.querySelectorAll('.closed-day-cb').forEach(cb => {
+          if (closedDays.includes(cb.value)) cb.checked = true;
+        });
+
+        // Mostrar resumen de horarios especiales
+        let closingTimes = currentTenant.closing_times || {};
+        renderSpecialDaysSummary(closingTimes);
+
         const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
         const adminUrl = `${window.location.origin}/?admin=${currentTenant.admin_token}`;
         document.getElementById('client-booking-url').href = clientUrl;
@@ -501,6 +570,9 @@
 
         document.getElementById('config-form').addEventListener('submit', async (e) => {
           e.preventDefault();
+          const selectedClosedDays = [];
+          document.querySelectorAll('.closed-day-cb:checked').forEach(cb => selectedClosedDays.push(cb.value));
+
           const updateRes = await fetch('/api/tenants/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -511,18 +583,78 @@
               category: document.getElementById('category').value,
               business_type: document.getElementById('business_type').value,
               max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
+              closed_days: selectedClosedDays.join(','),
               shift1_start: document.getElementById('shift1_start').value,
               shift1_end: document.getElementById('shift1_end').value,
               shift2_start: document.getElementById('shift2_start').value || null,
               shift2_end: document.getElementById('shift2_end').value || null,
+              closing_times: currentTenant.closing_times || {},
               notes: document.getElementById('notes').value
             })
           });
           if (updateRes.ok) {
-            alert('¡Configuración guardada!');
+            alert('¡Configuración guardada con éxito!');
             window.location.reload();
           }
         });
+
+        document.getElementById('special-day-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const dayIdx = document.getElementById('special_day_idx').value;
+          const s1Start = document.getElementById('special_s1_start').value;
+          const s1End = document.getElementById('special_s1_end').value;
+          const s2Start = document.getElementById('special_s2_start').value;
+          const s2End = document.getElementById('special_s2_end').value;
+
+          if (!currentTenant.closing_times) currentTenant.closing_times = {};
+          currentTenant.closing_times[dayIdx] = {
+            shift1_start: s1Start,
+            shift1_end: s1End,
+            shift2_start: s2Start || null,
+            shift2_end: s2End || null,
+            closed: false
+          };
+
+          const updateRes = await fetch('/api/tenants/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: currentTenant.id,
+              name: currentTenant.name,
+              phone: currentTenant.phone,
+              category: currentTenant.category,
+              business_type: currentTenant.business_type,
+              max_capacity: currentTenant.max_capacity,
+              closed_days: currentTenant.closed_days,
+              shift1_start: currentTenant.shift1_start,
+              shift1_end: currentTenant.shift1_end,
+              shift2_start: currentTenant.shift2_start,
+              shift2_end: currentTenant.shift2_end,
+              closing_times: currentTenant.closing_times,
+              notes: currentTenant.notes
+            })
+          });
+
+          if (updateRes.ok) {
+            alert('¡Horario especial guardado!');
+            renderSpecialDaysSummary(currentTenant.closing_times);
+          }
+        });
+
+        function renderSpecialDaysSummary(timesObj) {
+          const summaryDiv = document.getElementById('special-days-summary');
+          const dayNames = { '0': 'Domingo', '1': 'Lunes', '2': 'Martes', '3': 'Miércoles', '4': 'Jueves', '5': 'Viernes', '6': 'Sábado' };
+          let html = '<strong class="block mb-1">Horarios especiales configurados:</strong>';
+          let count = 0;
+          for (let day in timesObj) {
+            if (timesObj[day] && !timesObj[day].closed) {
+              count++;
+              html += `<div class="text-xs text-slate-700">• <b>${dayNames[day]}</b>: Turno 1 (${timesObj[day].shift1_start} - ${timesObj[day].shift1_end})${timesObj[day].shift2_start ? ' | Turno 2 ('+timesObj[day].shift2_start+' - '+timesObj[day].shift2_end+')' : ''}</div>`;
+            }
+          }
+          if (count === 0) html += '<span class="text-xs text-slate-400">Ninguno configurado (se usan los turnos habituales).</span>';
+          summaryDiv.innerHTML = html;
+        }
 
         async function loadServices(tenantId) {
           const sRes = await fetch(`/api/tenants/${tenantId}/services`);
