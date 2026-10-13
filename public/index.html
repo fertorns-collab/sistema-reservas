@@ -3,33 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS de Reservas - Panel de Administración</title>
+  <title>SaaS de Reservas - Panel de Administración B2B</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-5xl mx-auto p-6">
     <header class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-indigo-600">Gestión de Horarios y Reservas B2B</h1>
-      <p class="text-gray-600 mt-2">Panel de control del propietario para configurar turnos, aforo y cierres personalizados.</p>
+      <h1 class="text-3xl font-bold text-indigo-600">Gestión Integral de Reservas y Horarios</h1>
+      <p class="text-gray-600 mt-2">Panel del Propietario: Configuración, Cierres Flexibles, Festivos y Enlaces de Cliente.</p>
     </header>
 
-    <main class="bg-white rounded-xl shadow-md p-6 space-y-6">
+    <main class="space-y-8">
       <!-- Selector de Negocio / Tenant -->
-      <section class="bg-indigo-50 p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-          <label for="tenant-select" class="block text-sm font-semibold text-indigo-900">Seleccionar Negocio:</label>
-          <select id="tenant-select" class="mt-1 block w-full md:w-64 rounded-md border-gray-300 shadow-sm border p-2 bg-white">
+      <section class="bg-white rounded-xl shadow-md p-6 flex flex-col md:flex-row items-center justify-between gap-4 border-l-4 border-indigo-600">
+        <div class="w-full md:w-auto flex-1">
+          <label for="tenant-select" class="block text-sm font-semibold text-gray-700">Seleccionar Negocio:</label>
+          <select id="tenant-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 bg-white">
             <option value="">-- Nuevo Negocio --</option>
           </select>
         </div>
-        <button id="new-tenant-btn" type="button" class="mt-4 md:mt-0 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-indigo-700 transition">
-          + Crear Nuevo Negocio
-        </button>
+        <div class="flex gap-2 w-full md:w-auto">
+          <button id="new-tenant-btn" type="button" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-indigo-700 transition w-full md:w-auto">
+            + Nuevo Negocio
+          </button>
+        </div>
+      </section>
+
+      <!-- URLs de Acceso y Enlaces Rápidos (Cliente / WhatsApp) -->
+      <section id="access-section" class="bg-indigo-50 rounded-xl shadow-md p-6 hidden">
+        <h2 class="text-lg font-semibold mb-3 text-indigo-900">Enlaces y Accesos para Clientes</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white p-3 rounded border">
+            <span class="block text-xs font-bold text-gray-500 uppercase">URL de Reserva para el Cliente:</span>
+            <a id="client-booking-url" href="#" target="_blank" class="text-indigo-600 text-sm font-medium hover:underline break-all">--</a>
+          </div>
+          <div class="bg-white p-3 rounded border flex items-center justify-between">
+            <div>
+              <span class="block text-xs font-bold text-gray-500 uppercase">Mensaje de WhatsApp:</span>
+              <span class="text-xs text-gray-600">Enviar enlace directo al cliente</span>
+            </div>
+            <a id="whatsapp-share-btn" href="#" target="_blank" class="bg-green-500 text-white px-3 py-1.5 rounded text-sm font-semibold hover:bg-green-600 transition">
+              Enviar WhatsApp
+            </a>
+          </div>
+        </div>
       </section>
 
       <!-- Formulario de Configuración del Negocio -->
-      <section>
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración General del Negocio</h2>
+      <section class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Configuración de Horarios y Turnos</h2>
         <form id="config-form" class="space-y-4">
           <input type="hidden" id="tenant_id" name="id">
 
@@ -47,7 +69,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700">Categoría</label>
-              <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Peluquería">
+              <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Estética">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700">Tipo de Negocio</label>
@@ -79,19 +101,19 @@
             </div>
           </div>
 
-          <!-- Cierres Anticipados Flexible por Día de la Semana -->
+          <!-- Cierres Anticipados Flexibles por Día de la Semana -->
           <div class="border-t pt-4 mt-4">
             <h3 class="text-lg font-medium text-gray-700 mb-2">Cierres Anticipados por Día de la Semana</h3>
-            <p class="text-xs text-gray-500 mb-4">Marca los días que necesites cerrar antes de lo habitual y especifica la hora límite de cierre.</p>
+            <p class="text-xs text-gray-500 mb-4">Marca los días que necesites cerrar antes de lo habitual y especifica la hora límite.</p>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="closing-days-container">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Lunes (1) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
                 <label class="flex items-center space-x-2">
                   <input type="checkbox" value="1" class="day-check" data-day="1">
                   <span class="text-sm font-medium">Lunes</span>
                 </label>
-                <input type="time" id="close_time_1" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_1" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
               <!-- Martes (2) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
@@ -99,7 +121,7 @@
                   <input type="checkbox" value="2" class="day-check" data-day="2">
                   <span class="text-sm font-medium">Martes</span>
                 </label>
-                <input type="time" id="close_time_2" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_2" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
               <!-- Miércoles (3) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
@@ -107,7 +129,7 @@
                   <input type="checkbox" value="3" class="day-check" data-day="3">
                   <span class="text-sm font-medium">Miércoles</span>
                 </label>
-                <input type="time" id="close_time_3" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_3" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
               <!-- Jueves (4) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
@@ -115,7 +137,7 @@
                   <input type="checkbox" value="4" class="day-check" data-day="4">
                   <span class="text-sm font-medium">Jueves</span>
                 </label>
-                <input type="time" id="close_time_4" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_4" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
               <!-- Viernes (5) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
@@ -123,7 +145,7 @@
                   <input type="checkbox" value="5" class="day-check" data-day="5">
                   <span class="text-sm font-medium">Viernes</span>
                 </label>
-                <input type="time" id="close_time_5" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_5" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
               <!-- Sábado (6) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
@@ -131,7 +153,7 @@
                   <input type="checkbox" value="6" class="day-check" data-day="6">
                   <span class="text-sm font-medium">Sábado</span>
                 </label>
-                <input type="time" id="close_time_6" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_6" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
               <!-- Domingo (0) -->
               <div class="flex items-center justify-between bg-gray-50 p-2 rounded border">
@@ -139,7 +161,7 @@
                   <input type="checkbox" value="0" class="day-check" data-day="0">
                   <span class="text-sm font-medium">Domingo</span>
                 </label>
-                <input type="time" id="close_time_0" class="close-time-input border p-1 rounded text-sm" value="14:00" disabled>
+                <input type="time" id="close_time_0" class="border p-1 rounded text-sm" value="14:00" disabled>
               </div>
             </div>
           </div>
@@ -152,11 +174,57 @@
           <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Guardar Configuración del Negocio</button>
         </form>
       </section>
+
+      <!-- Gestión de Excepciones / Festivos y Cierres por Motivo -->
+      <section id="exceptions-card" class="bg-white rounded-xl shadow-md p-6 hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Días de Cierre Excepcional o Festivos</h2>
+        <form id="exception-form" class="space-y-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Fecha de Excepción</label>
+              <input type="date" id="exception_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Motivo</label>
+              <input type="text" id="exception_reason" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2" placeholder="Ej. Festivo local, vacaciones">
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition">Añadir Cierre Excepcional</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="exceptions-tbody" class="bg-white divide-y divide-gray-200">
+              <!-- Dinámico -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Exportación e Informes -->
+      <section id="export-section" class="bg-white rounded-xl shadow-md p-6 hidden">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Exportación y Reportes</h2>
+        <div class="flex flex-wrap gap-4">
+          <button id="export-csv-btn" type="button" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition">
+            Exportar Reservas (CSV / Sheets)
+          </button>
+        </div>
+      </section>
     </main>
   </div>
 
   <script>
     let tenantsList = [];
+    let currentTenant = null;
 
     // Habilitar/deshabilitar input de hora según checkbox
     document.querySelectorAll('.day-check').forEach(chk => {
@@ -184,31 +252,35 @@
       }
     }
 
-    document.getElementById('tenant-select').addEventListener('change', (e) => {
+    document.getElementById('tenant-select').addEventListener('change', async (e) => {
       const id = e.target.value;
       if (!id) {
         document.getElementById('config-form').reset();
         document.getElementById('tenant_id').value = '';
+        document.getElementById('access-section').classList.add('hidden');
+        document.getElementById('exceptions-card').classList.add('hidden');
+        document.getElementById('export-section').classList.add('hidden');
         resetClosingTimes();
+        currentTenant = null;
         return;
       }
-      const tenant = tenantsList.find(t => t.id == id);
-      if (tenant) {
-        document.getElementById('tenant_id').value = tenant.id;
-        document.getElementById('name').value = tenant.name || '';
-        document.getElementById('phone').value = tenant.phone || '';
-        document.getElementById('category').value = tenant.category || '';
-        document.getElementById('business_type').value = tenant.business_type || 'general';
-        document.getElementById('max_capacity').value = tenant.max_capacity || 2;
-        document.getElementById('shift1_start').value = tenant.shift1_start || '09:00';
-        document.getElementById('shift1_end').value = tenant.shift1_end || '14:00';
-        document.getElementById('shift2_start').value = tenant.shift2_start || '';
-        document.getElementById('shift2_end').value = tenant.shift2_end || '';
-        document.getElementById('notes').value = tenant.notes || '';
+      currentTenant = tenantsList.find(t => t.id == id);
+      if (currentTenant) {
+        document.getElementById('tenant_id').value = currentTenant.id;
+        document.getElementById('name').value = currentTenant.name || '';
+        document.getElementById('phone').value = currentTenant.phone || '';
+        document.getElementById('category').value = currentTenant.category || '';
+        document.getElementById('business_type').value = currentTenant.business_type || 'general';
+        document.getElementById('max_capacity').value = currentTenant.max_capacity || 2;
+        document.getElementById('shift1_start').value = currentTenant.shift1_start || '09:00';
+        document.getElementById('shift1_end').value = currentTenant.shift1_end || '14:00';
+        document.getElementById('shift2_start').value = currentTenant.shift2_start || '';
+        document.getElementById('shift2_end').value = currentTenant.shift2_end || '';
+        document.getElementById('notes').value = currentTenant.notes || '';
 
         // Rellenar cierres personalizados
         resetClosingTimes();
-        const closingTimes = tenant.closing_times || {};
+        const closingTimes = currentTenant.closing_times || {};
         for (const [day, time] of Object.entries(closingTimes)) {
           const chk = document.querySelector(`.day-check[data-day="${day}"]`);
           const timeInput = document.getElementById(`close_time_${day}`);
@@ -218,6 +290,23 @@
             timeInput.value = time;
           }
         }
+
+        // Mostrar secciones ocultas
+        document.getElementById('access-section').classList.remove('hidden');
+        document.getElementById('exceptions-card').classList.remove('hidden');
+        document.getElementById('export-section').classList.remove('hidden');
+
+        // Configurar URLs y WhatsApp
+        const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
+        document.getElementById('client-booking-url.href') = clientUrl; // fixed below
+        const bookingLinkEl = document.getElementById('client-booking-url');
+        bookingLinkEl.href = clientUrl;
+        bookingLinkEl.textContent = clientUrl;
+
+        const whatsappText = encodeURIComponent(`¡Hola! Puedes reservar tu cita en ${currentTenant.name} a través de este enlace: ${clientUrl}`);
+        document.getElementById('whatsapp-share-btn').href = `https://api.whatsapp.com/send?phone=${currentTenant.phone}&text=${whatsappText}`;
+
+        loadExceptions(currentTenant.id);
       }
     });
 
@@ -235,14 +324,17 @@
       document.getElementById('tenant-select').value = '';
       document.getElementById('config-form').reset();
       document.getElementById('tenant_id').value = '';
+      document.getElementById('access-section').classList.add('hidden');
+      document.getElementById('exceptions-card').classList.add('hidden');
+      document.getElementById('export-section').classList.add('hidden');
       resetClosingTimes();
+      currentTenant = null;
     });
 
     document.getElementById('config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('tenant_id').value;
       
-      // Construir objeto closing_times
       const closing_times = {};
       document.querySelectorAll('.day-check').forEach(chk => {
         if (chk.checked) {
@@ -286,7 +378,89 @@
       }
     });
 
-    // Cargar negocios al iniciar
+    async function loadExceptions(tenantId) {
+      try {
+        const res = await fetch(`/api/tenants/${tenantId}/exceptions`);
+        const exceptions = await res.json();
+        const tbody = document.getElementById('exceptions-tbody');
+        tbody.innerHTML = '';
+        exceptions.forEach(exc => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${exc.exception_date.substring(0, 10)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${exc.reason}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <button onclick="deleteException(${exc.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Error al cargar excepciones:', err);
+      }
+    }
+
+    document.getElementById('exception-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentTenant) return;
+
+      const exception_date = document.getElementById('exception_date').value;
+      const reason = document.getElementById('exception_reason').value;
+
+      try {
+        const res = await fetch('/api/tenants/exceptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_id: currentTenant.id, exception_date, is_closed: true, reason })
+        });
+
+        if (res.ok) {
+          document.getElementById('exception_date').value = '';
+          document.getElementById('exception_reason').value = '';
+          loadExceptions(currentTenant.id);
+        } else {
+          alert('Error al guardar excepción');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    });
+
+    window.deleteException = async function(id) {
+      if (!confirm('¿Eliminar este día excepcional?')) return;
+      try {
+        await fetch(`/api/tenants/exceptions/${id}`, { method: 'DELETE' });
+        if (currentTenant) loadExceptions(currentTenant.id);
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    };
+
+    // Exportar CSV
+    document.getElementById('export-csv-btn').addEventListener('click', async () => {
+      if (!currentTenant) return;
+      try {
+        const res = await fetch(`/api/reservations?tenant_id=${currentTenant.id}`);
+        const data = await res.json();
+        if (data.length === 0) {
+          alert('No hay reservas para exportar.');
+          return;
+        }
+        let csv = 'ID,Cliente,Teléfono,Código,Fecha Hora,Servicio\n';
+        data.forEach(r => {
+          csv += `${r.id},"${r.client_name}",${r.client_phone},${r.booking_code},${r.reservation_time},"${r.service_name || ''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reservas_${currentTenant.name}.csv`;
+        a.click();
+      } catch (err) {
+        console.error('Error al exportar:', err);
+      }
+    });
+
     loadTenants();
   </script>
 </body>
