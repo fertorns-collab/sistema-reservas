@@ -36,7 +36,7 @@ async function initDB() {
         shift1_end TIME DEFAULT '14:00',
         shift2_start TIME,
         shift2_end TIME,
-        closing_times JSONB DEFAULT '{}', -- Objeto JSON con los cierres personalizados por día de la semana (ej: {"6": "14:00", "3": "15:00"})
+        closing_times JSONB DEFAULT '{}',
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -92,6 +92,22 @@ initDB();
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Endpoint para obtener tenant mediante booking_token para la vista de cliente
+app.get('/api/client/tenant/:token', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, name, phone, category, business_type, max_capacity, booking_token FROM tenants WHERE booking_token = $1',
+      [req.params.token]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Enlace de reserva no válido' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener datos del negocio' });
+  }
 });
 
 // Obtener tenants
@@ -297,12 +313,10 @@ app.get('/api/tenants/:id/availability', async (req, res) => {
       }
     };
 
-    // Comprobamos si hay un cierre anticipado específico para este día de la semana
     const closingTimes = tenant.closing_times || {};
     const earlyCloseTime = closingTimes[dayOfWeek];
 
     if (earlyCloseTime) {
-      // Ajustamos el turno de mañana hasta la hora de cierre personalizada y omitimos el turno de tarde si excede
       addShiftsToSlots(tenant.shift1_start, earlyCloseTime);
     } else {
       addShiftsToSlots(tenant.shift1_start, tenant.shift1_end);

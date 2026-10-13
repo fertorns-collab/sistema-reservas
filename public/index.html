@@ -3,11 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS de Reservas - Panel de Administración B2B</title>
+  <title>SaaS de Reservas</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
-  <div class="max-w-5xl mx-auto p-6">
+  
+  <!-- VISTA DE CLIENTE (Oculta por defecto, se muestra si hay ?tenant=... en la URL) -->
+  <div id="client-view" class="max-w-xl mx-auto p-6 hidden">
+    <header class="mb-6 text-center">
+      <h1 id="client-business-title" class="text-3xl font-bold text-indigo-600">Reservar Cita</h1>
+      <p id="client-business-subtitle" class="text-gray-600 mt-1">Selecciona un servicio, fecha y hora disponible.</p>
+    </header>
+
+    <div class="bg-white rounded-xl shadow-md p-6 space-y-6">
+      <!-- Selección de Servicio -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Servicio</label>
+        <select id="client-service-select" class="w-full rounded-md border-gray-300 shadow-sm border p-2 bg-white">
+          <option value="">-- Selecciona un servicio --</option>
+        </select>
+      </div>
+
+      <!-- Selección de Fecha -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
+        <input type="date" id="client-date" class="w-full rounded-md border-gray-300 shadow-sm border p-2">
+      </div>
+
+      <!-- Horarios Disponibles -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Horarios Disponibles</label>
+        <div id="client-slots-container" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md bg-gray-50">
+          <span class="text-sm text-gray-500 col-span-3 text-center py-4">Selecciona fecha y servicio para ver horas.</span>
+        </div>
+      </div>
+
+      <!-- Formulario de Datos del Cliente -->
+      <form id="client-booking-form" class="space-y-4 border-t pt-4 hidden">
+        <h3 class="font-semibold text-gray-700">Tus Datos de Contacto</h3>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Nombre y Apellidos</label>
+          <input type="text" id="client-name" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Teléfono</label>
+          <input type="text" id="client-phone" class="w-full rounded-md border-gray-300 shadow-sm border p-2" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Notas (Opcional)</label>
+          <textarea id="client-notes" class="w-full rounded-md border-gray-300 shadow-sm border p-2" rows="2"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-indigo-700 transition">Confirmar Reserva</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- VISTA DE ADMINISTRADOR / GERENTE (Por defecto) -->
+  <div id="admin-view" class="max-w-5xl mx-auto p-6">
     <header class="mb-8 text-center">
       <h1 class="text-3xl font-bold text-indigo-600">Gestión Integral de Reservas y Horarios</h1>
       <p class="text-gray-600 mt-2">Panel del Propietario: Configuración, Cierres Flexibles, Festivos y Enlaces de Cliente.</p>
@@ -223,38 +275,233 @@
   </div>
 
   <script>
-    let tenantsList = [];
-    let currentTenant = null;
+    // --- LÓGICA DE DETECCIÓN CLIENTE VS ADMIN ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const tenantToken = urlParams.get('tenant');
 
-    // Habilitar/deshabilitar input de hora según checkbox
-    document.querySelectorAll('.day-check').forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        const day = e.target.getAttribute('data-day');
-        const timeInput = document.getElementById(`close_time_${day}`);
-        timeInput.disabled = !e.target.checked;
-      });
-    });
+    if (tenantToken) {
+      // MODO CLIENTE
+      document.getElementById('admin-view').classList.add('hidden');
+      document.getElementById('client-view').classList.remove('hidden');
+      initClientView(tenantToken);
+    } else {
+      // MODO ADMINISTRADOR
+      initAdminView();
+    }
 
-    async function loadTenants() {
+    // --- FUNCIONES MODO CLIENTE ---
+    async function initClientView(token) {
       try {
-        const res = await fetch('/api/tenants');
-        tenantsList = await res.json();
-        const select = document.getElementById('tenant-select');
-        select.innerHTML = '<option value="">-- Nuevo Negocio --</option>';
-        tenantsList.forEach(t => {
+        const res = await fetch(`/api/client/tenant/${token}`);
+        if (!res.ok) throw new Error('Negocio no encontrado');
+        const tenant = await res.json();
+
+        document.getElementById('client-business-title').textContent = tenant.name;
+        document.getElementById('client-business-subtitle').textContent = `Reserva tu cita en ${tenant.name} (${tenant.category || 'Servicios'})`;
+
+        // Cargar servicios
+        const sRes = await fetch(`/api/tenants/${tenant.id}/services`);
+        const services = await sRes.json();
+        const serviceSelect = document.getElementById('client-service-select');
+        services.forEach(s => {
           const opt = document.createElement('option');
-          opt.value = t.id;
-          opt.textContent = `${t.name} (${t.phone})`;
-          select.appendChild(opt);
+          opt.value = s.id;
+          opt.textContent = `${s.name} (${s.duration_min} min) - ${s.price} €`;
+          serviceSelect.appendChild(opt);
         });
+
+        let selectedTime = null;
+
+        const checkAvailability = async () => {
+          const serviceId = serviceSelect.value;
+          const date = document.getElementById('client-date').value;
+          const slotsContainer = document.getElementById('client-slots-container');
+          const bookingForm = document.getElementById('client-booking-form');
+
+          slotsContainer.innerHTML = '';
+          bookingForm.classList.add('hidden');
+          selectedTime = null;
+
+          if (!serviceId || !date) {
+            slotsContainer.innerHTML = '<span class="text-sm text-gray-500 col-span-3 text-center py-4">Selecciona servicio y fecha.</span>';
+            return;
+          }
+
+          try {
+            const availRes = await fetch(`/api/tenants/${tenant.id}/availability?date=${date}&service_id=${serviceId}`);
+            const data = await availRes.json();
+
+            if (data.closed) {
+              slotsContainer.innerHTML = `<div class="col-span-3 text-center py-4 text-red-600 font-semibold">Cerrado: ${data.reason || 'Día no laborable'}</div>`;
+              return;
+            }
+
+            if (!data.slots || data.slots.length === 0) {
+              slotsContainer.innerHTML = '<span class="text-sm text-gray-500 col-span-3 text-center py-4">No hay horarios disponibles para esta fecha.</span>';
+              return;
+            }
+
+            data.slots.forEach(slot => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.textContent = slot.time;
+              btn.className = `py-2 px-3 rounded text-sm font-medium transition border ${slot.available ? 'bg-white hover:bg-indigo-50 border-gray-300 text-indigo-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`;
+              
+              if (slot.available) {
+                btn.addEventListener('click', () => {
+                  document.querySelectorAll('#client-slots-container button').forEach(b => b.classList.remove('ring-2', 'ring-indigo-600', 'bg-indigo-50'));
+                  btn.classList.add('ring-2', 'ring-indigo-600', 'bg-indigo-50');
+                  selectedTime = `${date}T${slot.time}:00`;
+                  bookingForm.classList.remove('hidden');
+                });
+              } else {
+                btn.disabled = true;
+              }
+              slotsContainer.appendChild(btn);
+            });
+          } catch (err) {
+            console.error('Error al consultar disponibilidad:', err);
+            slotsContainer.innerHTML = '<span class="text-sm text-red-500 col-span-3 text-center py-4">Error al cargar disponibilidad.</span>';
+          }
+        };
+
+        serviceSelect.addEventListener('change', checkAvailability);
+        document.getElementById('client-date').addEventListener('change', checkAvailability);
+
+        document.getElementById('client-booking-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (!selectedTime) return alert('Selecciona una hora');
+
+          const bodyData = {
+            tenant_id: tenant.id,
+            service_id: parseInt(serviceSelect.value),
+            client_name: document.getElementById('client-name').value,
+            client_phone: document.getElementById('client-phone').value,
+            reservation_time: selectedTime,
+            notes: document.getElementById('client-notes').value
+          };
+
+          try {
+            const res = await fetch('/api/reservations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(bodyData)
+            });
+            const result = await res.json();
+            if (res.ok) {
+              alert(`¡Reserva confirmada con éxito! Código de reserva: ${result.reservation.booking_code}`);
+              window.location.reload();
+            } else {
+              alert('Error al reservar: ' + (result.error || 'Inténtalo de nuevo'));
+            }
+          } catch (err) {
+            console.error('Error al enviar reserva:', err);
+            alert('Error de conexión al procesar la reserva.');
+          }
+        });
+
       } catch (err) {
-        console.error('Error al cargar negocios:', err);
+        console.error('Error cargando cliente:', err);
+        document.body.innerHTML = '<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow text-center text-red-600 font-bold">Enlace de reserva no válido o negocio no encontrado.</div>';
       }
     }
 
-    document.getElementById('tenant-select').addEventListener('change', async (e) => {
-      const id = e.target.value;
-      if (!id) {
+    // --- FUNCIONES MODO ADMINISTRADOR ---
+    function initAdminView() {
+      let tenantsList = [];
+      let currentTenant = null;
+
+      document.querySelectorAll('.day-check').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const day = e.target.getAttribute('data-day');
+          const timeInput = document.getElementById(`close_time_${day}`);
+          timeInput.disabled = !e.target.checked;
+        });
+      });
+
+      async function loadTenants() {
+        try {
+          const res = await fetch('/api/tenants');
+          tenantsList = await res.json();
+          const select = document.getElementById('tenant-select');
+          select.innerHTML = '<option value="">-- Nuevo Negocio --</option>';
+          tenantsList.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = `${t.name} (${t.phone})`;
+            select.appendChild(opt);
+          });
+        } catch (err) {
+          console.error('Error al cargar negocios:', err);
+        }
+      }
+
+      document.getElementById('tenant-select').addEventListener('change', async (e) => {
+        const id = e.target.value;
+        if (!id) {
+          document.getElementById('config-form').reset();
+          document.getElementById('tenant_id').value = '';
+          document.getElementById('access-section').classList.add('hidden');
+          document.getElementById('exceptions-card').classList.add('hidden');
+          document.getElementById('export-section').classList.add('hidden');
+          resetClosingTimes();
+          currentTenant = null;
+          return;
+        }
+        currentTenant = tenantsList.find(t => t.id == id);
+        if (currentTenant) {
+          document.getElementById('tenant_id').value = currentTenant.id;
+          document.getElementById('name').value = currentTenant.name || '';
+          document.getElementById('phone').value = currentTenant.phone || '';
+          document.getElementById('category').value = currentTenant.category || '';
+          document.getElementById('business_type').value = currentTenant.business_type || 'general';
+          document.getElementById('max_capacity').value = currentTenant.max_capacity || 2;
+          document.getElementById('shift1_start').value = currentTenant.shift1_start || '09:00';
+          document.getElementById('shift1_end').value = currentTenant.shift1_end || '14:00';
+          document.getElementById('shift2_start').value = currentTenant.shift2_start || '';
+          document.getElementById('shift2_end').value = currentTenant.shift2_end || '';
+          document.getElementById('notes').value = currentTenant.notes || '';
+
+          resetClosingTimes();
+          const closingTimes = currentTenant.closing_times || {};
+          for (const [day, time] of Object.entries(closingTimes)) {
+            const chk = document.querySelector(`.day-check[data-day="${day}"]`);
+            const timeInput = document.getElementById(`close_time_${day}`);
+            if (chk && timeInput) {
+              chk.checked = true;
+              timeInput.disabled = false;
+              timeInput.value = time;
+            }
+          }
+
+          document.getElementById('access-section').classList.remove('hidden');
+          document.getElementById('exceptions-card').classList.remove('hidden');
+          document.getElementById('export-section').classList.remove('hidden');
+
+          const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
+          const bookingLinkEl = document.getElementById('client-booking-url');
+          bookingLinkEl.href = clientUrl;
+          bookingLinkEl.textContent = clientUrl;
+
+          const whatsappText = encodeURIComponent(`¡Hola! Puedes reservar tu cita en ${currentTenant.name} a través de este enlace: ${clientUrl}`);
+          document.getElementById('whatsapp-share-btn').href = `https://api.whatsapp.com/send?phone=${currentTenant.phone}&text=${whatsappText}`;
+
+          loadExceptions(currentTenant.id);
+        }
+      });
+
+      function resetClosingTimes() {
+        document.querySelectorAll('.day-check').forEach(chk => {
+          chk.checked = false;
+          const day = chk.getAttribute('data-day');
+          const timeInput = document.getElementById(`close_time_${day}`);
+          timeInput.disabled = true;
+          timeInput.value = '14:00';
+        });
+      }
+
+      document.getElementById('new-tenant-btn').addEventListener('click', () => {
+        document.getElementById('tenant-select').value = '';
         document.getElementById('config-form').reset();
         document.getElementById('tenant_id').value = '';
         document.getElementById('access-section').classList.add('hidden');
@@ -262,205 +509,139 @@
         document.getElementById('export-section').classList.add('hidden');
         resetClosingTimes();
         currentTenant = null;
-        return;
-      }
-      currentTenant = tenantsList.find(t => t.id == id);
-      if (currentTenant) {
-        document.getElementById('tenant_id').value = currentTenant.id;
-        document.getElementById('name').value = currentTenant.name || '';
-        document.getElementById('phone').value = currentTenant.phone || '';
-        document.getElementById('category').value = currentTenant.category || '';
-        document.getElementById('business_type').value = currentTenant.business_type || 'general';
-        document.getElementById('max_capacity').value = currentTenant.max_capacity || 2;
-        document.getElementById('shift1_start').value = currentTenant.shift1_start || '09:00';
-        document.getElementById('shift1_end').value = currentTenant.shift1_end || '14:00';
-        document.getElementById('shift2_start').value = currentTenant.shift2_start || '';
-        document.getElementById('shift2_end').value = currentTenant.shift2_end || '';
-        document.getElementById('notes').value = currentTenant.notes || '';
+      });
 
-        // Rellenar cierres personalizados
-        resetClosingTimes();
-        const closingTimes = currentTenant.closing_times || {};
-        for (const [day, time] of Object.entries(closingTimes)) {
-          const chk = document.querySelector(`.day-check[data-day="${day}"]`);
-          const timeInput = document.getElementById(`close_time_${day}`);
-          if (chk && timeInput) {
-            chk.checked = true;
-            timeInput.disabled = false;
-            timeInput.value = time;
+      document.getElementById('config-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('tenant_id').value;
+        
+        const closing_times = {};
+        document.querySelectorAll('.day-check').forEach(chk => {
+          if (chk.checked) {
+            const day = chk.getAttribute('data-day');
+            const timeInput = document.getElementById(`close_time_${day}`);
+            closing_times[day] = timeInput.value;
           }
+        });
+
+        const bodyData = {
+          id: id ? parseInt(id) : null,
+          name: document.getElementById('name').value,
+          phone: document.getElementById('phone').value,
+          category: document.getElementById('category').value,
+          business_type: document.getElementById('business_type').value,
+          max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
+          shift1_start: document.getElementById('shift1_start').value,
+          shift1_end: document.getElementById('shift1_end').value,
+          shift2_start: document.getElementById('shift2_start').value || null,
+          shift2_end: document.getElementById('shift2_end').value || null,
+          closing_times: closing_times,
+          notes: document.getElementById('notes').value
+        };
+
+        try {
+          const res = await fetch('/api/tenants/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyData)
+          });
+
+          if (res.ok) {
+            alert('¡Configuración guardada con éxito!');
+            loadTenants();
+          } else {
+            alert('Error al guardar la configuración');
+          }
+        } catch (err) {
+          console.error('Error de red:', err);
+          alert('Error de red al guardar');
         }
+      });
 
-        // Mostrar secciones ocultas
-        document.getElementById('access-section').classList.remove('hidden');
-        document.getElementById('exceptions-card').classList.remove('hidden');
-        document.getElementById('export-section').classList.remove('hidden');
-
-        // Configurar URLs y WhatsApp utilizando el booking_token único
-        const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
-        const bookingLinkEl = document.getElementById('client-booking-url');
-        bookingLinkEl.href = clientUrl;
-        bookingLinkEl.textContent = clientUrl;
-
-        const whatsappText = encodeURIComponent(`¡Hola! Puedes reservar tu cita en ${currentTenant.name} a través de este enlace: ${clientUrl}`);
-        document.getElementById('whatsapp-share-btn').href = `https://api.whatsapp.com/send?phone=${currentTenant.phone}&text=${whatsappText}`;
-
-        loadExceptions(currentTenant.id);
+      async function loadExceptions(tenantId) {
+        try {
+          const res = await fetch(`/api/tenants/${tenantId}/exceptions`);
+          const exceptions = await res.json();
+          const tbody = document.getElementById('exceptions-tbody');
+          tbody.innerHTML = '';
+          exceptions.forEach(exc => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${exc.exception_date.substring(0, 10)}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${exc.reason}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="deleteException(${exc.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } catch (err) {
+          console.error('Error al cargar excepciones:', err);
+        }
       }
-    });
 
-    function resetClosingTimes() {
-      document.querySelectorAll('.day-check').forEach(chk => {
-        chk.checked = false;
-        const day = chk.getAttribute('data-day');
-        const timeInput = document.getElementById(`close_time_${day}`);
-        timeInput.disabled = true;
-        timeInput.value = '14:00';
-      });
-    }
+      document.getElementById('exception-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentTenant) return;
 
-    document.getElementById('new-tenant-btn').addEventListener('click', () => {
-      document.getElementById('tenant-select').value = '';
-      document.getElementById('config-form').reset();
-      document.getElementById('tenant_id').value = '';
-      document.getElementById('access-section').classList.add('hidden');
-      document.getElementById('exceptions-card').classList.add('hidden');
-      document.getElementById('export-section').classList.add('hidden');
-      resetClosingTimes();
-      currentTenant = null;
-    });
+        const exception_date = document.getElementById('exception_date').value;
+        const reason = document.getElementById('exception_reason').value;
 
-    document.getElementById('config-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('tenant_id').value;
-      
-      const closing_times = {};
-      document.querySelectorAll('.day-check').forEach(chk => {
-        if (chk.checked) {
-          const day = chk.getAttribute('data-day');
-          const timeInput = document.getElementById(`close_time_${day}`);
-          closing_times[day] = timeInput.value;
+        try {
+          const res = await fetch('/api/tenants/exceptions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tenant_id: currentTenant.id, exception_date, is_closed: true, reason })
+          });
+
+          if (res.ok) {
+            document.getElementById('exception_date').value = '';
+            document.getElementById('exception_reason').value = '';
+            loadExceptions(currentTenant.id);
+          } else {
+            alert('Error al guardar excepción');
+          }
+        } catch (err) {
+          console.error('Error:', err);
         }
       });
 
-      const bodyData = {
-        id: id ? parseInt(id) : null,
-        name: document.getElementById('name').value,
-        phone: document.getElementById('phone').value,
-        category: document.getElementById('category').value,
-        business_type: document.getElementById('business_type').value,
-        max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
-        shift1_start: document.getElementById('shift1_start').value,
-        shift1_end: document.getElementById('shift1_end').value,
-        shift2_start: document.getElementById('shift2_start').value || null,
-        shift2_end: document.getElementById('shift2_end').value || null,
-        closing_times: closing_times,
-        notes: document.getElementById('notes').value
+      window.deleteException = async function(id) {
+        if (!confirm('¿Eliminar este día excepcional?')) return;
+        try {
+          await fetch(`/api/tenants/exceptions/${id}`, { method: 'DELETE' });
+          if (currentTenant) loadExceptions(currentTenant.id);
+        } catch (err) {
+          console.error('Error:', err);
+        }
       };
 
-      try {
-        const res = await fetch('/api/tenants/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bodyData)
-        });
-
-        if (res.ok) {
-          alert('¡Configuración guardada con éxito!');
-          loadTenants();
-        } else {
-          alert('Error al guardar la configuración');
+      document.getElementById('export-csv-btn').addEventListener('click', async () => {
+        if (!currentTenant) return;
+        try {
+          const res = await fetch(`/api/reservations?tenant_id=${currentTenant.id}`);
+          const data = await res.json();
+          if (data.length === 0) {
+            alert('No hay reservas para exportar.');
+            return;
+          }
+          let csv = 'ID,Cliente,Teléfono,Código,Fecha Hora,Servicio\n';
+          data.forEach(r => {
+            csv += `${r.id},"${r.client_name}",${r.client_phone},${r.booking_code},${r.reservation_time},"${r.service_name || ''}"\n`;
+          });
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `reservas_${currentTenant.name}.csv`;
+          a.click();
+        } catch (err) {
+          console.error('Error al exportar:', err);
         }
-      } catch (err) {
-        console.error('Error de red:', err);
-        alert('Error de red al guardar');
-      }
-    });
+      });
 
-    async function loadExceptions(tenantId) {
-      try {
-        const res = await fetch(`/api/tenants/${tenantId}/exceptions`);
-        const exceptions = await res.json();
-        const tbody = document.getElementById('exceptions-tbody');
-        tbody.innerHTML = '';
-        exceptions.forEach(exc => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${exc.exception_date.substring(0, 10)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${exc.reason}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <button onclick="deleteException(${exc.id})" class="text-red-600 hover:text-red-900">Eliminar</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (err) {
-        console.error('Error al cargar excepciones:', err);
-      }
+      loadTenants();
     }
-
-    document.getElementById('exception-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!currentTenant) return;
-
-      const exception_date = document.getElementById('exception_date').value;
-      const reason = document.getElementById('exception_reason').value;
-
-      try {
-        const res = await fetch('/api/tenants/exceptions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenant_id: currentTenant.id, exception_date, is_closed: true, reason })
-        });
-
-        if (res.ok) {
-          document.getElementById('exception_date').value = '';
-          document.getElementById('exception_reason').value = '';
-          loadExceptions(currentTenant.id);
-        } else {
-          alert('Error al guardar excepción');
-        }
-      } catch (err) {
-        console.error('Error:', err);
-      }
-    });
-
-    window.deleteException = async function(id) {
-      if (!confirm('¿Eliminar este día excepcional?')) return;
-      try {
-        await fetch(`/api/tenants/exceptions/${id}`, { method: 'DELETE' });
-        if (currentTenant) loadExceptions(currentTenant.id);
-      } catch (err) {
-        console.error('Error:', err);
-      }
-    };
-
-    // Exportar CSV
-    document.getElementById('export-csv-btn').addEventListener('click', async () => {
-      if (!currentTenant) return;
-      try {
-        const res = await fetch(`/api/reservations?tenant_id=${currentTenant.id}`);
-        const data = await res.json();
-        if (data.length === 0) {
-          alert('No hay reservas para exportar.');
-          return;
-        }
-        let csv = 'ID,Cliente,Teléfono,Código,Fecha Hora,Servicio\n';
-        data.forEach(r => {
-          csv += `${r.id},"${r.client_name}",${r.client_phone},${r.booking_code},${r.reservation_time},"${r.service_name || ''}"\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reservas_${currentTenant.name}.csv`;
-        a.click();
-      } catch (err) {
-        console.error('Error al exportar:', err);
-      }
-    });
-
-    loadTenants();
   </script>
 </body>
 </html>
