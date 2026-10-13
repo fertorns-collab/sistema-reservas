@@ -296,9 +296,8 @@
         document.getElementById('exceptions-card').classList.remove('hidden');
         document.getElementById('export-section').classList.remove('hidden');
 
-        // Configurar URLs y WhatsApp
+        // Configurar URLs y WhatsApp utilizando el booking_token único
         const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
-        document.getElementById('client-booking-url.href') = clientUrl; // fixed below
         const bookingLinkEl = document.getElementById('client-booking-url');
         bookingLinkEl.href = clientUrl;
         bookingLinkEl.textContent = clientUrl;
