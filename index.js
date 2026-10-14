@@ -1,7 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
-const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,9 +23,11 @@ async function initDB() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tenants (
         id SERIAL PRIMARY KEY,
-        tenant_token VARCHAR(64) UNIQUE,
+        email VARCHAR(150) UNIQUE,
+        password_hash VARCHAR(255),
         admin_token VARCHAR(64) UNIQUE,
         booking_token VARCHAR(64) UNIQUE,
+        tenant_token VARCHAR(64) UNIQUE,
         name VARCHAR(100) NOT NULL,
         phone VARCHAR(30) NOT NULL,
         category VARCHAR(50),
@@ -79,11 +81,12 @@ async function initDB() {
     `);
 
     await pool.query(`
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email VARCHAR(150) UNIQUE;
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closed_days VARCHAR(50) DEFAULT '0';
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS closing_times JSONB DEFAULT '{}';
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS admin_token VARCHAR(64) UNIQUE;
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS booking_token VARCHAR(64) UNIQUE;
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tenant_token VARCHAR(64) UNIQUE;
     `);
 
     console.log('Base de datos inicializada con éxito.');
@@ -97,7 +100,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint para validar el token de cliente
+// Endpoint para validar el token de cliente (reservas públicas)
 app.get('/api/client/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
@@ -113,11 +116,11 @@ app.get('/api/client/tenant/:token', async (req, res) => {
   }
 });
 
-// Endpoint para validar el token de administración (Seguro por Token Secreto)
+// Endpoint para validar sesión de administración por token
 app.get('/api/admin/tenant/:token', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM tenants WHERE admin_token = $1',
+      'SELECT id, name, phone, category, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, closing_times, notes, booking_token, admin_token, email FROM tenants WHERE admin_token = $1',
       [req.params.token]
     );
     if (result.rows.length === 0) {
@@ -129,28 +132,65 @@ app.get('/api/admin/tenant/:token', async (req, res) => {
   }
 });
 
-// Búsqueda de accesos por teléfono robusta (normalizando caracteres especiales)
-app.get('/api/tenants/search/:phone', async (req, res) => {
+// Autenticación: Registro de Negocio con Email y Contraseña
+app.post('/api/auth/register', async (req, res) => {
+  const { name, phone, email, password, category } = req.body;
   try {
-    const searchClean = req.params.phone.replace(/[^0-9]/g, '');
-    if (!searchClean) {
-      return res.status(400).json({ error: 'Introduce un número de teléfono válido' });
+    const existing = await pool.query('SELECT id FROM tenants WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Ya existe un negocio registrado con este correo electrónico.' });
     }
-    
-    // Compara eliminando símbolos +, espacios y guiones en la base de datos
+
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    const adminToken = require('crypto').randomBytes(16).toString('hex');
+    const bookingToken = require('crypto').randomBytes(16).toString('hex');
+
     const result = await pool.query(
-      `SELECT id, name, phone, admin_token, booking_token FROM tenants 
-       WHERE REGEXP_REPLACE(phone, '[^0-9]', '', 'g') LIKE $1`,
-      [`%${searchClean}%`]
+      `INSERT INTO tenants (name, phone, email, password_hash, admin_token, booking_token, category) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [name, phone, email, passwordHash, adminToken, bookingToken, category || null]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No se encontró ningún negocio con este teléfono.' });
-    }
-    res.json(result.rows);
+    const newTenant = result.rows[0];
+    await pool.query(
+      'INSERT INTO services (tenant_id, name, duration_min, price) VALUES ($1, $2, $3, $4)',
+      [newTenant.id, 'Servicio Estándar', 60, 0]
+    );
+
+    res.status(201).json({
+      message: 'Negocio registrado con éxito',
+      admin_token: newTenant.admin_token
+    });
   } catch (err) {
-    console.error('Error en búsqueda por teléfono:', err);
-    res.status(500).json({ error: 'Error al buscar negocio' });
+    console.error('Error en registro:', err);
+    res.status(500).json({ error: 'Error al registrar el negocio: ' + err.message });
+  }
+});
+
+// Autenticación: Login con Email y Contraseña
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const result = await pool.query('SELECT * FROM tenants WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Correo electrónico o contraseña incorrectos.' });
+    }
+
+    const tenant = result.rows[0];
+    const match = await bcrypt.compare(password, tenant.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: 'Correo electrónico o contraseña incorrectos.' });
+    }
+
+    res.json({
+      message: 'Login correcto',
+      admin_token: tenant.admin_token
+    });
+  } catch (err) {
+    console.error('Error en login:', err);
+    res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 });
 
@@ -222,7 +262,7 @@ app.delete('/api/tenants/exceptions/:id', async (req, res) => {
   }
 });
 
-// Configuración y alta de empresas
+// Configuración de empresas
 app.post('/api/tenants/config', async (req, res) => {
   const { 
     id, name, phone, category, notes, business_type, 
@@ -230,46 +270,20 @@ app.post('/api/tenants/config', async (req, res) => {
   } = req.body;
 
   try {
-    let result;
     const closingTimesJson = closing_times ? JSON.stringify(closing_times) : '{}';
 
-    if (id) {
-      result = await pool.query(
-        `UPDATE tenants SET 
-          name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
-          max_capacity = $6, closed_days = $7, shift1_start = $8, shift1_end = $9, 
-          shift2_start = $10, shift2_end = $11, closing_times = $12 
-         WHERE id = $13 RETURNING *`,
-        [
-          name, phone, category || null, notes || '', business_type || 'general',
-          max_capacity || 2, closed_days || '0', shift1_start || '09:00', shift1_end || '14:00',
-          shift2_start || null, shift2_end || null, closingTimesJson, id
-        ]
-      );
-    } else {
-      const tenantToken = crypto.randomBytes(16).toString('hex');
-      const adminToken = crypto.randomBytes(16).toString('hex');
-      const bookingToken = crypto.randomBytes(16).toString('hex');
-
-      result = await pool.query(
-        `INSERT INTO tenants 
-          (tenant_token, admin_token, booking_token, name, phone, category, notes, business_type, max_capacity, closed_days, shift1_start, shift1_end, shift2_start, shift2_end, closing_times) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
-         RETURNING *`,
-        [
-          tenantToken, adminToken, bookingToken, name, phone, category || null, notes || '',
-          business_type || 'general', max_capacity || 2, closed_days || '0',
-          shift1_start || '09:00', shift1_end || '14:00', shift2_start || null, shift2_end || null,
-          closingTimesJson
-        ]
-      );
-      
-      const newTenantId = result.rows[0].id;
-      await pool.query(
-        'INSERT INTO services (tenant_id, name, duration_min, price) VALUES ($1, $2, $3, $4)',
-        [newTenantId, 'Servicio Estándar', 60, 0]
-      );
-    }
+    const result = await pool.query(
+      `UPDATE tenants SET 
+        name = $1, phone = $2, category = $3, notes = $4, business_type = $5, 
+        max_capacity = $6, closed_days = $7, shift1_start = $8, shift1_end = $9, 
+        shift2_start = $10, shift2_end = $11, closing_times = $12 
+       WHERE id = $13 RETURNING *`,
+      [
+        name, phone, category || null, notes || '', business_type || 'general',
+        max_capacity || 2, closed_days || '0', shift1_start || '09:00', shift1_end || '14:00',
+        shift2_start || null, shift2_end || null, closingTimesJson, id
+      ]
+    );
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -278,7 +292,7 @@ app.post('/api/tenants/config', async (req, res) => {
   }
 });
 
-// Disponibilidad inteligente
+// Disponibilidad con múltiples días cerrados y horarios especiales
 app.get('/api/tenants/:id/availability', async (req, res) => {
   const tenantId = req.params.id;
   const { date, service_id } = req.query;
