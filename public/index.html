@@ -118,7 +118,7 @@
             <div id="adminDashboardBox" class="hidden space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">Panel de Control - Administrador</h2>
+                        <h2 id="adminBusinessTitle" class="text-xl font-bold text-slate-900">Panel de Control - Administrador</h2>
                         <p class="text-xs text-slate-500">Configuración de turnos partidos, aforo y reservas.</p>
                     </div>
                     <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline">Cerrar Sesión</button>
@@ -136,7 +136,7 @@
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Turnos (Ej. Mañana y Tarde: 09:00-14:00, 16:00-20:00)</label>
+                            <label class="block font-bold mb-1">Turnos (Ej. 09:00-14:00, 16:00-20:00)</label>
                             <input type="text" id="conf_shifts" placeholder="Ej. 09:00-14:00, 16:00-20:00" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
@@ -248,7 +248,19 @@
             const slotSelect = document.getElementById('time_slot');
             slotSelect.innerHTML = '<option value="">Cargando disponibilidad...</option>';
 
-            if (!date || !tenantData) return;
+            if (!date) {
+                slotSelect.innerHTML = '<option value="">Selecciona una fecha primero...</option>';
+                return;
+            }
+
+            if (!tenantData) {
+                slotSelect.innerHTML = '<option value="">Cargando datos del negocio...</option>';
+                await loadTenant();
+                if (!tenantData) {
+                    slotSelect.innerHTML = '<option value="">Error: Negocio no cargado</option>';
+                    return;
+                }
+            }
 
             try {
                 const res = await fetch(`/api/availability/${tenantData.id}?date=${date}`);
@@ -454,8 +466,11 @@
                 document.getElementById('adminDashboardBox').classList.remove('hidden');
                 window.currentTenantId = data.tenant_id;
                 
-                document.getElementById('conf_capacity').value = tenantData.max_capacity;
-                document.getElementById('conf_whatsapp').value = tenantData.whatsapp_phone;
+                // Mostrar nombre del negocio en el panel admin
+                document.getElementById('adminBusinessTitle').innerText = `Panel de Control - ${data.name}`;
+
+                document.getElementById('conf_capacity').value = data.max_capacity || 10;
+                document.getElementById('conf_whatsapp').value = data.whatsapp_phone || '';
                 document.getElementById('conf_services').value = (data.services || []).join(', ');
                 
                 const settings = data.settings || {};
@@ -474,13 +489,19 @@
             e.preventDefault();
             if (!window.currentTenantId) return;
 
+            const newCapacity = document.getElementById('conf_capacity').value;
+            const newWhatsapp = document.getElementById('conf_whatsapp').value;
             const servicesInput = document.getElementById('conf_services').value;
-            const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
+            const shiftsInput = document.getElementById('conf_shifts').value;
             const closedDaysInput = document.getElementById('conf_closed_days').value;
+
+            // Ventana de confirmación previa con los cambios detallados
+            const confirmMsg = `¿Deseas guardar los siguientes cambios?\n\n- Capacidad Máxima: ${newCapacity}\n- WhatsApp: ${newWhatsapp}\n- Servicios: ${servicesInput}\n- Turnos: ${shiftsInput}\n- Días de Descanso: ${closedDaysInput}`;
+            if (!confirm(confirmMsg)) return;
+
+            const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
             const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
 
-            // Parsear turnos partidos ej. "09:00-14:00, 16:00-20:00"
-            const shiftsInput = document.getElementById('conf_shifts').value;
             let shifts = [{ open: "09:00", close: "21:00" }];
             if (shiftsInput) {
                 shifts = shiftsInput.split(',').map(part => {
@@ -493,16 +514,18 @@
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: tenantData.name,
-                    max_capacity: parseInt(document.getElementById('conf_capacity').value),
-                    whatsapp_phone: document.getElementById('conf_whatsapp').value,
+                    name: tenantData ? tenantData.name : 'Negocio',
+                    max_capacity: parseInt(newCapacity),
+                    whatsapp_phone: newWhatsapp,
                     settings: { shifts, closedDays, slotDurationMinutes: 60 },
                     services
                 })
             });
             if (res.ok) {
-                alert('Configuración y turnos actualizados.');
+                alert('¡Configuración guardada y actualizada con éxito!');
                 location.reload();
+            } else {
+                alert('Error al actualizar la configuración.');
             }
         });
 

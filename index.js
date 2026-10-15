@@ -85,7 +85,6 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
-// Endpoint para calcular disponibilidad y plazas libres por franja en una fecha
 app.get('/api/availability/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
@@ -110,11 +109,10 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     const shifts = settings.shifts || [{ open: "09:00", close: "21:00" }];
     const slotDuration = settings.slotDurationMinutes || 60;
 
-    // Generar franjas horarias basadas en los turnos
     let slots = [];
     shifts.forEach(shift => {
-      let [openHour, openMin] = shift.open.split(':').map(Number);
-      let [closeHour, closeMin] = shift.close.split(':').map(Number);
+      let [openHour, openMin] = (shift.open || "09:00").split(':').map(Number);
+      let [closeHour, closeMin] = (shift.close || "21:00").split(':').map(Number);
 
       let currentMins = openHour * 60 + openMin;
       let closeMins = closeHour * 60 + closeMin;
@@ -127,7 +125,10 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       }
     });
 
-    // Consultar reservas existentes para esa fecha y negocio
+    if (slots.length === 0) {
+      slots = ["09:00", "10:00", "11:00", "12:00", "13:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+    }
+
     const bookedQuery = await pool.query(
       `SELECT time_slot, SUM(party_size) as total_booked FROM reservations 
        WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed' 
@@ -162,7 +163,7 @@ app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size, service_name } = req.body;
     
-    const tenantInfo = await pool.query('SELECT max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
+    const tenantInfo = await pool.query('SELECT max_capacity FROM tenants WHERE id = $1', [tenant_id]);
     if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
     
     const tenant = tenantInfo.rows[0];
@@ -310,7 +311,16 @@ app.post('/api/admin/login', async (req, res) => {
     const match = await bcrypt.compare(password, tenant.password_hash);
     if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    res.json({ success: true, tenant_id: tenant.id, name: tenant.name, slug: tenant.slug, settings: tenant.settings, services: tenant.services });
+    res.json({ 
+      success: true, 
+      tenant_id: tenant.id, 
+      name: tenant.name, 
+      slug: tenant.slug, 
+      settings: tenant.settings, 
+      services: tenant.services,
+      max_capacity: tenant.max_capacity,
+      whatsapp_phone: tenant.whatsapp_phone
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
