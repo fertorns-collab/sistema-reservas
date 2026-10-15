@@ -85,6 +85,79 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
+// Endpoint para calcular disponibilidad y plazas libres por franja en una fecha
+app.get('/api/availability/:tenant_id', async (req, res) => {
+  try {
+    const { tenant_id } = req.params;
+    const { date } = req.query;
+
+    const tenantInfo = await pool.query('SELECT max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
+    if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
+
+    const tenant = tenantInfo.rows[0];
+    const maxCapacity = tenant.max_capacity || 10;
+    const settings = tenant.settings || {};
+
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const closedDays = settings.closedDays || [];
+    const forcedOpenDates = settings.forcedOpenDates || [];
+
+    if (closedDays.includes(dayOfWeek) && !forcedOpenDates.includes(date)) {
+      return res.json({ closed: true, message: "Negocio cerrado por descanso en esta fecha." });
+    }
+
+    const shifts = settings.shifts || [{ open: "09:00", close: "21:00" }];
+    const slotDuration = settings.slotDurationMinutes || 60;
+
+    // Generar franjas horarias basadas en los turnos
+    let slots = [];
+    shifts.forEach(shift => {
+      let [openHour, openMin] = shift.open.split(':').map(Number);
+      let [closeHour, closeMin] = shift.close.split(':').map(Number);
+
+      let currentMins = openHour * 60 + openMin;
+      let closeMins = closeHour * 60 + closeMin;
+
+      while (currentMins < closeMins) {
+        let h = Math.floor(currentMins / 60).toString().padStart(2, '0');
+        let m = (currentMins % 60).toString().padStart(2, '0');
+        slots.push(`${h}:${m}`);
+        currentMins += slotDuration;
+      }
+    });
+
+    // Consultar reservas existentes para esa fecha y negocio
+    const bookedQuery = await pool.query(
+      `SELECT time_slot, SUM(party_size) as total_booked FROM reservations 
+       WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed' 
+       GROUP BY time_slot`,
+      [tenant_id, date]
+    );
+
+    const bookedMap = {};
+    bookedQuery.rows.forEach(row => {
+      bookedMap[row.time_slot] = parseInt(row.total_booked);
+    });
+
+    const availability = slots.map(slot => {
+      const booked = bookedMap[slot] || 0;
+      const available = Math.max(0, maxCapacity - booked);
+      return {
+        slot,
+        max_capacity: maxCapacity,
+        booked,
+        available,
+        is_full: available === 0
+      };
+    });
+
+    res.json({ closed: false, availability });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size, service_name } = req.body;
@@ -94,16 +167,6 @@ app.post('/api/reservations', async (req, res) => {
     
     const tenant = tenantInfo.rows[0];
     const maxCapacity = tenant.max_capacity || 10;
-    const settings = tenant.settings || {};
-
-    const dateObj = new Date(reservation_date);
-    const dayOfWeek = dateObj.getDay();
-    const closedDays = settings.closedDays || [];
-    const forcedOpenDates = settings.forcedOpenDates || [];
-
-    if (closedDays.includes(dayOfWeek) && !forcedOpenDates.includes(reservation_date)) {
-      return res.status(400).json({ error: 'El negocio se encuentra cerrado por descanso en esta fecha.' });
-    }
 
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
@@ -117,7 +180,7 @@ app.post('/api/reservations', async (req, res) => {
     const requestedSize = parseInt(party_size || 1);
 
     if (currentBooked + requestedSize > maxCapacity) {
-      return res.status(400).json({ error: 'No hay suficiente aforo disponible para este horario.' });
+      return res.status(400).json({ error: 'No hay suficiente aforo o plazas libres para este horario.' });
     }
 
     const newReservation = await pool.query(
@@ -213,7 +276,8 @@ app.post('/api/admin/register', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
     const defaultSettings = JSON.stringify({
-      shifts: [{ open: "09:00", close: "23:00" }],
+      shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "20:00" }],
+      slotDurationMinutes: 60,
       closedDays: [],
       forcedOpenDates: []
     });

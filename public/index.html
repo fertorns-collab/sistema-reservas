@@ -26,7 +26,7 @@
         <section id="clientView" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-slate-900">Haz tu Reserva Online</h2>
-                <p id="businessSubtitle" class="text-xs text-slate-500 mt-1">Selecciona la fecha, hora y asegura tu espacio al instante.</p>
+                <p id="businessSubtitle" class="text-xs text-slate-500 mt-1">Selecciona la fecha y comprueba las plazas libres por horario.</p>
             </div>
 
             <form id="bookingForm" class="space-y-4">
@@ -56,12 +56,14 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">📅 Fecha</label>
-                        <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">📅 Fecha de Reserva</label>
+                        <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">⏰ Hora / Turno</label>
-                        <input type="text" id="time_slot" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. 14:00 o 16:00 - 20:00">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">⏰ Hora / Tramo Disponible</label>
+                        <select id="time_slot" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white">
+                            <option value="">Selecciona una fecha primero...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -117,16 +119,16 @@
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
                         <h2 class="text-xl font-bold text-slate-900">Panel de Control - Administrador</h2>
-                        <p class="text-xs text-slate-500">Gestión de servicios, horarios y reservas.</p>
+                        <p class="text-xs text-slate-500">Configuración de turnos partidos, aforo y reservas.</p>
                     </div>
                     <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline">Cerrar Sesión</button>
                 </div>
 
                 <div class="bg-slate-50 p-4 rounded-xl border space-y-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-700">⚙️ Configuración y Servicios</h3>
+                    <h3 class="text-xs font-bold uppercase text-slate-700">⚙️ Configuración del Negocio y Turnos Partidos</h3>
                     <form id="configForm" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                         <div>
-                            <label class="block font-bold mb-1">Aforo Máximo</label>
+                            <label class="block font-bold mb-1">Aforo / Capacidad Máxima simultánea</label>
                             <input type="number" id="conf_capacity" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
@@ -134,12 +136,16 @@
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
+                            <label class="block font-bold mb-1">Turnos (Ej. Mañana y Tarde: 09:00-14:00, 16:00-20:00)</label>
+                            <input type="text" id="conf_shifts" placeholder="Ej. 09:00-14:00, 16:00-20:00" class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div class="md:col-span-2">
                             <label class="block font-bold mb-1">Servicios (Separados por comas)</label>
-                            <input type="text" id="conf_services" placeholder="Ej. Corte, Teñir, Menú, Pista 1" class="w-full p-2 border rounded bg-white">
+                            <input type="text" id="conf_services" placeholder="Ej. Corte, Teñir, Pista 1" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block font-bold mb-1">Días de Descanso (0=Dom, 1=Lun...)</label>
-                            <input type="text" id="conf_closed_days" placeholder="Ej. 1, 2" class="w-full p-2 border rounded bg-white">
+                            <input type="text" id="conf_closed_days" placeholder="Ej. 1" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
                             <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded">Guardar Cambios</button>
@@ -235,6 +241,44 @@
             if (view === 'manage') document.getElementById('manageView').classList.remove('hidden');
             if (view === 'admin') document.getElementById('adminView').classList.remove('hidden');
             if (view === 'register') document.getElementById('registerView').classList.remove('hidden');
+        }
+
+        async function fetchAvailability() {
+            const date = document.getElementById('reservation_date').value;
+            const slotSelect = document.getElementById('time_slot');
+            slotSelect.innerHTML = '<option value="">Cargando disponibilidad...</option>';
+
+            if (!date || !tenantData) return;
+
+            try {
+                const res = await fetch(`/api/availability/${tenantData.id}?date=${date}`);
+                const data = await res.json();
+                slotSelect.innerHTML = '';
+
+                if (data.closed) {
+                    slotSelect.innerHTML = `<option value="">❌ ${data.message}</option>`;
+                    return;
+                }
+
+                if (!data.availability || data.availability.length === 0) {
+                    slotSelect.innerHTML = '<option value="">No hay horarios configurados</option>';
+                    return;
+                }
+
+                data.availability.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.slot;
+                    if (item.is_full) {
+                        opt.disabled = true;
+                        opt.innerText = `${item.slot} - COMPLETO (0 plazas libres)`;
+                    } else {
+                        opt.innerText = `${item.slot} - 🟢 ${item.available} plazas libres (Aforo máx: ${item.max_capacity})`;
+                    }
+                    slotSelect.appendChild(opt);
+                });
+            } catch (err) {
+                slotSelect.innerHTML = '<option value="">Error al cargar disponibilidad</option>';
+            }
         }
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -337,6 +381,8 @@
                         <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
                         <p><strong>Negocio:</strong> ${r.tenant_name}</p>
                         <p><strong>Cliente:</strong> ${r.client_name}</p>
+                        <p><strong>Fecha Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
+                        <p><strong>Hora Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot}</span></p>
                         
                         <div class="space-y-2 pt-2 border-t">
                             <label class="block font-bold text-xs">Modificar Fecha:</label>
@@ -411,7 +457,11 @@
                 document.getElementById('conf_capacity').value = tenantData.max_capacity;
                 document.getElementById('conf_whatsapp').value = tenantData.whatsapp_phone;
                 document.getElementById('conf_services').value = (data.services || []).join(', ');
+                
                 const settings = data.settings || {};
+                const shifts = settings.shifts || [];
+                const shiftsStr = shifts.map(s => `${s.open}-${s.close}`).join(', ');
+                document.getElementById('conf_shifts').value = shiftsStr;
                 document.getElementById('conf_closed_days').value = (settings.closedDays || []).join(', ');
 
                 loadAdminReservations();
@@ -429,6 +479,16 @@
             const closedDaysInput = document.getElementById('conf_closed_days').value;
             const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
 
+            // Parsear turnos partidos ej. "09:00-14:00, 16:00-20:00"
+            const shiftsInput = document.getElementById('conf_shifts').value;
+            let shifts = [{ open: "09:00", close: "21:00" }];
+            if (shiftsInput) {
+                shifts = shiftsInput.split(',').map(part => {
+                    const [open, close] = part.trim().split('-');
+                    return { open: open ? open.trim() : "09:00", close: close ? close.trim() : "21:00" };
+                });
+            }
+
             const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -436,12 +496,12 @@
                     name: tenantData.name,
                     max_capacity: parseInt(document.getElementById('conf_capacity').value),
                     whatsapp_phone: document.getElementById('conf_whatsapp').value,
-                    settings: { closedDays },
+                    settings: { shifts, closedDays, slotDurationMinutes: 60 },
                     services
                 })
             });
             if (res.ok) {
-                alert('Configuración actualizada.');
+                alert('Configuración y turnos actualizados.');
                 location.reload();
             }
         });
