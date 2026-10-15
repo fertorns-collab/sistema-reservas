@@ -47,14 +47,19 @@ const initDB = async () => {
       );
     `);
 
-    // Crear un negocio por defecto si no existe ninguno (para que la home cargue siempre)
+    // Crear negocio por defecto con configuración de tramos y duración (JSONB)
     const checkTenant = await pool.query('SELECT * FROM tenants WHERE slug = $1', ['padel-club']);
     if (checkTenant.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
+      const defaultClosingTimes = JSON.stringify({
+        slotDurationMinutes: 90, // Permite elegir tramos de 60 o 90 min
+        openTime: "08:00",
+        closeTime: "22:00"
+      });
       await pool.query(
-        `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        ['Padel Club Central', 'padel-club', 'sports', 8, '34600000000', 'admin@padelclub.com', hashedPassword]
+        `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, closing_times) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        ['Padel Club Central', 'padel-club', 'sports', 8, '34600000000', 'admin@padelclub.com', hashedPassword, defaultClosingTimes]
       );
       console.log("Negocio por defecto 'padel-club' creado con éxito.");
     }
@@ -71,11 +76,42 @@ app.get('/api/tenant/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
     const tenantRes = await pool.query(
-      'SELECT id, name, business_type, max_capacity, whatsapp_phone, closing_times FROM tenants WHERE slug = $1', 
+      'SELECT id, name, slug, business_type, max_capacity, whatsapp_phone, closing_times FROM tenants WHERE slug = $1', 
       [slug]
     );
     if (tenantRes.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
     res.json(tenantRes.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Login de Administrador
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password, slug } = req.body;
+    const tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1 AND slug = $2', [email, slug]);
+    if (tenantRes.rows.length === 0) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+    const tenant = tenantRes.rows[0];
+    const match = await bcrypt.compare(password, tenant.password_hash);
+    if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
+
+    res.json({ success: true, tenant_id: tenant.id, name: tenant.name });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Obtener reservas de un tenant (para el admin)
+app.get('/api/admin/reservations/:tenant_id', async (req, res) => {
+  try {
+    const { tenant_id } = req.params;
+    const reservations = await pool.query(
+      'SELECT * FROM reservations WHERE tenant_id = $1 ORDER BY reservation_date DESC, time_slot DESC',
+      [tenant_id]
+    );
+    res.json(reservations.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -98,32 +134,7 @@ app.post('/api/reservations', async (req, res) => {
   }
 });
 
-// API: Modificar una reserva existente
-app.put('/api/reservations/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { reservation_date, time_slot, party_size } = req.body;
-
-    const updated = await pool.query(
-      `UPDATE reservations 
-       SET reservation_date = COALESCE($1, reservation_date), 
-           time_slot = COALESCE($2, time_slot), 
-           party_size = COALESCE($3, party_size)
-       WHERE id = $4 RETURNING *`,
-      [reservation_date, time_slot, party_size, id]
-    );
-
-    if (updated.rows.length === 0) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
-    }
-
-    res.json({ success: true, message: "Reserva actualizada con éxito", reservation: updated.rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// API: Anular/Cancelar una reserva
+// API: Anular/Cancelar reserva
 app.delete('/api/reservations/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,13 +147,13 @@ app.delete('/api/reservations/:id', async (req, res) => {
       return res.status(404).json({ error: 'Reserva no encontrada' });
     }
 
-    res.json({ success: true, message: "Reserva anulada correctamente y recurso liberado." });
+    res.json({ success: true, message: "Reserva anulada correctamente." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Ruta comodín para servir el frontend SPA
+// Ruta comodín para SPA frontend
 app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
