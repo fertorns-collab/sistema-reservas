@@ -129,7 +129,8 @@ app.delete('/api/reservations/:id', async (req, res) => {
   }
 });
 
-app.get('*', (req, res) => {
+// Corrección del comodín compatible con Express moderno
+app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
