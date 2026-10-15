@@ -17,7 +17,7 @@ const pool = new pg.Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Inicialización de la Base de Datos con autenticación segura y soporte multi-negocio
+// Inicialización de la Base de Datos con esquema multi-tenant
 const initDB = async () => {
   try {
     await pool.query(`
@@ -25,12 +25,12 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         slug VARCHAR(50) UNIQUE NOT NULL,
-        business_type VARCHAR(50) NOT NULL, -- 'padel', 'restaurant', 'barber', etc.
+        business_type VARCHAR(50) NOT NULL,
         max_capacity INT DEFAULT 19,
         whatsapp_phone VARCHAR(20),
         email VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        closing_times JSONB, -- Horarios especiales o turnos por día
+        closing_times JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -46,33 +46,14 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log("Tablas inicializadas correctamente con esquema robusto.");
+    console.log("Tablas inicializadas correctamente.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
 };
 initDB();
 
-// API: Registro de Propietarios (con bcrypt)
-app.api('/api/auth/register', async (req, res) => {
-  try {
-    const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
-    const saltRounds = 10;
-    const password_hash = await bcrypt.hash(password, saltRounds);
-
-    const newTenant = await pool.query(
-      `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, slug`,
-      [name, slug, business_type, max_capacity || 19, whatsapp_phone, email, password_hash]
-    );
-
-    res.status(201).json({ success: true, tenant: newTenant.rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// API: Obtener datos del negocio por slug (para la vista Mobile-First)
+// API: Obtener datos del negocio por slug
 app.get('/api/tenant/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
@@ -87,7 +68,7 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
-// API: Crear reserva adaptativa
+// API: Crear reserva
 app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size } = req.body;
@@ -99,6 +80,50 @@ app.post('/api/reservations', async (req, res) => {
     );
 
     res.status(201).json({ success: true, reservation: newReservation.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Modificar una reserva existente
+app.put('/api/reservations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reservation_date, time_slot, party_size } = req.body;
+
+    const updated = await pool.query(
+      `UPDATE reservations 
+       SET reservation_date = COALESCE($1, reservation_date), 
+           time_slot = COALESCE($2, time_slot), 
+           party_size = COALESCE($3, party_size)
+       WHERE id = $4 RETURNING *`,
+      [reservation_date, time_slot, party_size, id]
+    );
+
+    if (updated.rows.length === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
+
+    res.json({ success: true, message: "Reserva actualizada con éxito", reservation: updated.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Anular/Cancelar una reserva
+app.delete('/api/reservations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cancelled = await pool.query(
+      `UPDATE reservations SET status = 'cancelled' WHERE id = $1 RETURNING *`,
+      [id]
+    );
+
+    if (cancelled.rows.length === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
+
+    res.json({ success: true, message: "Reserva anulada correctamente y recurso liberado." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
