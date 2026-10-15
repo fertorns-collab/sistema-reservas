@@ -27,7 +27,7 @@ const initDB = async () => {
         business_type VARCHAR(50),
         max_capacity INT DEFAULT 10,
         whatsapp_phone VARCHAR(20),
-        email VARCHAR(100) UNIQUE NOT NULL,
+        email VARCHAR(100) NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         settings JSONB,
         services JSONB DEFAULT '[]',
@@ -270,12 +270,20 @@ app.post('/api/admin/register', async (req, res) => {
   try {
     const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
     
-    const existing = await pool.query('SELECT id FROM tenants WHERE slug = $1 OR email = $2', [slug, email]);
+    const existing = await pool.query('SELECT id FROM tenants WHERE slug = $1', [slug]);
     if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'El identificador (slug) o el correo electrónico ya están registrados.' });
+      return res.status(400).json({ error: 'El identificador (slug) ya está registrado. Elige otro.' });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    // Si ya existe el correo, reutilizamos el hash de su contraseña para mantener consistencia en multicuentas
+    const userExists = await pool.query('SELECT password_hash FROM tenants WHERE email = $1 LIMIT 1', [email]);
+    let password_hash;
+    if (userExists.rows.length > 0) {
+      password_hash = userExists.rows[0].password_hash;
+    } else {
+      password_hash = await bcrypt.hash(password, 10);
+    }
+
     const defaultSettings = JSON.stringify({
       shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "20:00" }],
       slotDurationMinutes: 60,
@@ -295,32 +303,28 @@ app.post('/api/admin/register', async (req, res) => {
   }
 });
 
+// Login multinegocio por correo: devuelve todos los negocios que administra este correo
 app.post('/api/admin/login', async (req, res) => {
   try {
-    const { email, password, slug } = req.body;
-    let tenantRes;
-    if (slug) {
-      tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1 AND slug = $2', [email, slug]);
-    } else {
-      tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1', [email]);
-    }
+    const { email, password } = req.body;
+    const tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1', [email]);
+    if (tenantRes.rows.length === 0) return res.status(401).json({ error: 'Credenciales inválidas' });
 
-    if (tenantRes.rows.length === 0) return res.status(401).json({ error: 'Credenciales inválidas o negocio no encontrado' });
-
-    const tenant = tenantRes.rows[0];
-    const match = await bcrypt.compare(password, tenant.password_hash);
+    const match = await bcrypt.compare(password, tenantRes.rows[0].password_hash);
     if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    res.json({ 
-      success: true, 
-      tenant_id: tenant.id, 
-      name: tenant.name, 
-      slug: tenant.slug, 
-      settings: tenant.settings, 
-      services: tenant.services,
-      max_capacity: tenant.max_capacity,
-      whatsapp_phone: tenant.whatsapp_phone
-    });
+    const businesses = tenantRes.rows.map(t => ({
+      tenant_id: t.id,
+      name: t.name,
+      slug: t.slug,
+      business_type: t.business_type,
+      max_capacity: t.max_capacity,
+      whatsapp_phone: t.whatsapp_phone,
+      settings: t.settings,
+      services: t.services
+    }));
+
+    res.json({ success: true, businesses });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
