@@ -11,13 +11,13 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Conexión a la Base de Datos PostgreSQL (Render / Local)
+// Conexión a la Base de Datos PostgreSQL
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Inicialización de tablas multi-tenant y aforo adaptativo
+// Inicialización de la Base de Datos con autenticación segura y soporte multi-negocio
 const initDB = async () => {
   try {
     await pool.query(`
@@ -30,6 +30,7 @@ const initDB = async () => {
         whatsapp_phone VARCHAR(20),
         email VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
+        closing_times JSONB, -- Horarios especiales o turnos por día
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -40,23 +41,45 @@ const initDB = async () => {
         client_phone VARCHAR(20) NOT NULL,
         reservation_date DATE NOT NULL,
         time_slot VARCHAR(20) NOT NULL,
-        party_size INT DEFAULT 1, -- Para mesas o número de recursos
+        party_size INT DEFAULT 1,
         status VARCHAR(20) DEFAULT 'confirmed',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log("Base de datos y tablas inicializadas correctamente.");
+    console.log("Tablas inicializadas correctamente con esquema robusto.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
 };
 initDB();
 
-// API: Obtener información del negocio y disponibilidad
+// API: Registro de Propietarios (con bcrypt)
+app.api('/api/auth/register', async (req, res) => {
+  try {
+    const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
+
+    const newTenant = await pool.query(
+      `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, slug`,
+      [name, slug, business_type, max_capacity || 19, whatsapp_phone, email, password_hash]
+    );
+
+    res.status(201).json({ success: true, tenant: newTenant.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API: Obtener datos del negocio por slug (para la vista Mobile-First)
 app.get('/api/tenant/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    const tenantRes = await pool.query('SELECT id, name, business_type, max_capacity, whatsapp_phone FROM tenants WHERE slug = $1', [slug]);
+    const tenantRes = await pool.query(
+      'SELECT id, name, business_type, max_capacity, whatsapp_phone, closing_times FROM tenants WHERE slug = $1', 
+      [slug]
+    );
     if (tenantRes.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
     res.json(tenantRes.rows[0]);
   } catch (err) {
@@ -64,7 +87,7 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
-// API: Crear reserva (Mobile-First / WhatsApp Flow)
+// API: Crear reserva adaptativa
 app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size } = req.body;
@@ -75,21 +98,16 @@ app.post('/api/reservations', async (req, res) => {
       [tenant_id, client_name, client_phone, reservation_date, time_slot, party_size || 1]
     );
 
-    res.status(201).json({
-      success: true,
-      message: "Reserva registrada con éxito",
-      reservation: newReservation.rows[0]
-    });
+    res.status(201).json({ success: true, reservation: newReservation.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Ruta comodín para SPA frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor SaaS ejecutándose en el puerto ${PORT}`);
+  console.log(`Servidor SaaS activo en el puerto ${PORT}`);
 });

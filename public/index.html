@@ -3,49 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS Bookings - Mobile First</title>
+    <title>Reserva Móvil - SaaS WhatsApp</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased flex flex-col min-h-screen">
+<body class="bg-slate-50 text-slate-900 antialiased flex flex-col min-h-screen">
 
-    <!-- Header Mobile-First -->
     <header class="bg-emerald-600 text-white p-4 shadow-md sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <h1 class="text-lg font-bold tracking-wide">📱 Reservas WhatsApp</h1>
-            <span class="text-xs bg-emerald-700 px-2 py-1 rounded-full uppercase font-semibold">Mobile Ready</span>
+            <h1 id="businessName" class="text-base font-bold tracking-wide">Cargando Negocio...</h1>
+            <span class="text-xs bg-emerald-700 px-2 py-1 rounded-full uppercase font-semibold">WhatsApp Native</span>
         </div>
     </header>
 
-    <!-- Contenedor Principal Optimizado para Smartphone -->
     <main class="flex-grow max-w-md w-full mx-auto p-4 flex flex-col justify-center">
-        <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <h2 class="text-xl font-bold text-gray-900 mb-2">Reserva tu espacio</h2>
-            <p class="text-sm text-gray-500 mb-6">Completa tus datos para confirmar al instante vía WhatsApp.</p>
+        <div class="bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
+            <h2 class="text-lg font-bold text-slate-900 mb-1">Reserva Online</h2>
+            <p id="businessSubtitle" class="text-xs text-slate-500 mb-5">Selecciona tu horario y asegura tu espacio al instante.</p>
 
             <form id="bookingForm" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nombre y Apellidos</label>
-                    <input type="text" id="client_name" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="Ej. Martí Gómez">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nombre y Apellidos</label>
+                    <input type="text" id="client_name" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="Tu nombre">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Teléfono Móvil</label>
-                    <input type="tel" id="client_phone" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="+34 600 000 000">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Teléfono Móvil</label>
+                    <input type="tel" id="client_phone" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="+34 600 000 000">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Fecha</label>
-                        <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Fecha</label>
+                        <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Hora / Turno</label>
-                        <select id="time_slot" class="w-full px-3 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Turno</label>
+                        <select id="time_slot" class="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
                             <option value="18:00">18:00 - 19:30</option>
                             <option value="19:30">19:30 - 21:00</option>
-                            <option value="21:00">21:00 - 22:30</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- Campo dinámico para aforo adaptativo (ej. número de comensales en restaurante o plazas) -->
+                <div id="partySizeContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Número de Personas / Plazas</label>
+                    <input type="number" id="party_size" value="1" min="1" max="10" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
                 </div>
 
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-emerald-600/25 text-sm mt-2 flex items-center justify-center gap-2">
@@ -55,21 +58,41 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="text-center py-4 text-xs text-gray-400">
-        SaaS Multi-Negocio Optimizado para Smartphones
-    </footer>
-
     <script>
+        let tenantData = null;
+
+        // Cargar datos del negocio según el slug en la URL (ej. /?tenant=padel-club o simulado)
+        async function loadTenant() {
+            try {
+                // Usamos un tenant por defecto (ID 1) para la demo móvil
+                const response = await fetch('/api/tenant/padel-club');
+                if(response.ok) {
+                    tenantData = await response.json();
+                    document.getElementById('businessName').innerText = tenantData.name;
+                    document.getElementById('businessSubtitle').innerText = `Gestión de ${tenantData.business_type} (Aforo: ${tenantData.max_capacity})`;
+                    
+                    // Si es restaurante, mostramos el selector de comensales
+                    if(tenantData.business_type === 'restaurant') {
+                        document.getElementById('partySizeContainer').classList.remove('hidden');
+                    }
+                } else {
+                    document.getElementById('businessName').innerText = "Plataforma de Reservas";
+                }
+            } catch (err) {
+                console.error("Error cargando tenant:", err);
+            }
+        }
+        loadTenant();
+
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
-                tenant_id: 1, // Ejemplo para el primer negocio configurado
+                tenant_id: tenantData ? tenantData.id : 1,
                 client_name: document.getElementById('client_name').value,
                 client_phone: document.getElementById('client_phone').value,
                 reservation_date: document.getElementById('reservation_date').value,
                 time_slot: document.getElementById('time_slot').value,
-                party_size: 1
+                party_size: document.getElementById('party_size') ? parseInt(document.getElementById('party_size').value) : 1
             };
 
             try {
@@ -80,10 +103,10 @@
                 });
                 const result = await response.json();
                 if(result.success) {
-                    alert('¡Reserva creada con éxito! Redirigiendo a WhatsApp...');
-                    // Redirección automática al flujo wa.me del negocio
-                    const mensaje = encodeURIComponent(`Hola, acabo de reservar la pista/mesa para el ${data.reservation_date} a las ${data.time_slot}. Mi nombre es ${data.client_name}.`);
-                    window.location.href = `https://wa.me/34600000000?text=${mensaje}`;
+                    alert('¡Reserva registrada! Redirigiendo a WhatsApp...');
+                    const phoneWp = tenantData && tenantData.whatsapp_phone ? tenantData.whatsapp_phone : '34600000000';
+                    const mensaje = encodeURIComponent(`Hola, acabo de solicitar una reserva para el ${data.reservation_date} a las ${data.time_slot}. Mi nombre es ${data.client_name}.`);
+                    window.location.href = `https://wa.me/${phoneWp}?text=${mensaje}`;
                 } else {
                     alert('Error al procesar la reserva.');
                 }
