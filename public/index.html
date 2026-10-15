@@ -1,812 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plataforma SaaS de Reservas y Gestión</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Bookings - Mobile First</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+<body class="bg-gray-50 text-gray-800 antialiased flex flex-col min-h-screen">
 
-  <!-- VISTA DE LANDING / LOGIN Y REGISTRO B2B -->
-  <div id="landing-view" class="max-w-md mx-auto mt-12 p-8 bg-white rounded-2xl shadow-xl hidden space-y-6 border border-slate-200">
-    <header class="text-center">
-      <h1 class="text-3xl font-extrabold text-indigo-600 tracking-tight">Portal SaaS</h1>
-      <p class="text-slate-500 mt-1">Gestiona tu negocio o accede a tu cuenta.</p>
+    <!-- Header Mobile-First -->
+    <header class="bg-emerald-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-lg font-bold tracking-wide">📱 Reservas WhatsApp</h1>
+            <span class="text-xs bg-emerald-700 px-2 py-1 rounded-full uppercase font-semibold">Mobile Ready</span>
+        </div>
     </header>
 
-    <!-- Pestañas Login / Registro -->
-    <div class="flex border-b">
-      <button id="tab-login-btn" onclick="switchTab('login')" class="flex-1 py-2 font-bold text-indigo-600 border-b-2 border-indigo-600">Iniciar Sesión</button>
-      <button id="tab-register-btn" onclick="switchTab('register')" class="flex-1 py-2 font-semibold text-slate-400">Crear Cuenta</button>
-    </div>
+    <!-- Contenedor Principal Optimizado para Smartphone -->
+    <main class="flex-grow max-w-md w-full mx-auto p-4 flex flex-col justify-center">
+        <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+            <h2 class="text-xl font-bold text-gray-900 mb-2">Reserva tu espacio</h2>
+            <p class="text-sm text-gray-500 mb-6">Completa tus datos para confirmar al instante vía WhatsApp.</p>
 
-    <!-- Formulario de Login -->
-    <form id="login-form" class="space-y-4">
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Correo Electrónico</label>
-        <input type="email" id="login-email" class="w-full rounded-lg border-slate-300 border p-3 outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="tu@correo.com">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
-        <input type="password" id="login-password" class="w-full rounded-lg border-slate-300 border p-3 outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="••••••••">
-      </div>
-      <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-lg hover:bg-indigo-700 transition shadow">Entrar a mi Panel</button>
-    </form>
+            <form id="bookingForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nombre y Apellidos</label>
+                    <input type="text" id="client_name" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="Ej. Martí Gómez">
+                </div>
 
-    <!-- Formulario de Registro -->
-    <form id="register-form" class="space-y-4 hidden">
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Negocio</label>
-        <input type="text" id="reg-name" class="w-full rounded-lg border-slate-300 border p-3 outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="Ej. Centro Estética BCN">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Teléfono (WhatsApp)</label>
-        <div class="flex gap-2">
-          <input type="text" id="reg-prefix" class="w-20 rounded-lg border-slate-300 border p-3 text-center bg-slate-50 font-semibold" value="+34" required>
-          <input type="text" id="reg-phone-local" class="flex-1 rounded-lg border-slate-300 border p-3 outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="600123456">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Teléfono Móvil</label>
+                    <input type="tel" id="client_phone" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="+34 600 000 000">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Fecha</label>
+                        <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Hora / Turno</label>
+                        <select id="time_slot" class="w-full px-3 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm">
+                            <option value="18:00">18:00 - 19:30</option>
+                            <option value="19:30">19:30 - 21:00</option>
+                            <option value="21:00">21:00 - 22:30</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-emerald-600/25 text-sm mt-2 flex items-center justify-center gap-2">
+                    🟢 Confirmar y Enviar por WhatsApp
+                </button>
+            </form>
         </div>
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Correo Electrónico (Admin)</label>
-        <input type="email" id="reg-email" class="w-full rounded-lg border-slate-300 border p-3 outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="tu@correo.com">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
-        <input type="password" id="reg-password" class="w-full rounded-lg border-slate-300 border p-3 outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="••••••••">
-      </div>
-      <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-lg hover:bg-emerald-700 transition shadow">Registrar Negocio</button>
-    </form>
-  </div>
-
-  <!-- VISTA DE CLIENTE (?tenant=...) -->
-  <div id="client-view" class="max-w-xl mx-auto p-6 hidden">
-    <header class="mb-6 text-center">
-      <h1 id="client-business-title" class="text-3xl font-extrabold text-indigo-600">Reservar Cita</h1>
-      <p id="client-business-subtitle" class="text-slate-500 mt-1">Selecciona servicio, fecha y hora.</p>
-    </header>
-
-    <div class="bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-slate-200">
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Servicio</label>
-        <select id="client-service-select" class="w-full rounded-lg border-slate-300 border p-3 bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          <option value="">-- Selecciona un servicio --</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
-        <input type="date" id="client-date" class="w-full rounded-lg border-slate-300 border p-3 focus:ring-2 focus:ring-indigo-500 outline-none">
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Horarios Disponibles</label>
-        <div id="client-slots-container" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-lg bg-slate-50">
-          <span class="text-sm text-slate-400 col-span-3 text-center py-4">Elige fecha y servicio para ver turnos disponibles.</span>
-        </div>
-      </div>
-
-      <form id="client-booking-form" class="space-y-4 border-t pt-4 hidden">
-        <h3 class="font-semibold text-slate-700">Tus Datos de Contacto</h3>
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Nombre y Apellidos</label>
-          <input type="text" id="client-name" class="w-full rounded-lg border-slate-300 border p-2.5" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Teléfono</label>
-          <input type="text" id="client-phone" class="w-full rounded-lg border-slate-300 border p-2.5" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Notas adicionales (Opcional)</label>
-          <textarea id="client-notes" class="w-full rounded-lg border-slate-300 border p-2.5" rows="2"></textarea>
-        </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-lg hover:bg-indigo-700 transition shadow">Confirmar Reserva</button>
-      </form>
-
-      <!-- CONFIRMACIÓN CON WHATSAPP, GOOGLE CALENDAR E .ICS -->
-      <div id="confirmation-card" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 space-y-4 hidden text-center">
-        <div class="text-emerald-700 font-bold text-lg">¡Reserva Confirmada con Éxito!</div>
-        <p class="text-sm text-slate-600" id="confirmation-details"></p>
-        
-        <div class="flex flex-col gap-2 pt-2">
-          <a id="btn-whatsapp-confirm" href="#" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2">
-            Notificar por WhatsApp
-          </a>
-          <a id="btn-gcalendar-confirm" href="#" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2">
-            Añadir a Google Calendar
-          </a>
-          <button id="btn-ics-confirm" type="button" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-lg transition">
-            Descargar Archivo de Calendario (.ics)
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VISTA DE ADMINISTRADOR / GERENTE (?admin=...) -->
-  <div id="admin-view" class="max-w-6xl mx-auto p-6 hidden">
-    <header class="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-      <div>
-        <h1 class="text-3xl font-extrabold text-indigo-600">Panel de Control del Propietario</h1>
-        <p class="text-slate-500 mt-1">Gestión integral de tu negocio.</p>
-      </div>
-      <button onclick="logoutAdmin()" class="bg-rose-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-rose-700 transition text-sm">Cerrar Sesión</button>
-    </header>
-
-    <main class="space-y-8">
-      <!-- Accesos Directos -->
-      <section class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-sm">
-        <h2 class="text-lg font-bold mb-3 text-indigo-900">Enlace Público para tus Clientes</h2>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <a id="client-booking-url" href="#" target="_blank" class="text-indigo-600 font-semibold text-sm hover:underline break-all">--</a>
-        </div>
-      </section>
-
-      <!-- Configuración General del Negocio -->
-      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
-        <h2 class="text-xl font-bold mb-4 text-slate-800">Configuración General y Días de Descanso</h2>
-        <form id="config-form" class="space-y-4">
-          <input type="hidden" id="tenant_id">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Nombre del Negocio</label>
-              <input type="text" id="name" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" required>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Teléfono (WhatsApp)</label>
-              <input type="text" id="phone" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" required>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Categoría</label>
-              <input type="text" id="category" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Tipo de Negocio</label>
-              <input type="text" id="business_type" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="general">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Aforo Simultáneo</label>
-              <input type="number" id="max_capacity" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="2">
-            </div>
-          </div>
-
-          <!-- Días de descanso múltiples -->
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Días de Descanso Semanal</label>
-            <div id="closed-days-container" class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border">
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="0" class="closed-day-cb"> Domingo</label>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="1" class="closed-day-cb"> Lunes</label>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="2" class="closed-day-cb"> Martes</label>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="3" class="closed-day-cb"> Miércoles</label>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="4" class="closed-day-cb"> Jueves</label>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="5" class="closed-day-cb"> Viernes</label>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="6" class="closed-day-cb"> Sábado</label>
-            </div>
-          </div>
-
-          <!-- Turnos Habituales -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Turno 1 Inicio</label>
-              <input type="time" id="shift1_start" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="09:00">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Turno 1 Fin</label>
-              <input type="time" id="shift1_end" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" value="14:00">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Turno 2 Inicio</label>
-              <input type="time" id="shift2_start" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700">Turno 2 Fin</label>
-              <input type="time" id="shift2_end" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5">
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-semibold text-slate-700">Notas e Información del Local</label>
-            <textarea id="notes" class="mt-1 block w-full rounded-lg border-slate-300 border p-2.5" rows="2"></textarea>
-          </div>
-
-          <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition shadow">Guardar Configuración General</button>
-        </form>
-      </section>
-
-      <!-- Horarios Especiales por Día Específico -->
-      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
-        <h2 class="text-xl font-bold mb-2 text-slate-800">Horarios Especiales o Reducidos por Día de la Semana</h2>
-        <form id="special-day-form" class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4 items-end">
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Día</label>
-            <select id="special_day_idx" class="w-full rounded-lg border-slate-300 border p-2 text-sm bg-white">
-              <option value="1">Lunes</option>
-              <option value="2">Martes</option>
-              <option value="3">Miércoles</option>
-              <option value="4">Jueves</option>
-              <option value="5">Viernes</option>
-              <option value="6">Sábado</option>
-              <option value="0">Domingo</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Inic. Turno 1</label>
-            <input type="time" id="special_s1_start" class="w-full rounded-lg border-slate-300 border p-2 text-sm" value="09:00">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Fin Turno 1</label>
-            <input type="time" id="special_s1_end" class="w-full rounded-lg border-slate-300 border p-2 text-sm" value="14:00">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Inic. Turno 2</label>
-            <input type="time" id="special_s2_start" class="w-full rounded-lg border-slate-300 border p-2 text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Fin Turno 2</label>
-            <input type="time" id="special_s2_end" class="w-full rounded-lg border-slate-300 border p-2 text-sm">
-          </div>
-          <div>
-            <button type="submit" class="w-full bg-slate-800 text-white font-bold rounded-lg py-2.5 text-sm hover:bg-slate-900 transition">Guardar Horario</button>
-          </div>
-        </form>
-        <div id="special-days-summary" class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border"></div>
-      </section>
-
-      <!-- Catálogo de Servicios -->
-      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
-        <h2 class="text-xl font-bold mb-4 text-slate-800">Catálogo de Servicios</h2>
-        <form id="service-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <input type="text" id="service_name" placeholder="Nombre del servicio" class="rounded-lg border-slate-300 border p-2.5" required>
-          <input type="number" id="service_duration" placeholder="Duración (min)" class="rounded-lg border-slate-300 border p-2.5" value="60" required>
-          <input type="number" step="0.01" id="service_price" placeholder="Precio (€)" class="rounded-lg border-slate-300 border p-2.5" value="0.00">
-          <button type="submit" class="bg-emerald-600 text-white font-bold rounded-lg py-2.5 hover:bg-emerald-700 transition">Añadir Servicio</button>
-        </form>
-
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Servicio</th>
-                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Duración</th>
-                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Precio</th>
-                <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="services-tbody" class="bg-white divide-y divide-slate-200"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Cierres Excepcionales -->
-      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
-        <h2 class="text-xl font-bold mb-4 text-slate-800">Días de Cierre Excepcional o Festivos</h2>
-        <form id="exception-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <input type="date" id="exception_date" class="rounded-lg border-slate-300 border p-2.5" required>
-          <input type="text" id="exception_reason" placeholder="Motivo del cierre" class="rounded-lg border-slate-300 border p-2.5">
-          <button type="submit" class="bg-rose-600 text-white font-bold rounded-lg py-2.5 hover:bg-rose-700 transition">Añadir Cierre</button>
-        </form>
-
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Fecha</th>
-                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Motivo</th>
-                <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="exceptions-tbody" class="bg-white divide-y divide-slate-200"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Listado de Reservas y CSV -->
-      <section class="bg-white rounded-2xl shadow-md p-6 border border-slate-200">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-          <h2 class="text-xl font-bold text-slate-800">Gestión de Reservas</h2>
-          <button id="export-csv-btn" class="bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-emerald-700 transition">Exportar a CSV</button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <input type="date" id="filter-start-date" class="rounded-lg border-slate-300 border p-2.5">
-          <input type="date" id="filter-end-date" class="rounded-lg border-slate-300 border p-2.5">
-          <button id="filter-reservations-btn" type="button" class="bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition">Filtrar Fechas</button>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Código</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Cliente</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Teléfono</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Fecha y Hora</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Servicio</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="reservations-tbody" class="bg-white divide-y divide-slate-200"></tbody>
-          </table>
-        </div>
-      </section>
     </main>
-  </div>
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const tenantToken = urlParams.get('tenant');
-    const adminToken = urlParams.get('admin');
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-gray-400">
+        SaaS Multi-Negocio Optimizado para Smartphones
+    </footer>
 
-    if (tenantToken) {
-      document.getElementById('client-view').classList.remove('hidden');
-      initClientView(tenantToken);
-    } else if (adminToken) {
-      document.getElementById('admin-view').classList.remove('hidden');
-      initAdminView(adminToken);
-    } else {
-      document.getElementById('landing-view').classList.remove('hidden');
-      initLandingView();
-    }
-
-    function switchTab(tab) {
-      const loginForm = document.getElementById('login-form');
-      const registerForm = document.getElementById('register-form');
-      const loginBtn = document.getElementById('tab-login-btn');
-      const registerBtn = document.getElementById('tab-register-btn');
-
-      if (tab === 'login') {
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-        loginBtn.className = 'flex-1 py-2 font-bold text-indigo-600 border-b-2 border-indigo-600';
-        registerBtn.className = 'flex-1 py-2 font-semibold text-slate-400';
-      } else {
-        loginForm.classList.add('hidden');
-        registerForm.classList.remove('hidden');
-        registerBtn.className = 'flex-1 py-2 font-bold text-emerald-600 border-b-2 border-emerald-600';
-        loginBtn.className = 'flex-1 py-2 font-semibold text-slate-400';
-      }
-    }
-
-    function initLandingView() {
-      // Login
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          window.location.href = `/?admin=${data.admin_token}`;
-        } else {
-          alert(data.error || 'Credenciales incorrectas');
-        }
-      });
-
-      // Registro
-      document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const prefix = document.getElementById('reg-prefix').value.trim();
-        const localPhone = document.getElementById('reg-phone-local').value.trim();
-        const phone = prefix + localPhone;
-        const name = document.getElementById('reg-name').value;
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-password').value;
-
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, phone, email, password })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          window.location.href = `/?admin=${data.admin_token}`;
-        } else {
-          alert(data.error || 'Error al registrar');
-        }
-      });
-    }
-
-    function logoutAdmin() {
-      window.location.href = '/';
-    }
-
-    async function initClientView(token) {
-      try {
-        const res = await fetch(`/api/client/tenant/${token}`);
-        if (!res.ok) throw new Error('Enlace no válido');
-        const tenant = await res.json();
-
-        document.getElementById('client-business-title').textContent = tenant.name;
-        document.getElementById('client-business-subtitle').textContent = `Reservas en ${tenant.name}`;
-
-        const sRes = await fetch(`/api/tenants/${tenant.id}/services`);
-        const services = await sRes.json();
-        const serviceSelect = document.getElementById('client-service-select');
-        services.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = `${s.name} (${s.duration_min} min) - ${s.price} €`;
-          serviceSelect.appendChild(opt);
-        });
-
-        let selectedTime = null;
-
-        const checkAvailability = async () => {
-          const serviceId = serviceSelect.value;
-          const date = document.getElementById('client-date').value;
-          const slotsContainer = document.getElementById('client-slots-container');
-          const bookingForm = document.getElementById('client-booking-form');
-
-          slotsContainer.innerHTML = '';
-          bookingForm.classList.add('hidden');
-          selectedTime = null;
-
-          if (!serviceId || !date) return;
-
-          const availRes = await fetch(`/api/tenants/${tenant.id}/availability?date=${date}&service_id=${serviceId}`);
-          const data = await availRes.json();
-
-          if (data.closed) {
-            slotsContainer.innerHTML = `<div class="col-span-3 text-center py-4 text-rose-600 font-semibold">Cerrado: ${data.reason || 'Día no laborable'}</div>`;
-            return;
-          }
-
-          data.slots.forEach(slot => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = slot.time;
-            btn.className = `py-2 px-3 rounded-lg text-sm font-semibold transition border ${slot.available ? 'bg-white hover:bg-indigo-50 border-slate-300 text-indigo-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`;
-            
-            if (slot.available) {
-              btn.addEventListener('click', () => {
-                document.querySelectorAll('#client-slots-container button').forEach(b => b.classList.remove('ring-2', 'ring-indigo-600', 'bg-indigo-50'));
-                btn.classList.add('ring-2', 'ring-indigo-600', 'bg-indigo-50');
-                selectedTime = `${date}T${slot.time}:00`;
-                bookingForm.classList.remove('hidden');
-              });
-            } else {
-              btn.disabled = true;
-            }
-            slotsContainer.appendChild(btn);
-          });
-        };
-
-        serviceSelect.addEventListener('change', checkAvailability);
-        document.getElementById('client-date').addEventListener('change', checkAvailability);
-
-        document.getElementById('client-booking-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          if (!selectedTime) return alert('Por favor, selecciona una hora.');
-
-          const res = await fetch('/api/reservations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tenant_id: tenant.id,
-              service_id: parseInt(serviceSelect.value),
-              client_name: document.getElementById('client-name').value,
-              client_phone: document.getElementById('client-phone').value,
-              reservation_time: selectedTime,
-              notes: document.getElementById('client-notes').value
-            })
-          });
-          const result = await res.json();
-          if (res.ok) {
-            const r = result.reservation;
-            const startTime = new Date(r.reservation_time);
-            const endTime = new Date(startTime.getTime() + (r.duration_min || 60) * 60000);
-
-            document.getElementById('client-booking-form').classList.add('hidden');
-            const confCard = document.getElementById('confirmation-card');
-            confCard.classList.remove('hidden');
-
-            document.getElementById('confirmation-details').innerHTML = `
-              <strong>Código:</strong> ${r.booking_code}<br>
-              <strong>Fecha:</strong> ${startTime.toLocaleString('es-ES')}<br>
-              <strong>Servicio:</strong> ${r.service_name || 'Servicio'}
-            `;
-
-            const cleanPhone = tenant.phone.replace(/[^0-9]/g, '');
-            const msg = encodeURIComponent(`Hola ${tenant.name}, he realizado la reserva ${r.booking_code} para el servicio ${r.service_name || ''} el día ${startTime.toLocaleDateString('es-ES')} a las ${startTime.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}. Nombre: ${r.client_name}`);
-            const waUrl = `https://wa.me/${cleanPhone}?text=${msg}`;
-            document.getElementById('btn-whatsapp-confirm').href = waUrl;
-
-            const formatGDate = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
-            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenant.name)}&dates=${formatGDate(startTime)}/${formatGDate(endTime)}&details=${encodeURIComponent('Código de Reserva: ' + r.booking_code)}`;
-            document.getElementById('btn-gcalendar-confirm').href = gCalUrl;
-
-            document.getElementById('btn-ics-confirm').onclick = () => {
-              const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Reserva en ${tenant.name}\nDESCRIPTION:Código: ${r.booking_code}\nDTSTART:${formatGDate(startTime)}\nDTEND:${formatGDate(endTime)}\nEND:VEVENT\nEND:VCALENDAR`;
-              const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8;' });
-              const link = document.createElement('a');
-              link.href = URL.createObjectURL(blob);
-              link.download = `reserva_${r.booking_code}.ics`;
-              link.click();
+    <script>
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                tenant_id: 1, // Ejemplo para el primer negocio configurado
+                client_name: document.getElementById('client_name').value,
+                client_phone: document.getElementById('client_phone').value,
+                reservation_date: document.getElementById('reservation_date').value,
+                time_slot: document.getElementById('time_slot').value,
+                party_size: 1
             };
 
-            window.open(waUrl, '_blank');
-
-          } else {
-            alert('Error al realizar la reserva.');
-          }
-        });
-
-      } catch (err) {
-        document.body.innerHTML = '<div class="text-center mt-20 text-rose-600 font-bold">Enlace de reserva no válido.</div>';
-      }
-    }
-
-    async function initAdminView(token) {
-      try {
-        const res = await fetch(`/api/admin/tenant/${token}`);
-        if (!res.ok) throw new Error('Inválido');
-        const currentTenant = await res.json();
-
-        document.getElementById('tenant_id').value = currentTenant.id;
-        document.getElementById('name').value = currentTenant.name || '';
-        document.getElementById('phone').value = currentTenant.phone || '';
-        document.getElementById('category').value = currentTenant.category || '';
-        document.getElementById('business_type').value = currentTenant.business_type || 'general';
-        document.getElementById('max_capacity').value = currentTenant.max_capacity || 2;
-        document.getElementById('shift1_start').value = currentTenant.shift1_start || '09:00';
-        document.getElementById('shift1_end').value = currentTenant.shift1_end || '14:00';
-        document.getElementById('shift2_start').value = currentTenant.shift2_start || '';
-        document.getElementById('shift2_end').value = currentTenant.shift2_end || '';
-        document.getElementById('notes').value = currentTenant.notes || '';
-
-        const closedDays = (currentTenant.closed_days || '').split(',').map(d => d.trim());
-        document.querySelectorAll('.closed-day-cb').forEach(cb => {
-          if (closedDays.includes(cb.value)) cb.checked = true;
-        });
-
-        let closingTimes = currentTenant.closing_times || {};
-        renderSpecialDaysSummary(closingTimes);
-
-        const clientUrl = `${window.location.origin}/?tenant=${currentTenant.booking_token}`;
-        document.getElementById('client-booking-url').href = clientUrl;
-        document.getElementById('client-booking-url').textContent = clientUrl;
-
-        loadServices(currentTenant.id);
-        loadExceptions(currentTenant.id);
-        loadReservations(currentTenant.id);
-
-        document.getElementById('config-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const selectedClosedDays = [];
-          document.querySelectorAll('.closed-day-cb:checked').forEach(cb => selectedClosedDays.push(cb.value));
-
-          const updateRes = await fetch('/api/tenants/config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: currentTenant.id,
-              name: document.getElementById('name').value,
-              phone: document.getElementById('phone').value,
-              category: document.getElementById('category').value,
-              business_type: document.getElementById('business_type').value,
-              max_capacity: parseInt(document.getElementById('max_capacity').value) || 2,
-              closed_days: selectedClosedDays.join(','),
-              shift1_start: document.getElementById('shift1_start').value,
-              shift1_end: document.getElementById('shift1_end').value,
-              shift2_start: document.getElementById('shift2_start').value || null,
-              shift2_end: document.getElementById('shift2_end').value || null,
-              closing_times: currentTenant.closing_times || {},
-              notes: document.getElementById('notes').value
-            })
-          });
-          if (updateRes.ok) {
-            alert('¡Configuración guardada con éxito!');
-            window.location.reload();
-          }
-        });
-
-        document.getElementById('special-day-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const dayIdx = document.getElementById('special_day_idx').value;
-          const s1Start = document.getElementById('special_s1_start').value;
-          const s1End = document.getElementById('special_s1_end').value;
-          const s2Start = document.getElementById('special_s2_start').value;
-          const s2End = document.getElementById('special_s2_end').value;
-
-          if (!currentTenant.closing_times) currentTenant.closing_times = {};
-          currentTenant.closing_times[dayIdx] = {
-            shift1_start: s1Start,
-            shift1_end: s1End,
-            shift2_start: s2Start || null,
-            shift2_end: s2End || null,
-            closed: false
-          };
-
-          const updateRes = await fetch('/api/tenants/config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: currentTenant.id,
-              name: currentTenant.name,
-              phone: currentTenant.phone,
-              category: currentTenant.category,
-              business_type: currentTenant.business_type,
-              max_capacity: currentTenant.max_capacity,
-              closed_days: currentTenant.closed_days,
-              shift1_start: currentTenant.shift1_start,
-              shift1_end: currentTenant.shift1_end,
-              shift2_start: currentTenant.shift2_start,
-              shift2_end: currentTenant.shift2_end,
-              closing_times: currentTenant.closing_times,
-              notes: currentTenant.notes
-            })
-          });
-
-          if (updateRes.ok) {
-            alert('¡Horario especial guardado!');
-            renderSpecialDaysSummary(currentTenant.closing_times);
-          }
-        });
-
-        function renderSpecialDaysSummary(timesObj) {
-          const summaryDiv = document.getElementById('special-days-summary');
-          const dayNames = { '0': 'Domingo', '1': 'Lunes', '2': 'Martes', '3': 'Miércoles', '4': 'Jueves', '5': 'Viernes', '6': 'Sábado' };
-          let html = '<strong class="block mb-1">Horarios especiales configurados:</strong>';
-          let count = 0;
-          for (let day in timesObj) {
-            if (timesObj[day] && !timesObj[day].closed) {
-              count++;
-              html += `<div class="text-xs text-slate-700">• <b>${dayNames[day]}</b>: Turno 1 (${timesObj[day].shift1_start} - ${timesObj[day].shift1_end})${timesObj[day].shift2_start ? ' | Turno 2 ('+timesObj[day].shift2_start+' - '+timesObj[day].shift2_end+')' : ''}</div>`;
+            try {
+                const response = await fetch('/api/reservations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if(result.success) {
+                    alert('¡Reserva creada con éxito! Redirigiendo a WhatsApp...');
+                    // Redirección automática al flujo wa.me del negocio
+                    const mensaje = encodeURIComponent(`Hola, acabo de reservar la pista/mesa para el ${data.reservation_date} a las ${data.time_slot}. Mi nombre es ${data.client_name}.`);
+                    window.location.href = `https://wa.me/34600000000?text=${mensaje}`;
+                } else {
+                    alert('Error al procesar la reserva.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error de conexión con el servidor.');
             }
-          }
-          if (count === 0) html += '<span class="text-xs text-slate-400">Ninguno configurado (se usan los turnos habituales).</span>';
-          summaryDiv.innerHTML = html;
-        }
-
-        async function loadServices(tenantId) {
-          const sRes = await fetch(`/api/tenants/${tenantId}/services`);
-          const services = await sRes.json();
-          const tbody = document.getElementById('services-tbody');
-          tbody.innerHTML = '';
-          services.forEach(s => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="px-6 py-4 text-sm font-semibold text-slate-900">${s.name}</td>
-              <td class="px-6 py-4 text-sm text-slate-500">${s.duration_min} min</td>
-              <td class="px-6 py-4 text-sm text-slate-500">${s.price} €</td>
-              <td class="px-6 py-4 text-right text-sm">
-                <button onclick="deleteService(${s.id})" class="text-rose-600 font-semibold hover:text-rose-900">Eliminar</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
-
-        document.getElementById('service-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const res = await fetch('/api/services', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tenant_id: currentTenant.id,
-              name: document.getElementById('service_name').value,
-              duration_min: parseInt(document.getElementById('service_duration').value),
-              price: parseFloat(document.getElementById('service_price').value)
-            })
-          });
-          if (res.ok) {
-            document.getElementById('service_name').value = '';
-            loadServices(currentTenant.id);
-          }
         });
-
-        window.deleteService = async function(id) {
-          if (!confirm('¿Eliminar servicio?')) return;
-          await fetch(`/api/services/${id}`, { method: 'DELETE' });
-          loadServices(currentTenant.id);
-        };
-
-        async function loadExceptions(tenantId) {
-          const exRes = await fetch(`/api/tenants/${tenantId}/exceptions`);
-          const exceptions = await exRes.json();
-          const tbody = document.getElementById('exceptions-tbody');
-          tbody.innerHTML = '';
-          exceptions.forEach(exc => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="px-6 py-4 text-sm text-slate-900">${exc.exception_date.substring(0, 10)}</td>
-              <td class="px-6 py-4 text-sm text-slate-500">${exc.reason}</td>
-              <td class="px-6 py-4 text-right text-sm">
-                <button onclick="deleteException(${exc.id})" class="text-rose-600 font-semibold hover:text-rose-900">Eliminar</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
-
-        document.getElementById('exception-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const res = await fetch('/api/tenants/exceptions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tenant_id: currentTenant.id,
-              exception_date: document.getElementById('exception_date').value,
-              is_closed: true,
-              reason: document.getElementById('exception_reason').value
-            })
-          });
-          if (res.ok) {
-            document.getElementById('exception_date').value = '';
-            document.getElementById('exception_reason').value = '';
-            loadExceptions(currentTenant.id);
-          }
-        });
-
-        window.deleteException = async function(id) {
-          if (!confirm('¿Eliminar excepción?')) return;
-          await fetch(`/api/tenants/exceptions/${id}`, { method: 'DELETE' });
-          loadExceptions(currentTenant.id);
-        };
-
-        async function loadReservations(tenantId, start = '', end = '') {
-          let url = `/api/reservations?tenant_id=${tenantId}`;
-          if (start && end) url += `&start_date=${start}&end_date=${end}`;
-          const res = await fetch(url);
-          const data = await res.json();
-          const tbody = document.getElementById('reservations-tbody');
-          tbody.innerHTML = '';
-
-          if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-sm text-slate-500">No hay reservas registradas.</td></tr>';
-            return;
-          }
-
-          data.forEach(r => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="px-4 py-3 text-sm font-bold text-indigo-600">${r.booking_code}</td>
-              <td class="px-4 py-3 text-sm font-semibold text-slate-900">${r.client_name}</td>
-              <td class="px-4 py-3 text-sm text-slate-600">${r.client_phone}</td>
-              <td class="px-4 py-3 text-sm text-slate-600">${r.reservation_time.replace('T', ' ').substring(0, 16)}</td>
-              <td class="px-4 py-3 text-sm text-slate-600">${r.service_name || 'General'}</td>
-              <td class="px-4 py-3 text-right text-sm">
-                <button onclick="cancelReservation(${r.id})" class="text-rose-600 font-semibold hover:text-rose-900">Anular</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
-
-        document.getElementById('filter-reservations-btn').addEventListener('click', () => {
-          loadReservations(currentTenant.id, document.getElementById('filter-start-date').value, document.getElementById('filter-end-date').value);
-        });
-
-        window.cancelReservation = async function(resId) {
-          if (!confirm('¿Anular esta reserva?')) return;
-          await fetch(`/api/reservations/${resId}`, { method: 'DELETE' });
-          loadReservations(currentTenant.id);
-        };
-
-        document.getElementById('export-csv-btn').addEventListener('click', async () => {
-          const res = await fetch(`/api/reservations?tenant_id=${currentTenant.id}`);
-          const data = await res.json();
-          if (data.length === 0) return alert('No hay reservas para exportar.');
-          let csv = 'ID,Código,Cliente,Teléfono,Fecha Hora,Servicio\n';
-          data.forEach(r => { csv += `${r.id},${r.booking_code},"${r.client_name}",${r.client_phone},"${r.reservation_time}","${r.service_name || ''}"\n`; });
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = `reservas_${currentTenant.name}.csv`;
-          link.click();
-        });
-
-      } catch (err) {
-        document.body.innerHTML = '<div class="text-center mt-20 text-rose-600 font-bold">Sesión de administración no válida. Inicia sesión de nuevo.</div>';
-      }
-    }
-  </script>
+    </script>
 </body>
 </html>
