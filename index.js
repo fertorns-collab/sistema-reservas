@@ -71,6 +71,15 @@ const initDB = async () => {
 };
 initDB();
 
+app.get('/api/tenants', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, name, slug, business_type, max_capacity, whatsapp_phone FROM tenants ORDER BY name ASC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/tenant/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
@@ -79,7 +88,16 @@ app.get('/api/tenant/:slug', async (req, res) => {
       [slug]
     );
     if (tenantRes.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
-    res.json(tenantRes.rows[0]);
+    
+    let tenant = tenantRes.rows[0];
+    if (typeof tenant.services === 'string') {
+      try { tenant.services = JSON.parse(tenant.services); } catch (e) { tenant.services = ['General']; }
+    }
+    if (typeof tenant.settings === 'string') {
+      try { tenant.settings = JSON.parse(tenant.settings); } catch (e) { tenant.settings = {}; }
+    }
+
+    res.json(tenant);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -93,10 +111,13 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     const tenantInfo = await pool.query('SELECT max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
     if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
 
-    const tenant = tenantInfo.rows[0];
-    const maxCapacity = tenant.max_capacity || 10;
-    const settings = tenant.settings || {};
+    let tenant = tenantInfo.rows[0];
+    let settings = tenant.settings;
+    if (typeof settings === 'string') {
+      try { settings = JSON.parse(settings); } catch (e) { settings = {}; }
+    }
 
+    const maxCapacity = tenant.max_capacity || 10;
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
     const closedDays = settings.closedDays || [];
@@ -168,7 +189,6 @@ app.post('/api/reservations', async (req, res) => {
     
     const tenant = tenantInfo.rows[0];
     const maxCapacity = tenant.max_capacity || 10;
-
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
     const capacityCheck = await pool.query(
@@ -275,7 +295,6 @@ app.post('/api/admin/register', async (req, res) => {
       return res.status(400).json({ error: 'El identificador (slug) ya está registrado. Elige otro.' });
     }
 
-    // Si ya existe el correo, reutilizamos el hash de su contraseña para mantener consistencia en multicuentas
     const userExists = await pool.query('SELECT password_hash FROM tenants WHERE email = $1 LIMIT 1', [email]);
     let password_hash;
     if (userExists.rows.length > 0) {
@@ -284,17 +303,17 @@ app.post('/api/admin/register', async (req, res) => {
       password_hash = await bcrypt.hash(password, 10);
     }
 
-    const defaultSettings = JSON.stringify({
+    const defaultSettings = {
       shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "20:00" }],
       slotDurationMinutes: 60,
       closedDays: [],
       forcedOpenDates: []
-    });
+    };
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, name, slug`,
-      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(["General"])]
+      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, ["General"]]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });
@@ -303,7 +322,6 @@ app.post('/api/admin/register', async (req, res) => {
   }
 });
 
-// Login multinegocio por correo: devuelve todos los negocios que administra este correo
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -313,16 +331,23 @@ app.post('/api/admin/login', async (req, res) => {
     const match = await bcrypt.compare(password, tenantRes.rows[0].password_hash);
     if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    const businesses = tenantRes.rows.map(t => ({
-      tenant_id: t.id,
-      name: t.name,
-      slug: t.slug,
-      business_type: t.business_type,
-      max_capacity: t.max_capacity,
-      whatsapp_phone: t.whatsapp_phone,
-      settings: t.settings,
-      services: t.services
-    }));
+    const businesses = tenantRes.rows.map(t => {
+      let s = t.services;
+      if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = ['General']; } }
+      let set = t.settings;
+      if (typeof set === 'string') { try { set = JSON.parse(set); } catch(e) { set = {}; } }
+
+      return {
+        tenant_id: t.id,
+        name: t.name,
+        slug: t.slug,
+        business_type: t.business_type,
+        max_capacity: t.max_capacity,
+        whatsapp_phone: t.whatsapp_phone,
+        settings: set,
+        services: s
+      };
+    });
 
     res.json({ success: true, businesses });
   } catch (err) {
@@ -371,13 +396,17 @@ app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
         name, 
         max_capacity, 
         whatsapp_phone, 
-        settings ? JSON.stringify(settings) : null, 
-        services ? JSON.stringify(services) : null,
+        settings || null, 
+        services || null,
         tenant_id
       ]
     );
 
-    res.json({ success: true, message: "Configuración actualizada con éxito", tenant: updated.rows[0] });
+    let tenant = updated.rows[0];
+    if (typeof tenant.services === 'string') { try { tenant.services = JSON.parse(tenant.services); } catch(e){} }
+    if (typeof tenant.settings === 'string') { try { tenant.settings = JSON.parse(tenant.settings); } catch(e){} }
+
+    res.json({ success: true, message: "Configuración actualizada con éxito", tenant });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
