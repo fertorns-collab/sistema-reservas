@@ -17,7 +17,7 @@ const pool = new pg.Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Inicialización de la Base de Datos con esquema multi-tenant
+// Inicialización de la Base de Datos y datos por defecto
 const initDB = async () => {
   try {
     await pool.query(`
@@ -46,6 +46,19 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Crear un negocio por defecto si no existe ninguno (para que la home cargue siempre)
+    const checkTenant = await pool.query('SELECT * FROM tenants WHERE slug = $1', ['padel-club']);
+    if (checkTenant.rows.length === 0) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await pool.query(
+        `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        ['Padel Club Central', 'padel-club', 'sports', 8, '34600000000', 'admin@padelclub.com', hashedPassword]
+      );
+      console.log("Negocio por defecto 'padel-club' creado con éxito.");
+    }
+
     console.log("Tablas inicializadas correctamente.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
@@ -129,7 +142,7 @@ app.delete('/api/reservations/:id', async (req, res) => {
   }
 });
 
-// Corrección del comodín compatible con Express moderno
+// Ruta comodín para servir el frontend SPA
 app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
