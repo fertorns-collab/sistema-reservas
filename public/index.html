@@ -87,7 +87,7 @@
                 <p class="text-xs text-emerald-700">Tu código de reserva único es: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
                 <div class="flex flex-wrap gap-2 pt-2">
                     <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📲 Enviar a WhatsApp</a>
-                    <button onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg">📅 Descargar (.ics)</button>
+                    <button type="button" onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer">📅 Descargar (.ics)</button>
                     <a id="gCalendarLink" href="#" target="_blank" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg">🌐 Google Calendar</a>
                 </div>
             </div>
@@ -432,6 +432,13 @@
                 const textWp = `Hola! Confirmo mi reserva en ${tenantData.name}.\n📅 Fecha: ${data.reservation_date}\n⏰ Hora: ${data.time_slot}\n🛠️ Servicio: ${data.service_name}\n🔑 Código: ${activeReservation.booking_code}\n\nGestiona tu reserva aquí:\n${manageUrl}`;
                 
                 document.getElementById('whatsappLink').href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
+                
+                // Configurar enlace de Google Calendar corregido
+                const cleanDate = data.reservation_date.replace(/-/g, '');
+                const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
+                const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código: ' + activeReservation.booking_code)}`;
+                document.getElementById('gCalendarLink').href = gCalUrl;
+
                 alert("¡Reserva confirmada con éxito!");
             } else {
                 alert(result.error || 'Error al procesar la reserva.');
@@ -441,7 +448,19 @@
         function downloadICS() {
             if (!activeReservation) return;
             const cleanDate = activeReservation.reservation_date.replace(/-/g, '');
-            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Reserva en ${tenantData.name}\nDESCRIPTION:Servicio: ${activeReservation.service_name} | Codigo: ${activeReservation.booking_code}\nDTSTART:${cleanDate}T100000Z\nDTEND:${cleanDate}T110000Z\nEND:VEVENT\nEND:VCALENDAR`;
+            const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
+            
+            const icsContent = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "BEGIN:VEVENT",
+                `SUMMARY:Reserva en ${tenantData ? tenantData.name : 'Negocio'}`,
+                `DESCRIPTION:Servicio: ${activeReservation.service_name || 'General'} | Código: ${activeReservation.booking_code} | Plazas: ${activeReservation.party_size}`,
+                `DTSTART:${cleanDate}T${timeStr}Z`,
+                `DTEND:${cleanDate}T${timeStr}Z`,
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ].join("\r\n");
             
             const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
             const link = document.createElement('a');
@@ -471,7 +490,7 @@
                 container.innerHTML = `
                     <div class="p-4 bg-white border rounded-xl space-y-3">
                         <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
-                        <p><strong>Negocio:</strong> ${r.tenant_name}</p>
+                        <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
                         <p><strong>Cliente:</strong> ${r.client_name}</p>
                         <p><strong>Fecha Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
                         <p><strong>Hora Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot}</span></p>
