@@ -54,7 +54,7 @@ const initDB = async () => {
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings JSONB;
     `);
 
-    console.log("Base de datos inicializada limpia (sin datos predeterminados).");
+    console.log("Base de datos inicializada correctamente.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
@@ -75,20 +75,38 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
+// Crear reserva validando capacidad y reglas de negocio / turnos / días de cierre
 app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size } = req.body;
     
+    // Obtener configuración del negocio
+    const tenantInfo = await pool.query('SELECT max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
+    if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
+    
+    const tenant = tenantInfo.rows[0];
+    const maxCapacity = tenant.max_capacity || 10;
+    const settings = tenant.settings || {};
+
+    // Validar si el día de la semana está cerrado por descanso (0 = Domingo, 1 = Lunes, etc.)
+    const dateObj = new Date(reservation_date);
+    const dayOfWeek = dateObj.getDay();
+    const closedDays = settings.closedDays || [];
+    const forcedOpenDates = settings.forcedOpenDates || []; // Fechas específicas YYYY-MM-DD donde se decide abrir aunque esté cerrado
+
+    if (closedDays.includes(dayOfWeek) && !forcedOpenDates.includes(reservation_date)) {
+      return res.status(400).json({ error: 'El negocio se encuentra cerrado por descanso o festivo en esta fecha.' });
+    }
+
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
+    // Validar capacidad / recursos ocupados en esa franja horaria y fecha
     const capacityCheck = await pool.query(
       `SELECT SUM(party_size) as total_booked FROM reservations 
        WHERE tenant_id = $1 AND reservation_date = $2 AND time_slot = $3 AND status = 'confirmed'`,
       [tenant_id, reservation_date, time_slot]
     );
 
-    const tenantInfo = await pool.query('SELECT max_capacity FROM tenants WHERE id = $1', [tenant_id]);
-    const maxCapacity = tenantInfo.rows[0]?.max_capacity || 10;
     const currentBooked = parseInt(capacityCheck.rows[0]?.total_booked || 0);
     const requestedSize = parseInt(party_size || 1);
 
@@ -163,9 +181,9 @@ app.post('/api/admin/register', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
     const defaultSettings = JSON.stringify({
-      slotDurationMinutes: 60,
-      shifts: [{ open: "09:00", close: "21:00" }],
-      closedDays: []
+      shifts: [{ open: "09:00", close: "23:00" }],
+      closedDays: [],
+      forcedOpenDates: []
     });
 
     const newTenant = await pool.query(
@@ -190,7 +208,7 @@ app.post('/api/admin/login', async (req, res) => {
     const match = await bcrypt.compare(password, tenant.password_hash);
     if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    res.json({ success: true, tenant_id: tenant.id, name: tenant.name, slug: tenant.slug });
+    res.json({ success: true, tenant_id: tenant.id, name: tenant.name, slug: tenant.slug, settings: tenant.settings });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -220,6 +238,7 @@ app.get('/api/admin/reservations/:tenant_id', async (req, res) => {
   }
 });
 
+// Actualizar configuración completa del negocio (turnos, capacidad, días de descanso)
 app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
