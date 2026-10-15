@@ -12,16 +12,13 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Conexión a la Base de Datos PostgreSQL (Neon)
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Inicialización y migración incremental de la Base de Datos (Limpia, sin datos de prueba)
 const initDB = async () => {
   try {
-    // 1. Crear tablas base si no existen
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tenants (
         id SERIAL PRIMARY KEY,
@@ -51,7 +48,6 @@ const initDB = async () => {
       );
     `);
 
-    // 2. Migración segura por si las tablas ya existían sin algunas columnas nuevas
     await pool.query(`
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS booking_code VARCHAR(10);
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS resource_assigned VARCHAR(50);
@@ -65,9 +61,6 @@ const initDB = async () => {
 };
 initDB();
 
-// --- APIS DE NEGOCIO Y CLIENTE ---
-
-// Obtener datos del negocio por slug
 app.get('/api/tenant/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
@@ -82,15 +75,12 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
-// Crear una nueva reserva con código único y validación de aforo/capacidad
 app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size } = req.body;
     
-    // Generar código de reserva único de 6 caracteres alfanuméricos en mayúsculas
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-    // Validar capacidad / recursos ocupados en esa franja horaria y fecha
     const capacityCheck = await pool.query(
       `SELECT SUM(party_size) as total_booked FROM reservations 
        WHERE tenant_id = $1 AND reservation_date = $2 AND time_slot = $3 AND status = 'confirmed'`,
@@ -118,7 +108,6 @@ app.post('/api/reservations', async (req, res) => {
   }
 });
 
-// Buscar reserva por Teléfono y Código (para que el cliente pueda consultar/modificar)
 app.post('/api/reservations/lookup', async (req, res) => {
   try {
     const { client_phone, booking_code } = req.body;
@@ -139,7 +128,6 @@ app.post('/api/reservations/lookup', async (req, res) => {
   }
 });
 
-// Anular/Cancelar reserva mediante código y teléfono o ID de admin
 app.put('/api/reservations/cancel', async (req, res) => {
   try {
     const { id, client_phone, booking_code } = req.body;
@@ -164,10 +152,6 @@ app.put('/api/reservations/cancel', async (req, res) => {
   }
 });
 
-
-// --- APIS DE ADMINISTRADOR ---
-
-// Registro de un nuevo negocio / Administrador
 app.post('/api/admin/register', async (req, res) => {
   try {
     const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
@@ -196,7 +180,6 @@ app.post('/api/admin/register', async (req, res) => {
   }
 });
 
-// Login de Administrador
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password, slug } = req.body;
@@ -213,7 +196,6 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Obtener reservas del administrador con filtros por fecha (día o rango)
 app.get('/api/admin/reservations/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
@@ -238,7 +220,6 @@ app.get('/api/admin/reservations/:tenant_id', async (req, res) => {
   }
 });
 
-// Actualizar configuración del negocio por parte del administrador
 app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
@@ -260,7 +241,6 @@ app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
   }
 });
 
-// Ruta comodín para SPA frontend
 app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
