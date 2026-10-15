@@ -228,6 +228,12 @@
         const pathSegments = window.location.pathname.split('/').filter(Boolean);
         const tenantSlug = pathSegments.length > 0 ? pathSegments[0] : '';
 
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.location.hash === '#manage') {
+                switchView('manage');
+            }
+        });
+
         async function loadTenant() {
             if (!tenantSlug) {
                 document.getElementById('businessName').innerText = "Portal SaaS de Reservas";
@@ -427,16 +433,17 @@
                 document.getElementById('successCard').classList.remove('hidden');
 
                 const phoneWp = tenantData.whatsapp_phone || '34600000000';
-                const manageUrl = `${window.location.origin}/${tenantData.slug}`;
+                const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
                 
-                const textWp = `Hola! Confirmo mi reserva en ${tenantData.name}.\n📅 Fecha: ${data.reservation_date}\n⏰ Hora: ${data.time_slot}\n🛠️ Servicio: ${data.service_name}\n🔑 Código: ${activeReservation.booking_code}\n\nGestiona tu reserva aquí:\n${manageUrl}`;
+                // Texto de WhatsApp actualizado con iconos representativos
+                const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot}\n🏷️ *Servicio:* ${data.service_name}\n👥 *Plazas:* ${data.party_size}\n🔑 *Código de reserva:* ${activeReservation.booking_code}\n\nPuedes gestionar, modificar o anular tu reserva aquí:\n${manageUrl}`;
                 
                 document.getElementById('whatsappLink').href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
                 
-                // Configurar enlace de Google Calendar corregido
+                // Configurar Google Calendar con el nombre correcto del negocio
                 const cleanDate = data.reservation_date.replace(/-/g, '');
                 const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
-                const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código: ' + activeReservation.booking_code)}`;
+                const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código de reserva: ' + activeReservation.booking_code)}`;
                 document.getElementById('gCalendarLink').href = gCalUrl;
 
                 alert("¡Reserva confirmada con éxito!");
@@ -446,18 +453,21 @@
         });
 
         function downloadICS() {
-            if (!activeReservation) return;
+            if (!activeReservation || !tenantData) return;
             const cleanDate = activeReservation.reservation_date.replace(/-/g, '');
             const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
             
             const icsContent = [
                 "BEGIN:VCALENDAR",
                 "VERSION:2.0",
+                "PRODID:-//SaaS Reservas//ES",
                 "BEGIN:VEVENT",
-                `SUMMARY:Reserva en ${tenantData ? tenantData.name : 'Negocio'}`,
-                `DESCRIPTION:Servicio: ${activeReservation.service_name || 'General'} | Código: ${activeReservation.booking_code} | Plazas: ${activeReservation.party_size}`,
+                `UID:${activeReservation.booking_code}-${cleanDate}@saasreservas`,
+                `DTSTAMP:${cleanDate}T${timeStr}Z`,
                 `DTSTART:${cleanDate}T${timeStr}Z`,
                 `DTEND:${cleanDate}T${timeStr}Z`,
+                `SUMMARY:Reserva en ${tenantData.name}`,
+                `DESCRIPTION:Servicio: ${activeReservation.service_name || 'General'} \\nCódigo de reserva: ${activeReservation.booking_code} \\nPlazas: ${activeReservation.party_size}`,
                 "END:VEVENT",
                 "END:VCALENDAR"
             ].join("\r\n");
