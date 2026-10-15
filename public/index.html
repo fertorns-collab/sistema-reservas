@@ -68,7 +68,6 @@
                 </button>
             </form>
 
-            <!-- Resultado / Acciones posteriores a reservar -->
             <div id="successCard" class="hidden mt-6 p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
                 <h3 class="font-bold text-emerald-800 text-base">¡Reserva Registrada con Éxito!</h3>
                 <p class="text-xs text-emerald-700">Tu código de reserva único es: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
@@ -97,14 +96,11 @@
                 <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm">Consultar Reserva</button>
             </form>
 
-            <div id="lookupResult" class="hidden mt-6 p-4 bg-slate-50 border rounded-xl space-y-3 text-sm">
-                <!-- Se rellena dinámicamente -->
-            </div>
+            <div id="lookupResult" class="hidden mt-6 p-4 bg-slate-50 border rounded-xl space-y-3 text-sm"></div>
         </section>
 
         <!-- 3. VISTA DE ADMINISTRADOR -->
         <section id="adminView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-            <!-- Login Admin -->
             <div id="adminLoginBox">
                 <h2 class="text-xl font-bold text-slate-900 mb-1">Acceso Administrador</h2>
                 <p class="text-xs text-slate-500 mb-6">Introduce las credenciales de gestión de tu negocio.</p>
@@ -115,7 +111,6 @@
                 </form>
             </div>
 
-            <!-- Panel de Control Admin -->
             <div id="adminDashboardBox" class="hidden space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
@@ -125,7 +120,6 @@
                     <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline">Cerrar Sesión</button>
                 </div>
 
-                <!-- Filtros y Exportación -->
                 <div class="flex flex-wrap gap-3 items-end justify-between bg-slate-50 p-4 rounded-xl border">
                     <div class="flex gap-3">
                         <div>
@@ -141,42 +135,34 @@
                     </div>
                 </div>
 
-                <!-- Listado de Reservas -->
                 <div>
                     <h3 class="text-xs font-bold uppercase text-slate-600 mb-3">Listado de Reservas</h3>
-                    <div id="adminReservationsList" class="space-y-2 max-h-96 overflow-y-auto text-xs">
-                        <!-- Carga dinámica -->
-                    </div>
+                    <div id="adminReservationsList" class="space-y-2 max-h-96 overflow-y-auto text-xs"></div>
                 </div>
             </div>
         </section>
 
-        <!-- 4. VISTA DE REGISTRO DE NUEVO NEGOCIO -->
+        <!-- 4. VISTA DE REGISTRO DE NUEVO NEGOCIO (Texto Libre) -->
         <section id="registerView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-900 mb-1">Registrar Nuevo Negocio</h2>
-            <p class="text-xs text-slate-500 mb-6">Crea tu espacio de reservas personalizado (Restaurante, Peluquería, Pádel, Panadería, etc.).</p>
+            <p class="text-xs text-slate-500 mb-6">Crea tu espacio personalizado indicando libremente tu actividad (Pádel, Esquí, Restaurante, Bolos, etc.).</p>
 
             <form id="registerForm" class="space-y-4 max-w-lg">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nombre del Negocio</label>
-                        <input type="text" id="reg_name" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Restaurante La Mar">
+                        <input type="text" id="reg_name" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Club de Pádel Central">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Identificador Único (Slug URL)</label>
-                        <input type="text" id="reg_slug" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. restaurante-la-mar">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Identificador URL (Slug)</label>
+                        <input type="text" id="reg_slug" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. padel-central">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tipo de Negocio</label>
-                        <select id="reg_business_type" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
-                            <option value="restaurant">Restaurante</option>
-                            <option value="sports">Pistas Deportivas (Pádel/Tenis)</option>
-                            <option value="beauty">Peluquería / Estética / Masajes</option>
-                            <option value="bakery">Panadería / Comercio</option>
-                        </select>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tipo de Negocio o Actividad (Libre)</label>
+                        <input type="text" id="reg_business_type" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Pista de Pádel, Esquí, Restaurante...">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Aforo / Capacidad Máxima</label>
@@ -212,7 +198,6 @@
         Sistema de Reservas Multi-tenant SaaS 24/7 &bull; Potenciado con Neon, Express y Render.
     </footer>
 
-    <!-- Script principal frontend -->
     <script>
         let tenantData = null;
         let activeReservation = null;
@@ -221,7 +206,7 @@
         async function loadTenant() {
             if (!tenantSlug) {
                 document.getElementById('businessName').innerText = "Portal SaaS (Registra o Accede a tu Negocio)";
-                document.getElementById('businessSubtitle').innerText = "Haz clic en 'Registrar Negocio' arriba a la derecha para empezar.";
+                document.getElementById('businessSubtitle').innerText = "Haz clic en 'Registrar Negocio' arriba a la derecha para dar de alta tu actividad.";
                 return;
             }
             try {
@@ -239,7 +224,6 @@
         }
         loadTenant();
 
-        // Control de Vistas
         function switchView(view) {
             document.getElementById('clientView').classList.add('hidden');
             document.getElementById('manageView').classList.add('hidden');
@@ -252,7 +236,6 @@
             if (view === 'register') document.getElementById('registerView').classList.remove('hidden');
         }
 
-        // Registro de Nuevo Negocio
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
@@ -283,11 +266,10 @@
             }
         });
 
-        // Crear Reserva
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!tenantData) {
-                alert('Por favor, accede a través de la URL de un negocio específico (ej. /tu-negocio).');
+                alert('Por favor, accede a través de la URL de un negocio específico.');
                 return;
             }
             const data = {
@@ -325,7 +307,6 @@
             }
         });
 
-        // Descargar .ics
         function downloadICS() {
             if (!activeReservation) return;
             const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Reserva en ${tenantData.name}\nDESCRIPTION:Código de reserva: ${activeReservation.booking_code}\nDTSTART:${activeReservation.reservation_date.replace(/-/g,'')}T100000Z\nDTEND:${activeReservation.reservation_date.replace(/-/g,'')}T113000Z\nEND:VEVENT\nEND:VCALENDAR`;
@@ -338,7 +319,6 @@
             document.body.removeChild(link);
         }
 
-        // Consultar / Anular reserva por cliente
         document.getElementById('lookupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const client_phone = document.getElementById('lookup_phone').value;
@@ -385,7 +365,6 @@
             }
         }
 
-        // Login Admin
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('adminEmail').value;
