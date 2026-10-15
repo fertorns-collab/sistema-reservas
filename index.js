@@ -18,7 +18,7 @@ const pool = new pg.Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Inicialización y migración incremental de la Base de Datos
+// Inicialización y migración incremental de la Base de Datos (Limpia, sin datos de prueba)
 const initDB = async () => {
   try {
     // 1. Crear tablas base si no existen
@@ -58,28 +58,7 @@ const initDB = async () => {
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings JSONB;
     `);
 
-    // 3. Crear un negocio de prueba multi-sector si la tabla está vacía
-    const checkTenant = await pool.query('SELECT * FROM tenants WHERE slug = $1', ['padel-central']);
-    if (checkTenant.rows.length === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      const defaultSettings = JSON.stringify({
-        slotDurationMinutes: 90,
-        shifts: [
-          { open: "09:00", close: "14:00" },
-          { open: "16:00", close: "22:00" }
-        ],
-        closedDays: [1] // 1 = Lunes
-      });
-      
-      await pool.query(
-        `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        ['Padel Central Club', 'padel-central', 'sports', 19, '34600000000', 'admin@padelcentral.com', hashedPassword, defaultSettings]
-      );
-      console.log("Negocio de prueba 'padel-central' creado con éxito.");
-    }
-
-    console.log("Base de datos inicializada y migrada correctamente.");
+    console.log("Base de datos inicializada limpia (sin datos predeterminados).");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
@@ -187,6 +166,35 @@ app.put('/api/reservations/cancel', async (req, res) => {
 
 
 // --- APIS DE ADMINISTRADOR ---
+
+// Registro de un nuevo negocio / Administrador
+app.post('/api/admin/register', async (req, res) => {
+  try {
+    const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
+    
+    const existing = await pool.query('SELECT id FROM tenants WHERE slug = $1 OR email = $2', [slug, email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'El identificador (slug) o el correo electrónico ya están registrados.' });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const defaultSettings = JSON.stringify({
+      slotDurationMinutes: 60,
+      shifts: [{ open: "09:00", close: "21:00" }],
+      closedDays: []
+    });
+
+    const newTenant = await pool.query(
+      `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, slug`,
+      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings]
+    );
+
+    res.status(201).json({ success: true, tenant: newTenant.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Login de Administrador
 app.post('/api/admin/login', async (req, res) => {
