@@ -41,7 +41,20 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Servicio / Actividad</label>
+                        <select id="service_name" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white">
+                            <option value="General">General / Estándar</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plazas / Personas</label>
+                        <input type="number" id="party_size" value="1" min="1" max="100" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Fecha</label>
                         <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm">
@@ -50,14 +63,10 @@
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Hora / Turno</label>
                         <input type="text" id="time_slot" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. 14:00 o 16:00 - 20:00">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plazas / Personas</label>
-                        <input type="number" id="party_size" value="1" min="1" max="100" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm">
-                    </div>
                 </div>
 
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-sm mt-4">
-                    🚀 Confirmar Reserva y Enviar a WhatsApp
+                     Confirmar Reserva y Enviar a WhatsApp
                 </button>
             </form>
 
@@ -65,9 +74,9 @@
                 <h3 class="font-bold text-emerald-800 text-base">¡Reserva Registrada con Éxito!</h3>
                 <p class="text-xs text-emerald-700">Tu código de reserva único es: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
                 <div class="flex flex-wrap gap-2 pt-2">
-                    <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📲 Abrir WhatsApp con mi Reserva</a>
-                    <button onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg">📅 Descargar Calendario (.ics)</button>
-                    <a id="gCalendarLink" href="#" target="_blank" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg">🌐 Añadir a Google Calendar</a>
+                    <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg"> Abrir WhatsApp con mi Reserva</a>
+                    <button onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg"> Descargar Calendario (.ics)</button>
+                    <a id="gCalendarLink" href="#" target="_blank" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg"> Añadir a Google Calendar</a>
                 </div>
             </div>
         </section>
@@ -75,7 +84,7 @@
         <!-- 2. VISTA GESTIONAR RESERVA -->
         <section id="manageView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-900 mb-1">Gestionar Mi Reserva</h2>
-            <p class="text-xs text-slate-500 mb-6">Introduce tu teléfono y tu código de reserva único para consultarla o anularla.</p>
+            <p class="text-xs text-slate-500 mb-6">Introduce tu teléfono y tu código de reserva para consultarla o anularla.</p>
 
             <form id="lookupForm" class="space-y-4 max-w-md">
                 <div>
@@ -108,14 +117,14 @@
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
                         <h2 class="text-xl font-bold text-slate-900">Panel de Control - Administrador</h2>
-                        <p class="text-xs text-slate-500">Gestión de reservas, aforo y configuración de horarios.</p>
+                        <p class="text-xs text-slate-500">Gestión de servicios, horarios y reservas por fechas.</p>
                     </div>
                     <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline">Cerrar Sesión</button>
                 </div>
 
-                <!-- Configuración de Negocio y Horarios -->
+                <!-- Configuración -->
                 <div class="bg-slate-50 p-4 rounded-xl border space-y-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-700">⚙️ Configuración del Negocio y Descansos</h3>
+                    <h3 class="text-xs font-bold uppercase text-slate-700"> Configuración del Negocio, Servicios y Descansos</h3>
                     <form id="configForm" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                         <div>
                             <label class="block font-bold mb-1">Aforo / Capacidad Máxima</label>
@@ -126,32 +135,40 @@
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Días de Descanso Semanal (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)</label>
-                            <input type="text" id="conf_closed_days" placeholder="Ej. 1, 2 (separados por comas)" class="w-full p-2 border rounded bg-white">
+                            <label class="block font-bold mb-1">Servicios Ofrecidos (Separados por comas)</label>
+                            <input type="text" id="conf_services" placeholder="Ej. Corte de pelo, Teñir, Manicura, Barba" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Fechas con Apertura Excepcional (Aun siendo descanso, formato YYYY-MM-DD)</label>
+                            <label class="block font-bold mb-1">Días de Descanso (0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb)</label>
+                            <input type="text" id="conf_closed_days" placeholder="Ej. 1, 2" class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-bold mb-1">Fechas con Apertura Excepcional (YYYY-MM-DD)</label>
                             <input type="text" id="conf_forced_dates" placeholder="Ej. 2026-12-25, 2026-12-31" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
-                            <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded">Guardar Cambios de Configuración</button>
+                            <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded">Guardar Cambios</button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Filtros y Listado -->
+                <!-- Filtros por Rango de Fechas -->
                 <div class="flex flex-wrap gap-3 items-end justify-between bg-slate-50 p-4 rounded-xl border">
-                    <div class="flex gap-3">
+                    <div class="flex flex-wrap gap-3">
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Filtrar por Fecha</label>
-                            <input type="date" id="filterDate" class="px-3 py-2 rounded-lg border text-xs bg-white">
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Fecha Inicio</label>
+                            <input type="date" id="filterStartDate" class="px-3 py-2 rounded-lg border text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Fecha Fin</label>
+                            <input type="date" id="filterEndDate" class="px-3 py-2 rounded-lg border text-xs bg-white">
                         </div>
                         <div class="flex items-end">
-                            <button onclick="loadAdminReservations()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg">Filtrar</button>
+                            <button onclick="loadAdminReservations()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg">Filtrar Rango</button>
                         </div>
                     </div>
                     <div>
-                        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition">📊 Exportar a CSV</button>
+                        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition"> Exportar a CSV (Excel / Drive)</button>
                     </div>
                 </div>
 
@@ -171,22 +188,22 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nombre del Negocio</label>
-                        <input type="text" id="reg_name" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Restaurante El Asador">
+                        <input type="text" id="reg_name" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Peluquería Style">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Identificador URL (Slug)</label>
-                        <input type="text" id="reg_slug" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. restaurante-el-asador">
+                        <input type="text" id="reg_slug" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. peluqueria-style">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tipo de Negocio</label>
-                        <input type="text" id="reg_business_type" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Restaurante, Pádel...">
+                        <input type="text" id="reg_business_type" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="Ej. Peluquería, Restaurante...">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Aforo Máximo</label>
-                        <input type="number" id="reg_max_capacity" value="20" min="1" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
+                        <input type="number" id="reg_max_capacity" value="10" min="1" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
                     </div>
                 </div>
 
@@ -221,6 +238,7 @@
     <script>
         let tenantData = null;
         let activeReservation = null;
+        let fetchedReservations = [];
         const tenantSlug = window.location.pathname.split('/')[1] || '';
 
         async function loadTenant() {
@@ -235,6 +253,17 @@
                     tenantData = await res.json();
                     document.getElementById('businessName').innerText = tenantData.name;
                     document.getElementById('businessSubtitle').innerText = `Gestión de ${tenantData.business_type} (Aforo máximo: ${tenantData.max_capacity})`;
+
+                    // Cargar servicios en el desplegable
+                    const serviceSelect = document.getElementById('service_name');
+                    serviceSelect.innerHTML = '';
+                    const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['Servicio General'];
+                    services.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.innerText = s;
+                        serviceSelect.appendChild(opt);
+                    });
                 } else {
                     document.getElementById('businessName').innerText = "Negocio no encontrado";
                 }
@@ -294,6 +323,7 @@
                 client_phone: document.getElementById('client_phone').value,
                 reservation_date: document.getElementById('reservation_date').value,
                 time_slot: document.getElementById('time_slot').value,
+                service_name: document.getElementById('service_name').value,
                 party_size: parseInt(document.getElementById('party_size').value)
             };
 
@@ -309,12 +339,84 @@
                 document.getElementById('successCard').classList.remove('hidden');
 
                 const phoneWp = tenantData.whatsapp_phone || '34600000000';
-                const mensaje = encodeURIComponent(`Hola! Reserva en ${tenantData.name}.\n📅 Fecha: ${data.reservation_date}\n⏰ Hora: ${data.time_slot}\n🔑 Código: ${activeReservation.booking_code}`);
-                document.getElementById('whatsappLink').href = `https://wa.me/${phoneWp}?text=${mensaje}`;
+                
+                // Formatear texto limpio para WhatsApp
+                const textWp = `Hola! Confirmo mi reserva en ${tenantData.name}.\nServicio: ${data.service_name}\nFecha: ${data.reservation_date}\nHora: ${data.time_slot}\nCodigo: ${activeReservation.booking_code}\nNombre: ${data.client_name}`;
+                document.getElementById('whatsappLink').href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
+
+                // Google Calendar Link
+                const cleanDate = data.reservation_date.replace(/-/g, '');
+                const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}/${cleanDate}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Codigo: ' + activeReservation.booking_code)}`;
+                document.getElementById('gCalendarLink').href = gCalUrl;
+
+                alert("¡Reserva confirmada con éxito! Puedes enviarla por WhatsApp o añadirla a tu calendario.");
             } else {
                 alert(result.error || 'Error al procesar la reserva.');
             }
         });
+
+        function downloadICS() {
+            if (!activeReservation) return;
+            const cleanDate = activeReservation.reservation_date.replace(/-/g, '');
+            const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:Reserva en ${tenantData.name}\nDESCRIPTION:Servicio: ${activeReservation.service_name || 'General'} | Codigo: ${activeReservation.booking_code}\nDTSTART:${cleanDate}T100000Z\nDTEND:${cleanDate}T110000Z\nEND:VEVENT\nEND:VCALENDAR`;
+            
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `reserva-${activeReservation.booking_code}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.getElementById('lookupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const client_phone = document.getElementById('lookup_phone').value.trim();
+            const booking_code = document.getElementById('lookup_code').value.trim();
+
+            try {
+                const res = await fetch('/api/reservations/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_phone, booking_code })
+                });
+                const data = await res.json();
+                const container = document.getElementById('lookupResult');
+                container.classList.remove('hidden');
+
+                if (res.ok && data.success) {
+                    const r = data.reservation;
+                    container.innerHTML = `
+                        <div class="p-3 bg-white border rounded-lg space-y-1">
+                            <p><strong>Negocio:</strong> ${r.tenant_name}</p>
+                            <p><strong>Cliente:</strong> ${r.client_name}</p>
+                            <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
+                            <p><strong>Fecha y Turno:</strong> ${r.reservation_date} (${r.time_slot})</p>
+                            <p><strong>Plazas:</strong> ${r.party_size}</p>
+                            <p><strong>Estado:</strong> <span class="text-emerald-600 font-bold">${r.status}</span></p>
+                            <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="mt-3 bg-red-600 text-white px-3 py-1.5 rounded text-xs font-bold">Anular esta Reserva</button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `<p class="text-red-500 font-bold">No se encontró ninguna reserva activa con ese teléfono y código.</p>`;
+                }
+            } catch (err) {
+                alert('Error al buscar la reserva.');
+            }
+        });
+
+        async function cancelClientReservation(id, client_phone, booking_code) {
+            if (!confirm('¿Seguro que deseas anular tu reserva?')) return;
+            const res = await fetch('/api/reservations/cancel', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, client_phone, booking_code })
+            });
+            if (res.ok) {
+                alert('Reserva anulada con éxito.');
+                location.reload();
+            }
+        }
 
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -332,9 +434,10 @@
                 document.getElementById('adminDashboardBox').classList.remove('hidden');
                 window.currentTenantId = data.tenant_id;
                 
-                // Rellenar formulario de config con los datos actuales
                 document.getElementById('conf_capacity').value = tenantData.max_capacity;
                 document.getElementById('conf_whatsapp').value = tenantData.whatsapp_phone;
+                document.getElementById('conf_services').value = (data.services || []).join(', ');
+                
                 const settings = data.settings || {};
                 document.getElementById('conf_closed_days').value = (settings.closedDays || []).join(', ');
                 document.getElementById('conf_forced_dates').value = (settings.forcedOpenDates || []).join(', ');
@@ -349,23 +452,23 @@
             e.preventDefault();
             if (!window.currentTenantId) return;
 
+            const servicesInput = document.getElementById('conf_services').value;
+            const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
+
             const closedDaysInput = document.getElementById('conf_closed_days').value;
             const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
 
             const forcedDatesInput = document.getElementById('conf_forced_dates').value;
             const forcedOpenDates = forcedDatesInput ? forcedDatesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
 
-            const settings = {
-                closedDays,
-                forcedOpenDates,
-                shifts: [{ open: "09:00", close: "23:00" }]
-            };
+            const settings = { closedDays, forcedOpenDates };
 
             const payload = {
                 name: tenantData.name,
                 max_capacity: parseInt(document.getElementById('conf_capacity').value),
                 whatsapp_phone: document.getElementById('conf_whatsapp').value,
-                settings
+                settings,
+                services
             };
 
             const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
@@ -375,7 +478,7 @@
             });
             const result = await res.json();
             if (res.ok && result.success) {
-                alert('Configuración actualizada correctamente.');
+                alert('Configuración y servicios actualizados con éxito.');
                 location.reload();
             } else {
                 alert('Error al actualizar la configuración.');
@@ -384,27 +487,33 @@
 
         async function loadAdminReservations() {
             if (!window.currentTenantId) return;
-            const dateFilter = document.getElementById('filterDate').value;
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            
             let url = `/api/admin/reservations/${window.currentTenantId}`;
-            if (dateFilter) url += `?date=${dateFilter}`;
+            if (startDate && endDate) {
+                url += `?start_date=${startDate}&end_date=${endDate}`;
+            } else if (startDate) {
+                url += `?date=${startDate}`;
+            }
 
             const res = await fetch(url);
-            const reservations = await res.json();
+            fetchedReservations = await res.json();
             const listContainer = document.getElementById('adminReservationsList');
             listContainer.innerHTML = '';
 
-            if (reservations.length === 0) {
-                listContainer.innerHTML = '<p class="text-slate-400">No hay reservas para esta fecha.</p>';
+            if (fetchedReservations.length === 0) {
+                listContainer.innerHTML = '<p class="text-slate-400">No hay reservas en las fechas seleccionadas.</p>';
                 return;
             }
 
-            reservations.forEach(r => {
+            fetchedReservations.forEach(r => {
                 const div = document.createElement('div');
                 div.className = 'p-3 bg-slate-50 border rounded-xl flex justify-between items-center';
                 div.innerHTML = `
                     <div>
                         <p class="font-bold text-slate-800">${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[${r.booking_code}]</span></p>
-                        <p class="text-slate-500">📅 ${r.reservation_date} | ⏰ ${r.time_slot} | 👥 Plazas: ${r.party_size}</p>
+                        <p class="text-slate-500">Servicio: <strong>${r.service_name || 'General'}</strong> | Fecha: ${r.reservation_date} | Turno: ${r.time_slot} | Plazas: ${r.party_size}</p>
                         <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${r.status}</span>
                     </div>
                     <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded shadow-sm text-xs">Anular</button>
@@ -424,7 +533,21 @@
         }
 
         function exportToCSV() {
-            alert('Exportando reservas a formato CSV...');
+            if (!fetchedReservations || fetchedReservations.length === 0) {
+                alert('No hay reservas para exportar.');
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,Codigo,Cliente,Telefono,Servicio,Fecha,Hora,Plazas,Estado\n";
+            fetchedReservations.forEach(r => {
+                csvContent += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.service_name || 'General'}",${r.reservation_date},${r.time_slot},${r.party_size},${r.status}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `reservas_${tenantSlug}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function logoutAdmin() {
