@@ -23,8 +23,8 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS tenants (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
-        slug VARCHAR(50) UNIQUE NOT NULL,
-        business_type VARCHAR(50) NOT NULL,
+        slug VARCHAR(50) UNIQUE,
+        business_type VARCHAR(50),
         max_capacity INT DEFAULT 10,
         whatsapp_phone VARCHAR(20),
         email VARCHAR(100) UNIQUE NOT NULL,
@@ -38,7 +38,7 @@ const initDB = async () => {
         tenant_id INT REFERENCES tenants(id) ON DELETE CASCADE,
         client_name VARCHAR(100) NOT NULL,
         client_phone VARCHAR(20) NOT NULL,
-        booking_code VARCHAR(10) UNIQUE NOT NULL,
+        booking_code VARCHAR(10) UNIQUE,
         reservation_date DATE NOT NULL,
         time_slot VARCHAR(50) NOT NULL,
         party_size INT DEFAULT 1,
@@ -48,13 +48,20 @@ const initDB = async () => {
       );
     `);
 
+    // Migración automática para tablas existentes
     await pool.query(`
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS slug VARCHAR(50);
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_type VARCHAR(50);
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS max_capacity INT DEFAULT 10;
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS whatsapp_phone VARCHAR(20);
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings JSONB;
+      
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS booking_code VARCHAR(10);
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS resource_assigned VARCHAR(50);
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings JSONB;
+      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'confirmed';
     `);
 
-    console.log("Base de datos inicializada correctamente.");
+    console.log("Base de datos inicializada y migrada correctamente.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
