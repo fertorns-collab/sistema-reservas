@@ -136,7 +136,7 @@ app.post('/api/reservations/lookup', async (req, res) => {
   try {
     const { client_phone, booking_code } = req.body;
     const result = await pool.query(
-      `SELECT r.*, t.name as tenant_name, t.whatsapp_phone FROM reservations r 
+      `SELECT r.*, t.name as tenant_name, t.whatsapp_phone, t.slug as tenant_slug FROM reservations r 
        JOIN tenants t ON r.tenant_id = t.id 
        WHERE UPPER(TRIM(r.client_phone)) = UPPER(TRIM($1)) 
          AND UPPER(TRIM(r.booking_code)) = UPPER(TRIM($2)) 
@@ -178,6 +178,30 @@ app.put('/api/reservations/cancel', async (req, res) => {
   }
 });
 
+app.put('/api/reservations/update', async (req, res) => {
+  try {
+    const { id, client_phone, booking_code, reservation_date, time_slot, party_size, service_name } = req.body;
+    
+    const updated = await pool.query(
+      `UPDATE reservations 
+       SET reservation_date = COALESCE($1, reservation_date),
+           time_slot = COALESCE($2, time_slot),
+           party_size = COALESCE($3, party_size),
+           service_name = COALESCE($4, service_name)
+       WHERE id = $5 AND client_phone = $6 AND booking_code = $7 RETURNING *`,
+      [reservation_date, time_slot, party_size, service_name, id, client_phone, booking_code]
+    );
+
+    if (updated.rows.length === 0) {
+      return res.status(404).json({ error: 'No se pudo actualizar la reserva. Verifique los datos.' });
+    }
+
+    res.json({ success: true, message: "Reserva modificada correctamente", reservation: updated.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/admin/register', async (req, res) => {
   try {
     const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
@@ -197,7 +221,7 @@ app.post('/api/admin/register', async (req, res) => {
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, name, slug`,
-      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(["Servicio General"])]
+      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(["General"])]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });
@@ -209,8 +233,14 @@ app.post('/api/admin/register', async (req, res) => {
 app.post('/api/admin/login', async (req, res) => {
   try {
     const { email, password, slug } = req.body;
-    const tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1 AND slug = $2', [email, slug]);
-    if (tenantRes.rows.length === 0) return res.status(401).json({ error: 'Credenciales inválidas' });
+    let tenantRes;
+    if (slug) {
+      tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1 AND slug = $2', [email, slug]);
+    } else {
+      tenantRes = await pool.query('SELECT * FROM tenants WHERE email = $1', [email]);
+    }
+
+    if (tenantRes.rows.length === 0) return res.status(401).json({ error: 'Credenciales inválidas o negocio no encontrado' });
 
     const tenant = tenantRes.rows[0];
     const match = await bcrypt.compare(password, tenant.password_hash);
