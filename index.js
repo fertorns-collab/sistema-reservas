@@ -24,7 +24,7 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         slug VARCHAR(50) UNIQUE,
-        business_type VARCHAR(50),
+        business_type VARCHAR(50) DEFAULT 'general',
         max_capacity INT DEFAULT 10,
         whatsapp_phone VARCHAR(20),
         email VARCHAR(100) NOT NULL,
@@ -42,6 +42,7 @@ const initDB = async () => {
         booking_code VARCHAR(10) UNIQUE,
         reservation_date DATE NOT NULL,
         time_slot VARCHAR(50) NOT NULL,
+        end_time VARCHAR(50) NOT NULL,
         service_name VARCHAR(100),
         party_size INT DEFAULT 1,
         resource_assigned VARCHAR(50),
@@ -50,7 +51,6 @@ const initDB = async () => {
       );
     `);
 
-    // Eliminar restricción UNIQUE en email si existía para permitir múltiples negocios por admin
     await pool.query(`
       ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_email_key;
       DROP INDEX IF EXISTS tenants_email_key;
@@ -58,24 +58,37 @@ const initDB = async () => {
 
     await pool.query(`
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS slug VARCHAR(50);
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_type VARCHAR(50);
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_type VARCHAR(50) DEFAULT 'general';
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS max_capacity INT DEFAULT 10;
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS whatsapp_phone VARCHAR(20);
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings JSONB;
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS services JSONB DEFAULT '[]';
       
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS booking_code VARCHAR(10);
+      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS end_time VARCHAR(50);
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS service_name VARCHAR(100);
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS resource_assigned VARCHAR(50);
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'confirmed';
     `);
 
-    console.log("Base de datos inicializada y migrada correctamente.");
+    console.log("Base de datos inicializada y migrada correctamente para soporte multisectorial.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
 };
 initDB();
+
+// Función auxiliar para calcular minutos desde medianoche y viceversa
+const timeToMins = (timeStr) => {
+  const [h, m] = (timeStr || "00:00").split(':').map(Number);
+  return h * 60 + (m || 0);
+};
+
+const minsToTime = (totalMins) => {
+  const h = Math.floor(totalMins / 60).toString().padStart(2, '0');
+  const m = (totalMins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+};
 
 app.get('/api/tenants', async (req, res) => {
   try {
@@ -109,12 +122,13 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
+// Endpoint de disponibilidad inteligente adaptada por tipo de negocio
 app.get('/api/availability/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
-    const { date } = req.query;
+    const { date, service_name, duration, party_size } = req.query;
 
-    const tenantInfo = await pool.query('SELECT max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
+    const tenantInfo = await pool.query('SELECT business_type, max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
     if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
 
     let tenant = tenantInfo.rows[0];
@@ -123,7 +137,9 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       try { settings = JSON.parse(settings); } catch (e) { settings = {}; }
     }
 
-    const maxCapacity = tenant.max_capacity || 10;
+    const businessType = tenant.business_type || 'general';
+    const maxCapacity = tenant.max_capacity || 10; // Sirve como número de pistas, mesas o personal máximo
+
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
     const closedDays = settings.closedDays || [];
@@ -134,21 +150,28 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     }
 
     const shifts = settings.shifts || [{ open: "09:00", close: "21:00" }];
-    const slotDuration = settings.slotDurationMinutes || 60;
+    
+    // Determinar duración según el tipo de negocio
+    let slotDurationMinutes = 60;
+    if (businessType === 'court_rental') {
+      slotDurationMinutes = parseInt(duration) || 60; // 60 o 90 mins para pádel
+    } else if (businessType === 'appointment') {
+      const serviceDurations = settings.serviceDurations || {};
+      slotDurationMinutes = serviceDurations[service_name] || settings.slotDurationMinutes || 60;
+    } else if (businessType === 'table_booking') {
+      const pSize = parseInt(party_size) || 2;
+      slotDurationMinutes = pSize > 4 ? (settings.durationLarge || 120) : (settings.durationStandard || 90);
+    }
 
+    // Generar franjas de inicio de turno
     let slots = [];
     shifts.forEach(shift => {
-      let [openHour, openMin] = (shift.open || "09:00").split(':').map(Number);
-      let [closeHour, closeMin] = (shift.close || "21:00").split(':').map(Number);
+      let currentMins = timeToMins(shift.open || "09:00");
+      let closeMins = timeToMins(shift.close || "21:00");
 
-      let currentMins = openHour * 60 + openMin;
-      let closeMins = closeHour * 60 + closeMin;
-
-      while (currentMins < closeMins) {
-        let h = Math.floor(currentMins / 60).toString().padStart(2, '0');
-        let m = (currentMins % 60).toString().padStart(2, '0');
-        slots.push(`${h}:${m}`);
-        currentMins += slotDuration;
+      while (currentMins + slotDurationMinutes <= closeMins) {
+        slots.push(minsToTime(currentMins));
+        currentMins += 30; // Saltos de 30 mins para mayor flexibilidad de reserva
       }
     });
 
@@ -156,64 +179,138 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       slots = ["09:00", "10:00", "11:00", "12:00", "13:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
     }
 
+    // Obtener reservas existentes para esa fecha y negocio
     const bookedQuery = await pool.query(
-      `SELECT time_slot, SUM(party_size) as total_booked FROM reservations 
-       WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed' 
-       GROUP BY time_slot`,
+      `SELECT time_slot, end_time, resource_assigned, party_size FROM reservations 
+       WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed'`,
       [tenant_id, date]
     );
 
-    const bookedMap = {};
-    bookedQuery.rows.forEach(row => {
-      bookedMap[row.time_slot] = parseInt(row.total_booked);
-    });
+    const existingReservations = bookedQuery.rows;
 
+    // Calcular disponibilidad por cada franja horaria considerando recursos y solapamiento de intervalos
     const availability = slots.map(slot => {
-      const booked = bookedMap[slot] || 0;
-      const available = Math.max(0, maxCapacity - booked);
+      const slotStartMins = timeToMins(slot);
+      const slotEndMins = slotStartMins + slotDurationMinutes;
+
+      // Filtrar cuántos recursos están ocupados en este intervalo [slotStartMins, slotEndMins)
+      // Solapamiento: InicioA < FinB Y FinA > InicioB
+      const overlappingReservations = existingReservations.filter(r => {
+        const rStart = timeToMins(r.time_slot);
+        const rEnd = timeToMins(r.end_time || r.time_slot);
+        return slotStartMins < rEnd && slotEndMins > rStart;
+      });
+
+      let availableResourcesCount = 0;
+      let assignedResource = null;
+
+      if (businessType === 'court_rental' || businessType === 'table_booking') {
+        // Máximo recursos disponibles es maxCapacity (ej. 15 pistas o N mesas)
+        const occupiedResources = new Set(overlappingReservations.map(r => r.resource_assigned).filter(Boolean));
+        const freeCount = Math.max(0, maxCapacity - occupiedResources.size);
+        
+        // Buscar un identificador de recurso libre (ej. "Pista 1" o "Mesa 3")
+        for (let i = 1; i <= maxCapacity; i++) {
+          const resName = businessType === 'court_rental' ? `Pista ${i}` : `Mesa ${i}`;
+          if (!occupiedResources.has(resName)) {
+            assignedResource = resName;
+            break;
+          }
+        }
+        availableResourcesCount = freeCount;
+      } else {
+        // Para peluquerías / citas: aforo general o personal disponible
+        const totalBookedParty = overlappingReservations.reduce((acc, curr) => acc + (curr.party_size || 1), 0);
+        availableResourcesCount = Math.max(0, maxCapacity - totalBookedParty);
+      }
+
       return {
         slot,
+        end_time: minsToTime(slotEndMins),
         max_capacity: maxCapacity,
-        booked,
-        available,
-        is_full: available === 0
+        available: availableResourcesCount,
+        resource_assigned: assignedResource,
+        is_full: availableResourcesCount === 0
       };
     });
 
-    res.json({ closed: false, availability });
+    res.json({ closed: false, business_type: businessType, duration: slotDurationMinutes, availability });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// Endpoint para crear reserva con control avanzado de recursos y tiempos
 app.post('/api/reservations', async (req, res) => {
   try {
-    const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size, service_name } = req.body;
+    const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size, service_name, duration } = req.body;
     
-    const tenantInfo = await pool.query('SELECT max_capacity FROM tenants WHERE id = $1', [tenant_id]);
+    const tenantInfo = await pool.query('SELECT business_type, max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
     if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
     
     const tenant = tenantInfo.rows[0];
+    const businessType = tenant.business_type || 'general';
     const maxCapacity = tenant.max_capacity || 10;
+    let settings = tenant.settings || {};
+    if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
+
+    // Calcular duración y hora de fin
+    let durationMins = 60;
+    if (businessType === 'court_rental') {
+      durationMins = parseInt(duration) || 60;
+    } else if (businessType === 'appointment') {
+      const serviceDurations = settings.serviceDurations || {};
+      durationMins = serviceDurations[service_name] || 60;
+    } else if (businessType === 'table_booking') {
+      const pSize = parseInt(party_size) || 2;
+      durationMins = pSize > 4 ? (settings.durationLarge || 120) : (settings.durationStandard || 90);
+    }
+
+    const startMins = timeToMins(time_slot);
+    const endMins = startMins + durationMins;
+    const end_time = minsToTime(endMins);
+    const requestedSize = parseInt(party_size || 1);
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-    const capacityCheck = await pool.query(
-      `SELECT SUM(party_size) as total_booked FROM reservations 
-       WHERE tenant_id = $1 AND reservation_date = $2 AND time_slot = $3 AND status = 'confirmed'`,
-      [tenant_id, reservation_date, time_slot]
+    // Comprobar colisión de intervalos y recursos ocupados
+    const bookedQuery = await pool.query(
+      `SELECT time_slot, end_time, resource_assigned, party_size FROM reservations 
+       WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed'`,
+      [tenant_id, reservation_date]
     );
 
-    const currentBooked = parseInt(capacityCheck.rows[0]?.total_booked || 0);
-    const requestedSize = parseInt(party_size || 1);
+    const existing = bookedQuery.rows;
+    const overlapping = existing.filter(r => {
+      const rStart = timeToMins(r.time_slot);
+      const rEnd = timeToMins(r.end_time || r.time_slot);
+      return startMins < rEnd && endMins > rStart;
+    });
 
-    if (currentBooked + requestedSize > maxCapacity) {
-      return res.status(400).json({ error: 'No hay suficiente aforo o plazas libres para este horario.' });
+    let assignedResource = 'General';
+
+    if (businessType === 'court_rental' || businessType === 'table_booking') {
+      const occupiedResources = new Set(overlapping.map(r => r.resource_assigned).filter(Boolean));
+      if (occupiedResources.size >= maxCapacity) {
+        return res.status(400).json({ error: 'No hay pistas o mesas libres para este intervalo de tiempo.' });
+      }
+      for (let i = 1; i <= maxCapacity; i++) {
+        const resName = businessType === 'court_rental' ? `Pista ${i}` : `Mesa ${i}`;
+        if (!occupiedResources.has(resName)) {
+          assignedResource = resName;
+          break;
+        }
+      }
+    } else {
+      const totalBooked = overlapping.reduce((acc, curr) => acc + (curr.party_size || 1), 0);
+      if (totalBooked + requestedSize > maxCapacity) {
+        return res.status(400).json({ error: 'No hay suficiente aforo disponible para este horario.' });
+      }
     }
 
     const newReservation = await pool.query(
-      `INSERT INTO reservations (tenant_id, client_name, client_phone, booking_code, reservation_date, time_slot, party_size, service_name) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [tenant_id, client_name, client_phone, booking_code, reservation_date, time_slot, requestedSize, service_name || 'General']
+      `INSERT INTO reservations (tenant_id, client_name, client_phone, booking_code, reservation_date, time_slot, end_time, service_name, party_size, resource_assigned) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [tenant_id, client_name, client_phone, booking_code, reservation_date, time_slot, end_time, service_name || 'General', requestedSize, assignedResource]
     );
 
     res.status(201).json({ success: true, reservation: newReservation.rows[0] });
@@ -310,16 +407,20 @@ app.post('/api/admin/register', async (req, res) => {
     }
 
     const defaultSettings = JSON.stringify({
-      shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "20:00" }],
+      shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "22:00" }],
       slotDurationMinutes: 60,
       closedDays: [],
-      forcedOpenDates: []
+      serviceDurations: { "Corte": 30, "Tinte": 60, "Manicura": 45 },
+      durationStandard: 90,
+      durationLarge: 120
     });
+
+    const defaultServices = businessType === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (businessType === 'court_rental' ? ["Pádel 60 min", "Pádel 90 min"] : ["General"]);
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb) RETURNING id, name, slug`,
-      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(["General"])]
+      [name, slug, business_type || 'general', max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });
@@ -389,20 +490,22 @@ app.get('/api/admin/reservations/:tenant_id', async (req, res) => {
 app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
-    const { name, max_capacity, whatsapp_phone, settings, services } = req.body;
+    const { name, max_capacity, whatsapp_phone, settings, services, business_type } = req.body;
 
     const updated = await pool.query(
       `UPDATE tenants 
        SET name = COALESCE($1, name), 
            max_capacity = COALESCE($2, max_capacity), 
            whatsapp_phone = COALESCE($3, whatsapp_phone),
-           settings = COALESCE($4::jsonb, settings),
-           services = COALESCE($5::jsonb, services)
-       WHERE id = $6 RETURNING *`,
+           business_type = COALESCE($4, business_type),
+           settings = COALESCE($5::jsonb, settings),
+           services = COALESCE($6::jsonb, services)
+       WHERE id = $7 RETURNING *`,
       [
         name, 
         max_capacity, 
         whatsapp_phone, 
+        business_type,
         settings ? JSON.stringify(settings) : null, 
         services ? JSON.stringify(services) : null,
         tenant_id

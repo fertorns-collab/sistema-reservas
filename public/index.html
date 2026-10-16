@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS de Reservas Multi-tenant 24/7</title>
+    <title>SaaS de Reservas Multi-negocio 24/7</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
@@ -33,7 +33,7 @@
         <section id="clientView" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-slate-900">Haz tu Reserva Online</h2>
-                <p id="businessSubtitle" class="text-xs text-slate-500 mt-1">Selecciona la fecha para ver la tabla de disponibilidad en tiempo real.</p>
+                <p id="businessSubtitle" class="text-xs text-slate-500 mt-1">Selecciona la fecha y parámetros para ver la disponibilidad en tiempo real.</p>
             </div>
 
             <form id="bookingForm" class="space-y-4">
@@ -48,20 +48,24 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">🛠️ Servicio / Actividad</label>
-                        <select id="service_name" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">🛠️ Servicio / Tipo</label>
+                        <select id="service_name" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white" onchange="fetchAvailability()">
                             <option value="General">General / Estándar</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">👥 Plazas / Personas</label>
-                        <input type="number" id="party_size" value="1" min="1" max="100" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm">
+                    <div id="durationWrapper" class="hidden">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">⏱️ Duración (Pádel)</label>
+                        <select id="duration_select" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white" onchange="fetchAvailability()">
+                            <option value="60">60 Minutos</option>
+                            <option value="90">90 Minutos</option>
+                        </select>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+                    <div>
+                        <label id="partySizeLabel" class="block text-xs font-bold text-slate-600 uppercase mb-1">👥 Personas / Comensales</label>
+                        <input type="number" id="party_size" value="2" min="1" max="50" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">📅 Fecha de Reserva</label>
                         <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
@@ -85,6 +89,7 @@
             <div id="successCard" class="hidden mt-6 p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
                 <h3 class="font-bold text-emerald-800 text-base">¡Reserva Registrada con Éxito!</h3>
                 <p class="text-xs text-emerald-700">Tu código de reserva único es: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
+                <p id="assignedResourceInfo" class="text-xs text-emerald-800 font-semibold"></p>
                 <div class="flex flex-wrap gap-2 pt-2">
                     <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📲 Enviar a WhatsApp</a>
                     <button type="button" onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer">📅 Descargar (.ics)</button>
@@ -145,7 +150,16 @@
                             <input type="text" id="conf_name" class="w-full p-2 border rounded bg-white" required>
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Aforo / Capacidad Máxima simultánea</label>
+                            <label class="block font-bold mb-1">Tipo de Negocio (Sector)</label>
+                            <select id="conf_business_type" class="w-full p-2 border rounded bg-white">
+                                <option value="general">General / Estándar</option>
+                                <option value="court_rental">Pádel / Pistas Deportivas</option>
+                                <option value="appointment">Peluquería / Estética / Citas</option>
+                                <option value="table_booking">Restaurante / Mesas</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Capacidad Máxima (Pistas, Mesas o Aforo)</label>
                             <input type="number" id="conf_capacity" class="w-full p-2 border rounded bg-white" required>
                         </div>
                         <div>
@@ -153,16 +167,12 @@
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Turnos (Ej. 09:00-14:00, 16:00-20:00)</label>
-                            <input type="text" id="conf_shifts" placeholder="Ej. 09:00-14:00, 16:00-20:00" class="w-full p-2 border rounded bg-white">
+                            <label class="block font-bold mb-1">Turnos (Ej. 09:00-14:00, 16:00-22:00)</label>
+                            <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Servicios (Separados por comas, ej. Comida, Cena)</label>
-                            <input type="text" id="conf_services" placeholder="Ej. Comida, Cena" class="w-full p-2 border rounded bg-white">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Días de Descanso (0=Dom, 1=Lun...)</label>
-                            <input type="text" id="conf_closed_days" placeholder="Ej. 1" class="w-full p-2 border rounded bg-white">
+                            <label class="block font-bold mb-1">Servicios (Separados por comas)</label>
+                            <input type="text" id="conf_services" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
                             <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded cursor-pointer">Guardar Cambios</button>
@@ -199,12 +209,20 @@
         <!-- 4. VISTA REGISTRO -->
         <section id="registerView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-900 mb-1">Registrar Nuevo Negocio</h2>
-            <p class="text-xs text-slate-500 mb-4">Puedes registrar múltiples negocios usando tu mismo correo de administrador.</p>
+            <p class="text-xs text-slate-500 mb-4">Crea negocios de pádel, peluquería, restaurantes o cualquier sector bajo tu cuenta.</p>
             <form id="registerForm" class="space-y-4 max-w-lg">
                 <input type="text" id="reg_name" required placeholder="Nombre del Negocio" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <input type="text" id="reg_slug" required placeholder="Slug URL (ej. restaurante-asador)" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <input type="text" id="reg_business_type" required placeholder="Tipo de Negocio" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <input type="number" id="reg_max_capacity" value="20" required class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_slug" required placeholder="Slug URL (ej. padel-club-central)" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sector / Tipo de Negocio</label>
+                    <select id="reg_business_type" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
+                        <option value="general">General / Estándar</option>
+                        <option value="court_rental">Pádel / Pistas Deportivas (Ej. 15 pistas)</option>
+                        <option value="appointment">Peluquería / Salón de Belleza</option>
+                        <option value="table_booking">Restaurante / Mesas</option>
+                    </select>
+                </div>
+                <input type="number" id="reg_max_capacity" value="15" required placeholder="Capacidad Máxima / Total Pistas o Mesas" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="tel" id="reg_whatsapp" required placeholder="WhatsApp (+34...)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="email" id="reg_email" required placeholder="Correo admin" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="password" id="reg_password" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border text-sm">
@@ -215,7 +233,7 @@
     </main>
 
     <footer class="bg-white border-t py-4 text-center text-xs text-slate-500">
-        Sistema de Reservas Multi-tenant SaaS 24/7.
+        Sistema de Reservas Multi-negocio SaaS 24/7.
     </footer>
 
     <script>
@@ -256,7 +274,20 @@
                     const businessSubtitleEl = document.getElementById('businessSubtitle');
 
                     if (businessNameEl) businessNameEl.innerText = tenantData.name;
-                    if (businessSubtitleEl) businessSubtitleEl.innerText = `Gestión de ${tenantData.business_type} (Aforo máx: ${tenantData.max_capacity})`;
+                    if (businessSubtitleEl) businessSubtitleEl.innerText = `Gestión de ${tenantData.business_type} (Capacidad máx: ${tenantData.max_capacity})`;
+
+                    // Adaptar interfaz según tipo de negocio
+                    const durationWrapper = document.getElementById('durationWrapper');
+                    const partySizeLabel = document.getElementById('partySizeLabel');
+                    
+                    if (tenantData.business_type === 'court_rental') {
+                        if (durationWrapper) durationWrapper.classList.remove('hidden');
+                        if (partySizeLabel) partySizeLabel.innerText = "👥 Jugadores";
+                    } else if (tenantData.business_type === 'table_booking') {
+                        if (partySizeLabel) partySizeLabel.innerText = "👥 Comensales";
+                    } else if (tenantData.business_type === 'appointment') {
+                        if (partySizeLabel) partySizeLabel.innerText = "👥 Personas";
+                    }
 
                     const serviceSelect = document.getElementById('service_name');
                     if (serviceSelect) {
@@ -298,7 +329,7 @@
                     card.innerHTML = `
                         <div>
                             <h4 class="font-bold text-slate-900">${t.name}</h4>
-                            <p class="text-[11px] text-slate-500">${t.business_type} | Aforo: ${t.max_capacity}</p>
+                            <p class="text-[11px] text-slate-500">Tipo: ${t.business_type} | Capacidad: ${t.max_capacity}</p>
                         </div>
                         <a href="/${t.slug}" class="bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Reservar</a>
                     `;
@@ -358,8 +389,13 @@
                 }
             }
 
+            const serviceName = document.getElementById('service_name') ? document.getElementById('service_name').value : 'General';
+            const duration = document.getElementById('duration_select') ? document.getElementById('duration_select').value : 60;
+            const partySize = document.getElementById('party_size') ? document.getElementById('party_size').value : 1;
+
             try {
-                const res = await fetch(`/api/availability/${tenantData.id}?date=${date}`);
+                let url = `/api/availability/${tenantData.id}?date=${date}&service_name=${encodeURIComponent(serviceName)}&duration=${duration}&party_size=${partySize}`;
+                const res = await fetch(url);
                 const data = await res.json();
                 gridContainer.innerHTML = '';
 
@@ -380,9 +416,9 @@
                     
                     if (item.is_full) {
                         btn.disabled = true;
-                        btn.innerHTML = `<span class="font-bold text-sm">${item.slot}</span><span class="text-[10px] font-bold mt-1">COMPLETO (0/${item.max_capacity})</span>`;
+                        btn.innerHTML = `<span class="font-bold text-sm">${item.slot} - ${item.end_time}</span><span class="text-[10px] font-bold mt-1 text-red-600">COMPLETO (0 libres)</span>`;
                     } else {
-                        btn.innerHTML = `<span class="font-bold text-sm text-slate-800">${item.slot}</span><span class="text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available} / ${item.max_capacity}</span>`;
+                        btn.innerHTML = `<span class="font-bold text-sm text-slate-800">${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available} / ${item.max_capacity}</span>`;
                         btn.onclick = () => selectTimeSlot(item.slot, btn);
                     }
                     gridContainer.appendChild(btn);
@@ -449,6 +485,7 @@
                     reservation_date: document.getElementById('reservation_date').value,
                     time_slot: selectedTimeSlot,
                     service_name: document.getElementById('service_name').value,
+                    duration: tenantData.business_type === 'court_rental' ? document.getElementById('duration_select').value : 60,
                     party_size: parseInt(document.getElementById('party_size').value)
                 };
 
@@ -462,20 +499,23 @@
                     activeReservation = result.reservation;
                     const resCodeEl = document.getElementById('resCode');
                     const successCardEl = document.getElementById('successCard');
+                    const assignedResourceInfo = document.getElementById('assignedResourceInfo');
+
                     if (resCodeEl) resCodeEl.innerText = activeReservation.booking_code;
+                    if (assignedResourceInfo) assignedResourceInfo.innerText = `Asignación: ${activeReservation.resource_assigned || 'General'} (Fin: ${activeReservation.end_time})`;
                     if (successCardEl) successCardEl.classList.remove('hidden');
 
                     const phoneWp = tenantData.whatsapp_phone || '34600000000';
                     const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
                     
-                    const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot}\n🏷️ *Servicio:* ${data.service_name}\n👥 *Plazas:* ${data.party_size}\n🔑 *Código de reserva:* ${activeReservation.booking_code}\n\nPuedes gestionar, modificar o anular tu reserva aquí:\n${manageUrl}`;
+                    const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot} a ${activeReservation.end_time}\n🏷️ *Recurso:* ${activeReservation.resource_assigned}\n👥 *Personas:* ${data.party_size}\n🔑 *Código:* ${activeReservation.booking_code}\n\nGestiona tu reserva aquí:\n${manageUrl}`;
                     
                     const whatsappLink = document.getElementById('whatsappLink');
                     if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
                     
                     const cleanDate = data.reservation_date.replace(/-/g, '');
                     const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
-                    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código de reserva: ' + activeReservation.booking_code)}`;
+                    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Recurso: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
                     
                     const gCalendarLink = document.getElementById('gCalendarLink');
                     if (gCalendarLink) gCalendarLink.href = gCalUrl;
@@ -502,7 +542,7 @@
                 `DTSTART:${cleanDate}T${timeStr}Z`,
                 `DTEND:${cleanDate}T${timeStr}Z`,
                 `SUMMARY:Reserva en ${tenantData.name}`,
-                `DESCRIPTION:Servicio: ${activeReservation.service_name || 'General'} \\nCódigo de reserva: ${activeReservation.booking_code} \\nPlazas: ${activeReservation.party_size}`,
+                `DESCRIPTION:Asignación: ${activeReservation.resource_assigned} \\nCódigo: ${activeReservation.booking_code} \\nPersonas: ${activeReservation.party_size}`,
                 "END:VEVENT",
                 "END:VCALENDAR"
             ].join("\r\n");
@@ -540,22 +580,11 @@
                             <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
                             <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
                             <p><strong>Cliente:</strong> ${r.client_name}</p>
-                            <p><strong>Fecha Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
-                            <p><strong>Hora Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot}</span></p>
+                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
+                            <p><strong>Horario:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} ➔ ${r.end_time}</span></p>
+                            <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
                             
-                            <div class="space-y-2 pt-2 border-t">
-                                <label class="block font-bold text-xs">Modificar Fecha:</label>
-                                <input type="date" id="mod_date" value="${r.reservation_date}" class="w-full p-2 border rounded text-xs">
-                                
-                                <label class="block font-bold text-xs">Modificar Hora / Turno:</label>
-                                <input type="text" id="mod_slot" value="${r.time_slot}" class="w-full p-2 border rounded text-xs">
-                                
-                                <label class="block font-bold text-xs">Modificar Plazas:</label>
-                                <input type="number" id="mod_party" value="${r.party_size}" class="w-full p-2 border rounded text-xs">
-                            </div>
-
                             <div class="flex gap-2 pt-2">
-                                <button onclick="updateReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Guardar Cambios</button>
                                 <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
                             </div>
                         </div>
@@ -564,25 +593,6 @@
                     container.innerHTML = `<p class="text-red-500 font-bold">No se encontró ninguna reserva activa con esos datos.</p>`;
                 }
             });
-        }
-
-        async function updateReservation(id, client_phone, booking_code) {
-            const reservation_date = document.getElementById('mod_date').value;
-            const time_slot = document.getElementById('mod_slot').value;
-            const party_size = parseInt(document.getElementById('mod_party').value);
-
-            const res = await fetch('/api/reservations/update', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, client_phone, booking_code, reservation_date, time_slot, party_size })
-            });
-            const result = await res.json();
-            if (res.ok && result.success) {
-                alert('¡Reserva modificada con éxito!');
-                location.reload();
-            } else {
-                alert(result.error || 'Error al modificar.');
-            }
         }
 
         async function cancelClientReservation(id, client_phone, booking_code) {
@@ -650,14 +660,15 @@
             
             const adminBusinessTitle = document.getElementById('adminBusinessTitle');
             const confName = document.getElementById('conf_name');
+            const confBusinessType = document.getElementById('conf_business_type');
             const confCapacity = document.getElementById('conf_capacity');
             const confWhatsapp = document.getElementById('conf_whatsapp');
             const confServices = document.getElementById('conf_services');
             const confShifts = document.getElementById('conf_shifts');
-            const confClosedDays = document.getElementById('conf_closed_days');
 
             if (adminBusinessTitle) adminBusinessTitle.innerText = `Panel: ${currentAdminTenant.name}`;
             if (confName) confName.value = currentAdminTenant.name;
+            if (confBusinessType) confBusinessType.value = currentAdminTenant.business_type || 'general';
             if (confCapacity) confCapacity.value = currentAdminTenant.max_capacity || 10;
             if (confWhatsapp) confWhatsapp.value = currentAdminTenant.whatsapp_phone || '';
             if (confServices) confServices.value = (currentAdminTenant.services || []).join(', ');
@@ -665,7 +676,6 @@
             const settings = currentAdminTenant.settings || {};
             const shifts = settings.shifts || [];
             if (confShifts) confShifts.value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
-            if (confClosedDays) confClosedDays.value = (settings.closedDays || []).join(', ');
 
             loadAdminReservations();
         }
@@ -677,17 +687,15 @@
                 if (!window.currentTenantId) return;
 
                 const newName = document.getElementById('conf_name').value;
+                const newBusinessType = document.getElementById('conf_business_type').value;
                 const newCapacity = document.getElementById('conf_capacity').value;
                 const newWhatsapp = document.getElementById('conf_whatsapp').value;
                 const servicesInput = document.getElementById('conf_services').value;
                 const shiftsInput = document.getElementById('conf_shifts').value;
-                const closedDaysInput = document.getElementById('conf_closed_days').value;
 
                 if (!confirm(`¿Guardar cambios para el negocio "${newName}"?`)) return;
 
                 const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
-                const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
-
                 let shifts = [{ open: "09:00", close: "21:00" }];
                 if (shiftsInput) {
                     shifts = shiftsInput.split(',').map(part => {
@@ -701,9 +709,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: newName,
+                        business_type: newBusinessType,
                         max_capacity: parseInt(newCapacity),
                         whatsapp_phone: newWhatsapp,
-                        settings: { shifts, closedDays, slotDurationMinutes: 60 },
+                        settings: { shifts, slotDurationMinutes: 60 },
                         services
                     })
                 });
@@ -711,10 +720,10 @@
                 if (res.ok && result.success) {
                     alert('¡Configuración guardada con éxito!');
                     currentAdminTenant.name = newName;
+                    currentAdminTenant.business_type = newBusinessType;
                     currentAdminTenant.max_capacity = parseInt(newCapacity);
                     currentAdminTenant.whatsapp_phone = newWhatsapp;
                     currentAdminTenant.services = services;
-                    currentAdminTenant.settings = { shifts, closedDays, slotDurationMinutes: 60 };
                 } else {
                     alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
                 }
@@ -748,7 +757,7 @@
                 div.innerHTML = `
                     <div>
                         <p class="font-bold text-slate-800">${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[${r.booking_code}]</span></p>
-                        <p class="text-slate-500">Servicio: <strong>${r.service_name || 'General'}</strong> | Fecha: ${r.reservation_date} | Turno: ${r.time_slot} | Plazas: ${r.party_size}</p>
+                        <p class="text-slate-500">Recurso: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${r.reservation_date} | ${r.time_slot} ➔ ${r.end_time} | Personas: ${r.party_size}</p>
                     </div>
                     <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
                 `;
@@ -768,9 +777,9 @@
 
         function exportToCSV() {
             if (!fetchedReservations.length) return alert('Sin datos.');
-            let csv = "Codigo,Cliente,Telefono,Servicio,Fecha,Hora,Plazas,Estado\n";
+            let csv = "Codigo,Cliente,Telefono,Recurso,Fecha,Inicio,Fin,Personas,Estado\n";
             fetchedReservations.forEach(r => {
-                csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.service_name}",${r.reservation_date},${r.time_slot},${r.party_size},${r.status}\n`;
+                csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.resource_assigned}",${r.reservation_date},${r.time_slot},${r.end_time},${r.party_size},${r.status}\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const link = document.createElement('a');
