@@ -12,10 +12,10 @@
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 id="businessName" class="text-lg font-bold tracking-tight">Cargando negocio...</h1>
             <div class="flex gap-2 flex-wrap">
-                <button onclick="switchView('client')" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg font-semibold transition">📅 Reservar</button>
-                <button onclick="switchView('manage')" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg font-semibold transition">🔍 Gestionar</button>
-                <button onclick="switchView('admin')" class="text-xs bg-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-lg font-semibold transition">⚙️ Admin</button>
-                <button onclick="switchView('register')" class="text-xs bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg font-semibold transition">✨ Registrar Negocio</button>
+                <button onclick="switchView('client')" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer">📅 Reservar</button>
+                <button onclick="switchView('manage')" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer">🔍 Gestionar</button>
+                <button onclick="switchView('admin')" class="text-xs bg-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer">⚙️ Admin</button>
+                <button onclick="switchView('register')" class="text-xs bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer">✨ Registrar Negocio</button>
             </div>
         </div>
     </header>
@@ -77,7 +77,7 @@
                     <input type="hidden" id="time_slot" required>
                 </div>
 
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-sm mt-4">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-sm mt-4 cursor-pointer">
                     🚀 Confirmar Reserva
                 </button>
             </form>
@@ -107,7 +107,7 @@
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">🔑 Código de Reserva</label>
                     <input type="text" id="lookup_code" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm uppercase font-mono" placeholder="Ej. A3F9B2">
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm">Consultar Reserva</button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Consultar Reserva</button>
             </form>
 
             <div id="lookupResult" class="hidden mt-6 p-4 bg-slate-50 border rounded-xl space-y-3 text-sm"></div>
@@ -121,7 +121,7 @@
                 <form id="adminLoginForm" class="space-y-4 max-w-md">
                     <input type="email" id="adminEmail" required placeholder="Correo de administrador" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
                     <input type="password" id="adminPassword" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm">Entrar al Panel</button>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Entrar al Panel</button>
                 </form>
             </div>
 
@@ -133,7 +133,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <select id="businessSelector" onchange="switchAdminBusiness()" class="p-2 border rounded-lg text-xs font-bold bg-slate-50"></select>
-                        <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline">Cerrar Sesión</button>
+                        <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline cursor-pointer">Cerrar Sesión</button>
                     </div>
                 </div>
 
@@ -165,7 +165,7 @@
                             <input type="text" id="conf_closed_days" placeholder="Ej. 1" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
-                            <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded">Guardar Cambios</button>
+                            <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded cursor-pointer">Guardar Cambios</button>
                         </div>
                     </form>
                 </div>
@@ -181,11 +181,11 @@
                             <input type="date" id="filterEndDate" class="px-3 py-2 rounded-lg border text-xs bg-white">
                         </div>
                         <div class="flex items-end">
-                            <button onclick="loadAdminReservations()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg">Filtrar</button>
+                            <button onclick="loadAdminReservations()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer">Filtrar</button>
                         </div>
                     </div>
                     <div>
-                        <button onclick="exportToCSV()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📊 Exportar CSV</button>
+                        <button onclick="exportToCSV()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer">📊 Exportar CSV</button>
                     </div>
                 </div>
 
@@ -208,7 +208,7 @@
                 <input type="tel" id="reg_whatsapp" required placeholder="WhatsApp (+34...)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="email" id="reg_email" required placeholder="Correo admin" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="password" id="reg_password" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl text-sm">Registrar Negocio</button>
+                <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl text-sm cursor-pointer">Registrar Negocio</button>
             </form>
         </section>
 
@@ -236,10 +236,15 @@
 
         async function loadTenant() {
             if (!tenantSlug) {
-                document.getElementById('businessName').innerText = "Portal SaaS de Reservas";
-                document.getElementById('businessSubtitle').innerText = "Selecciona un negocio del directorio o regístrate.";
-                document.getElementById('clientView').classList.add('hidden');
-                document.getElementById('directorySelector').classList.remove('hidden');
+                const businessNameEl = document.getElementById('businessName');
+                const businessSubtitleEl = document.getElementById('businessSubtitle');
+                const clientViewEl = document.getElementById('clientView');
+                const directorySelectorEl = document.getElementById('directorySelector');
+
+                if (businessNameEl) businessNameEl.innerText = "Portal SaaS de Reservas";
+                if (businessSubtitleEl) businessSubtitleEl.innerText = "Selecciona un negocio del directorio o regístrate.";
+                if (clientViewEl) clientViewEl.classList.add('hidden');
+                if (directorySelectorEl) directorySelectorEl.classList.remove('hidden');
                 loadTenantDirectory();
                 return;
             }
@@ -247,21 +252,28 @@
                 const res = await fetch(`/api/tenant/${tenantSlug}`);
                 if (res.ok) {
                     tenantData = await res.json();
-                    document.getElementById('businessName').innerText = tenantData.name;
-                    document.getElementById('businessSubtitle').innerText = `Gestión de ${tenantData.business_type} (Aforo máx: ${tenantData.max_capacity})`;
+                    const businessNameEl = document.getElementById('businessName');
+                    const businessSubtitleEl = document.getElementById('businessSubtitle');
+
+                    if (businessNameEl) businessNameEl.innerText = tenantData.name;
+                    if (businessSubtitleEl) businessSubtitleEl.innerText = `Gestión de ${tenantData.business_type} (Aforo máx: ${tenantData.max_capacity})`;
 
                     const serviceSelect = document.getElementById('service_name');
-                    serviceSelect.innerHTML = '';
-                    const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['General'];
-                    services.forEach(s => {
-                        const opt = document.createElement('option');
-                        opt.value = s;
-                        opt.innerText = s;
-                        serviceSelect.appendChild(opt);
-                    });
+                    if (serviceSelect) {
+                        serviceSelect.innerHTML = '';
+                        const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['General'];
+                        services.forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s;
+                            opt.innerText = s;
+                            serviceSelect.appendChild(opt);
+                        });
+                    }
                 } else {
-                    document.getElementById('businessName').innerText = "Negocio no encontrado";
-                    document.getElementById('businessSubtitle').innerText = "Comprueba la URL o selecciona un negocio.";
+                    const businessNameEl = document.getElementById('businessName');
+                    const businessSubtitleEl = document.getElementById('businessSubtitle');
+                    if (businessNameEl) businessNameEl.innerText = "Negocio no encontrado";
+                    if (businessSubtitleEl) businessSubtitleEl.innerText = "Comprueba la URL o selecciona un negocio.";
                 }
             } catch (err) {
                 console.error(err);
@@ -274,6 +286,7 @@
                 const res = await fetch('/api/tenants');
                 const tenants = await res.json();
                 const grid = document.getElementById('tenantListGrid');
+                if (!grid) return;
                 grid.innerHTML = '';
                 if (tenants.length === 0) {
                     grid.innerHTML = '<p class="text-xs text-slate-400">No hay negocios registrados todavía.</p>';
@@ -297,27 +310,39 @@
         }
 
         function switchView(view) {
-            document.getElementById('clientView').classList.add('hidden');
-            document.getElementById('directorySelector').classList.add('hidden');
-            document.getElementById('manageView').classList.add('hidden');
-            document.getElementById('adminView').classList.add('hidden');
-            document.getElementById('registerView').classList.add('hidden');
+            const clientView = document.getElementById('clientView');
+            const directorySelector = document.getElementById('directorySelector');
+            const manageView = document.getElementById('manageView');
+            const adminView = document.getElementById('adminView');
+            const registerView = document.getElementById('registerView');
+
+            if (clientView) clientView.classList.add('hidden');
+            if (directorySelector) directorySelector.classList.add('hidden');
+            if (manageView) manageView.classList.add('hidden');
+            if (adminView) adminView.classList.add('hidden');
+            if (registerView) registerView.classList.add('hidden');
 
             if (view === 'client') {
                 if (!tenantSlug) {
-                    document.getElementById('directorySelector').classList.remove('hidden');
+                    if (directorySelector) directorySelector.classList.remove('hidden');
                 } else {
-                    document.getElementById('clientView').classList.remove('hidden');
+                    if (clientView) clientView.classList.remove('hidden');
                 }
+            } else if (view === 'manage') {
+                if (manageView) manageView.classList.remove('hidden');
+            } else if (view === 'admin') {
+                if (adminView) adminView.classList.remove('hidden');
+            } else if (view === 'register') {
+                if (registerView) registerView.classList.remove('hidden');
             }
-            if (view === 'manage') document.getElementById('manageView').classList.remove('hidden');
-            if (view === 'admin') document.getElementById('adminView').classList.remove('hidden');
-            if (view === 'register') document.getElementById('registerView').classList.remove('hidden');
         }
 
         async function fetchAvailability() {
-            const date = document.getElementById('reservation_date').value;
+            const dateEl = document.getElementById('reservation_date');
+            if (!dateEl) return;
+            const date = dateEl.value;
             const gridContainer = document.getElementById('availabilityGrid');
+            if (!gridContainer) return;
             gridContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">Calculando disponibilidad en tiempo real...</p>';
 
             if (!date) {
@@ -351,7 +376,7 @@
                 data.availability.forEach(item => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = `p-3 rounded-xl border text-left transition flex flex-col justify-between text-xs ${item.is_full ? 'bg-red-50 border-red-200 text-red-700 cursor-not-allowed opacity-60' : 'bg-white border-slate-200 hover:border-indigo-600 hover:shadow-sm'}`;
+                    btn.className = `p-3 rounded-xl border text-left transition flex flex-col justify-between text-xs cursor-pointer ${item.is_full ? 'bg-red-50 border-red-200 text-red-700 cursor-not-allowed opacity-60' : 'bg-white border-slate-200 hover:border-indigo-600 hover:shadow-sm'}`;
                     
                     if (item.is_full) {
                         btn.disabled = true;
@@ -370,85 +395,97 @@
         function selectTimeSlot(slot, btnElement) {
             document.querySelectorAll('#availabilityGrid button').forEach(b => b.classList.remove('border-indigo-600', 'bg-indigo-50', 'ring-2', 'ring-indigo-600'));
             btnElement.classList.add('border-indigo-600', 'bg-indigo-50', 'ring-2', 'ring-indigo-600');
-            document.getElementById('time_slot').value = slot;
+            const timeSlotInput = document.getElementById('time_slot');
+            if (timeSlotInput) timeSlotInput.value = slot;
             selectedTimeSlot = slot;
         }
 
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById('reg_name').value,
-                slug: document.getElementById('reg_slug').value.toLowerCase().replace(/\s+/g, '-'),
-                business_type: document.getElementById('reg_business_type').value,
-                max_capacity: parseInt(document.getElementById('reg_max_capacity').value),
-                whatsapp_phone: document.getElementById('reg_whatsapp').value,
-                email: document.getElementById('reg_email').value,
-                password: document.getElementById('reg_password').value
-            };
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const data = {
+                    name: document.getElementById('reg_name').value,
+                    slug: document.getElementById('reg_slug').value.toLowerCase().replace(/\s+/g, '-'),
+                    business_type: document.getElementById('reg_business_type').value,
+                    max_capacity: parseInt(document.getElementById('reg_max_capacity').value),
+                    whatsapp_phone: document.getElementById('reg_whatsapp').value,
+                    email: document.getElementById('reg_email').value,
+                    password: document.getElementById('reg_password').value
+                };
 
-            const res = await fetch('/api/admin/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                const res = await fetch('/api/admin/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    alert('¡Negocio registrado con éxito!');
+                    window.location.href = `/${result.tenant.slug}`;
+                } else {
+                    alert(result.error || 'Error al registrar');
+                }
             });
-            const result = await res.json();
-            if (res.ok && result.success) {
-                alert('¡Negocio registrado con éxito!');
-                window.location.href = `/${result.tenant.slug}`;
-            } else {
-                alert(result.error || 'Error al registrar');
-            }
-        });
+        }
 
-        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!tenantData) {
-                alert('Accede mediante la URL específica de un negocio.');
-                return;
-            }
-            if (!selectedTimeSlot) {
-                alert('Por favor, selecciona una franja horaria en la tabla de disponibilidad.');
-                return;
-            }
+        const bookingForm = document.getElementById('bookingForm');
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!tenantData) {
+                    alert('Accede mediante la URL específica de un negocio.');
+                    return;
+                }
+                if (!selectedTimeSlot) {
+                    alert('Por favor, selecciona una franja horaria en la tabla de disponibilidad.');
+                    return;
+                }
 
-            const data = {
-                tenant_id: tenantData.id,
-                client_name: document.getElementById('client_name').value,
-                client_phone: document.getElementById('client_phone').value,
-                reservation_date: document.getElementById('reservation_date').value,
-                time_slot: selectedTimeSlot,
-                service_name: document.getElementById('service_name').value,
-                party_size: parseInt(document.getElementById('party_size').value)
-            };
+                const data = {
+                    tenant_id: tenantData.id,
+                    client_name: document.getElementById('client_name').value,
+                    client_phone: document.getElementById('client_phone').value,
+                    reservation_date: document.getElementById('reservation_date').value,
+                    time_slot: selectedTimeSlot,
+                    service_name: document.getElementById('service_name').value,
+                    party_size: parseInt(document.getElementById('party_size').value)
+                };
 
-            const res = await fetch('/api/reservations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                const res = await fetch('/api/reservations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    activeReservation = result.reservation;
+                    const resCodeEl = document.getElementById('resCode');
+                    const successCardEl = document.getElementById('successCard');
+                    if (resCodeEl) resCodeEl.innerText = activeReservation.booking_code;
+                    if (successCardEl) successCardEl.classList.remove('hidden');
+
+                    const phoneWp = tenantData.whatsapp_phone || '34600000000';
+                    const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
+                    
+                    const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot}\n🏷️ *Servicio:* ${data.service_name}\n👥 *Plazas:* ${data.party_size}\n🔑 *Código de reserva:* ${activeReservation.booking_code}\n\nPuedes gestionar, modificar o anular tu reserva aquí:\n${manageUrl}`;
+                    
+                    const whatsappLink = document.getElementById('whatsappLink');
+                    if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
+                    
+                    const cleanDate = data.reservation_date.replace(/-/g, '');
+                    const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
+                    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código de reserva: ' + activeReservation.booking_code)}`;
+                    
+                    const gCalendarLink = document.getElementById('gCalendarLink');
+                    if (gCalendarLink) gCalendarLink.href = gCalUrl;
+
+                    alert("¡Reserva confirmada con éxito!");
+                } else {
+                    alert(result.error || 'Error al procesar la reserva.');
+                }
             });
-            const result = await res.json();
-            if (res.ok && result.success) {
-                activeReservation = result.reservation;
-                document.getElementById('resCode').innerText = activeReservation.booking_code;
-                document.getElementById('successCard').classList.remove('hidden');
-
-                const phoneWp = tenantData.whatsapp_phone || '34600000000';
-                const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
-                
-                const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot}\n🏷️ *Servicio:* ${data.service_name}\n👥 *Plazas:* ${data.party_size}\n🔑 *Código de reserva:* ${activeReservation.booking_code}\n\nPuedes gestionar, modificar o anular tu reserva aquí:\n${manageUrl}`;
-                
-                document.getElementById('whatsappLink').href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
-                
-                const cleanDate = data.reservation_date.replace(/-/g, '');
-                const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
-                const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código de reserva: ' + activeReservation.booking_code)}`;
-                document.getElementById('gCalendarLink').href = gCalUrl;
-
-                alert("¡Reserva confirmada con éxito!");
-            } else {
-                alert(result.error || 'Error al procesar la reserva.');
-            }
-        });
+        }
 
         function downloadICS() {
             if (!activeReservation || !tenantData) return;
@@ -479,51 +516,55 @@
             document.body.removeChild(link);
         }
 
-        document.getElementById('lookupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const client_phone = document.getElementById('lookup_phone').value.trim();
-            const booking_code = document.getElementById('lookup_code').value.trim();
+        const lookupForm = document.getElementById('lookupForm');
+        if (lookupForm) {
+            lookupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const client_phone = document.getElementById('lookup_phone').value.trim();
+                const booking_code = document.getElementById('lookup_code').value.trim();
 
-            const res = await fetch('/api/reservations/lookup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ client_phone, booking_code })
+                const res = await fetch('/api/reservations/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_phone, booking_code })
+                });
+                const data = await res.json();
+                const container = document.getElementById('lookupResult');
+                if (!container) return;
+                container.classList.remove('hidden');
+
+                if (res.ok && data.success) {
+                    const r = data.reservation;
+                    container.innerHTML = `
+                        <div class="p-4 bg-white border rounded-xl space-y-3">
+                            <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
+                            <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
+                            <p><strong>Cliente:</strong> ${r.client_name}</p>
+                            <p><strong>Fecha Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
+                            <p><strong>Hora Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot}</span></p>
+                            
+                            <div class="space-y-2 pt-2 border-t">
+                                <label class="block font-bold text-xs">Modificar Fecha:</label>
+                                <input type="date" id="mod_date" value="${r.reservation_date}" class="w-full p-2 border rounded text-xs">
+                                
+                                <label class="block font-bold text-xs">Modificar Hora / Turno:</label>
+                                <input type="text" id="mod_slot" value="${r.time_slot}" class="w-full p-2 border rounded text-xs">
+                                
+                                <label class="block font-bold text-xs">Modificar Plazas:</label>
+                                <input type="number" id="mod_party" value="${r.party_size}" class="w-full p-2 border rounded text-xs">
+                            </div>
+
+                            <div class="flex gap-2 pt-2">
+                                <button onclick="updateReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Guardar Cambios</button>
+                                <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `<p class="text-red-500 font-bold">No se encontró ninguna reserva activa con esos datos.</p>`;
+                }
             });
-            const data = await res.json();
-            const container = document.getElementById('lookupResult');
-            container.classList.remove('hidden');
-
-            if (res.ok && data.success) {
-                const r = data.reservation;
-                container.innerHTML = `
-                    <div class="p-4 bg-white border rounded-xl space-y-3">
-                        <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
-                        <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
-                        <p><strong>Cliente:</strong> ${r.client_name}</p>
-                        <p><strong>Fecha Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
-                        <p><strong>Hora Actual:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot}</span></p>
-                        
-                        <div class="space-y-2 pt-2 border-t">
-                            <label class="block font-bold text-xs">Modificar Fecha:</label>
-                            <input type="date" id="mod_date" value="${r.reservation_date}" class="w-full p-2 border rounded text-xs">
-                            
-                            <label class="block font-bold text-xs">Modificar Hora / Turno:</label>
-                            <input type="text" id="mod_slot" value="${r.time_slot}" class="w-full p-2 border rounded text-xs">
-                            
-                            <label class="block font-bold text-xs">Modificar Plazas:</label>
-                            <input type="number" id="mod_party" value="${r.party_size}" class="w-full p-2 border rounded text-xs">
-                        </div>
-
-                        <div class="flex gap-2 pt-2">
-                            <button onclick="updateReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold">Guardar Cambios</button>
-                            <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-3 py-2 rounded text-xs font-bold">Anular Reserva</button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                container.innerHTML = `<p class="text-red-500 font-bold">No se encontró ninguna reserva activa con esos datos.</p>`;
-            }
-        });
+        }
 
         async function updateReservation(id, client_phone, booking_code) {
             const reservation_date = document.getElementById('mod_date').value;
@@ -557,118 +598,143 @@
             }
         }
 
-        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        if (adminLoginForm) {
+            adminLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('adminEmail').value;
+                const password = document.getElementById('adminPassword').value;
 
-            const res = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                adminBusinesses = data.businesses;
-                document.getElementById('adminLoginBox').classList.add('hidden');
-                document.getElementById('adminDashboardBox').classList.remove('hidden');
-                
-                const selector = document.getElementById('businessSelector');
-                selector.innerHTML = '';
-                adminBusinesses.forEach((b, idx) => {
-                    const opt = document.createElement('option');
-                    opt.value = idx;
-                    opt.innerText = `${b.name} (${b.slug})`;
-                    selector.appendChild(opt);
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
                 });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    adminBusinesses = data.businesses;
+                    const adminLoginBox = document.getElementById('adminLoginBox');
+                    const adminDashboardBox = document.getElementById('adminDashboardBox');
+                    if (adminLoginBox) adminLoginBox.classList.add('hidden');
+                    if (adminDashboardBox) adminDashboardBox.classList.remove('hidden');
+                    
+                    const selector = document.getElementById('businessSelector');
+                    if (selector) {
+                        selector.innerHTML = '';
+                        adminBusinesses.forEach((b, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = idx;
+                            opt.innerText = `${b.name} (${b.slug})`;
+                            selector.appendChild(opt);
+                        });
+                    }
 
-                selectAdminBusiness(0);
-            } else {
-                alert(data.error || 'Credenciales incorrectas');
-            }
-        });
+                    selectAdminBusiness(0);
+                } else {
+                    alert(data.error || 'Credenciales incorrectas');
+                }
+            });
+        }
 
         function switchAdminBusiness() {
-            const idx = document.getElementById('businessSelector').value;
+            const selector = document.getElementById('businessSelector');
+            if (!selector) return;
+            const idx = selector.value;
             selectAdminBusiness(idx);
         }
 
         function selectAdminBusiness(idx) {
             currentAdminTenant = adminBusinesses[idx];
+            if (!currentAdminTenant) return;
             window.currentTenantId = currentAdminTenant.tenant_id;
             
-            document.getElementById('adminBusinessTitle').innerText = `Panel: ${currentAdminTenant.name}`;
-            document.getElementById('conf_name').value = currentAdminTenant.name;
-            document.getElementById('conf_capacity').value = currentAdminTenant.max_capacity || 10;
-            document.getElementById('conf_whatsapp').value = currentAdminTenant.whatsapp_phone || '';
-            document.getElementById('conf_services').value = (currentAdminTenant.services || []).join(', ');
+            const adminBusinessTitle = document.getElementById('adminBusinessTitle');
+            const confName = document.getElementById('conf_name');
+            const confCapacity = document.getElementById('conf_capacity');
+            const confWhatsapp = document.getElementById('conf_whatsapp');
+            const confServices = document.getElementById('conf_services');
+            const confShifts = document.getElementById('conf_shifts');
+            const confClosedDays = document.getElementById('conf_closed_days');
+
+            if (adminBusinessTitle) adminBusinessTitle.innerText = `Panel: ${currentAdminTenant.name}`;
+            if (confName) confName.value = currentAdminTenant.name;
+            if (confCapacity) confCapacity.value = currentAdminTenant.max_capacity || 10;
+            if (confWhatsapp) confWhatsapp.value = currentAdminTenant.whatsapp_phone || '';
+            if (confServices) confServices.value = (currentAdminTenant.services || []).join(', ');
             
             const settings = currentAdminTenant.settings || {};
             const shifts = settings.shifts || [];
-            document.getElementById('conf_shifts').value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
-            document.getElementById('conf_closed_days').value = (settings.closedDays || []).join(', ');
+            if (confShifts) confShifts.value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
+            if (confClosedDays) confClosedDays.value = (settings.closedDays || []).join(', ');
 
             loadAdminReservations();
         }
 
-        document.getElementById('configForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!window.currentTenantId) return;
+        const configForm = document.getElementById('configForm');
+        if (configForm) {
+            configForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!window.currentTenantId) return;
 
-            const newName = document.getElementById('conf_name').value;
-            const newCapacity = document.getElementById('conf_capacity').value;
-            const newWhatsapp = document.getElementById('conf_whatsapp').value;
-            const servicesInput = document.getElementById('conf_services').value;
-            const shiftsInput = document.getElementById('conf_shifts').value;
-            const closedDaysInput = document.getElementById('conf_closed_days').value;
+                const newName = document.getElementById('conf_name').value;
+                const newCapacity = document.getElementById('conf_capacity').value;
+                const newWhatsapp = document.getElementById('conf_whatsapp').value;
+                const servicesInput = document.getElementById('conf_services').value;
+                const shiftsInput = document.getElementById('conf_shifts').value;
+                const closedDaysInput = document.getElementById('conf_closed_days').value;
 
-            if (!confirm(`¿Guardar cambios para el negocio "${newName}"?`)) return;
+                if (!confirm(`¿Guardar cambios para el negocio "${newName}"?`)) return;
 
-            const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
-            const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
+                const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
+                const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
 
-            let shifts = [{ open: "09:00", close: "21:00" }];
-            if (shiftsInput) {
-                shifts = shiftsInput.split(',').map(part => {
-                    const [open, close] = part.trim().split('-');
-                    return { open: open ? open.trim() : "09:00", close: close ? close.trim() : "21:00" };
+                let shifts = [{ open: "09:00", close: "21:00" }];
+                if (shiftsInput) {
+                    shifts = shiftsInput.split(',').map(part => {
+                        const [open, close] = part.trim().split('-');
+                        return { open: open ? open.trim() : "09:00", close: close ? close.trim() : "21:00" };
+                    });
+                }
+
+                const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: newName,
+                        max_capacity: parseInt(newCapacity),
+                        whatsapp_phone: newWhatsapp,
+                        settings: { shifts, closedDays, slotDurationMinutes: 60 },
+                        services
+                    })
                 });
-            }
-
-            const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: newName,
-                    max_capacity: parseInt(newCapacity),
-                    whatsapp_phone: newWhatsapp,
-                    settings: { shifts, closedDays, slotDurationMinutes: 60 },
-                    services
-                })
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    alert('¡Configuración guardada con éxito!');
+                    currentAdminTenant.name = newName;
+                    currentAdminTenant.max_capacity = parseInt(newCapacity);
+                    currentAdminTenant.whatsapp_phone = newWhatsapp;
+                    currentAdminTenant.services = services;
+                    currentAdminTenant.settings = { shifts, closedDays, slotDurationMinutes: 60 };
+                } else {
+                    alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
+                }
             });
-            const result = await res.json();
-            if (res.ok && result.success) {
-                alert('¡Configuración guardada con éxito!');
-                currentAdminTenant.name = newName;
-                currentAdminTenant.max_capacity = parseInt(newCapacity);
-                currentAdminTenant.whatsapp_phone = newWhatsapp;
-                currentAdminTenant.services = services;
-                currentAdminTenant.settings = { shifts, closedDays, slotDurationMinutes: 60 };
-            } else {
-                alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
-            }
-        });
+        }
 
         async function loadAdminReservations() {
             if (!window.currentTenantId) return;
-            const startDate = document.getElementById('filterStartDate').value;
-            const endDate = document.getElementById('filterEndDate').value;
+            const startDateEl = document.getElementById('filterStartDate');
+            const endDateEl = document.getElementById('filterEndDate');
+            const startDate = startDateEl ? startDateEl.value : '';
+            const endDate = endDateEl ? endDateEl.value : '';
+
             let url = `/api/admin/reservations/${window.currentTenantId}`;
             if (startDate && endDate) url += `?start_date=${startDate}&end_date=${endDate}`;
 
             const res = await fetch(url);
             fetchedReservations = await res.json();
             const listContainer = document.getElementById('adminReservationsList');
+            if (!listContainer) return;
             listContainer.innerHTML = '';
 
             if (fetchedReservations.length === 0) {
@@ -684,7 +750,7 @@
                         <p class="font-bold text-slate-800">${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[${r.booking_code}]</span></p>
                         <p class="text-slate-500">Servicio: <strong>${r.service_name || 'General'}</strong> | Fecha: ${r.reservation_date} | Turno: ${r.time_slot} | Plazas: ${r.party_size}</p>
                     </div>
-                    <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs">Anular</button>
+                    <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
                 `;
                 listContainer.appendChild(div);
             });
@@ -700,7 +766,7 @@
             if (res.ok) loadAdminReservations();
         }
 
-        exportToCSV() {
+        function exportToCSV() {
             if (!fetchedReservations.length) return alert('Sin datos.');
             let csv = "Codigo,Cliente,Telefono,Servicio,Fecha,Hora,Plazas,Estado\n";
             fetchedReservations.forEach(r => {
