@@ -303,21 +303,22 @@ app.post('/api/admin/register', async (req, res) => {
       password_hash = await bcrypt.hash(password, 10);
     }
 
-    const defaultSettings = {
+    const defaultSettings = JSON.stringify({
       shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "20:00" }],
       slotDurationMinutes: 60,
       closedDays: [],
       forcedOpenDates: []
-    };
+    });
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, name, slug`,
-      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, ["General"]]
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb) RETURNING id, name, slug`,
+      [name, slug, business_type, max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(["General"])]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });
   } catch (err) {
+    console.error("Error al registrar negocio:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
