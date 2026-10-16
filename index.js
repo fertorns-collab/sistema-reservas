@@ -50,6 +50,12 @@ const initDB = async () => {
       );
     `);
 
+    // Eliminar restricción UNIQUE en email si existía para permitir múltiples negocios por admin
+    await pool.query(`
+      ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_email_key;
+      DROP INDEX IF EXISTS tenants_email_key;
+    `);
+
     await pool.query(`
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS slug VARCHAR(50);
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_type VARCHAR(50);

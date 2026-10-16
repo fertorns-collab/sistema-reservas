@@ -700,7 +700,7 @@
             if (res.ok) loadAdminReservations();
         }
 
-        function exportToCSV() {
+        exportToCSV() {
             if (!fetchedReservations.length) return alert('Sin datos.');
             let csv = "Codigo,Cliente,Telefono,Servicio,Fecha,Hora,Plazas,Estado\n";
             fetchedReservations.forEach(r => {
