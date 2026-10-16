@@ -88,7 +88,7 @@
 
             <div id="successCard" class="hidden mt-6 p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
                 <h3 class="font-bold text-emerald-800 text-base">¡Reserva Registrada con Éxito!</h3>
-                <p class="text-xs text-emerald-700">Tu código de reserva único es: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
+                <p class="text-xs text-emerald-700">🔑 <strong>Código de reserva:</strong> <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
                 <p id="assignedResourceInfo" class="text-xs text-emerald-800 font-semibold"></p>
                 <div class="flex flex-wrap gap-2 pt-2">
                     <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📲 Enviar a WhatsApp</a>
@@ -100,8 +100,8 @@
 
         <!-- 2. GESTIONAR RESERVA -->
         <section id="manageView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-            <h2 class="text-xl font-bold text-slate-900 mb-1">Gestionar, Modificar o Anular Reserva</h2>
-            <p class="text-xs text-slate-500 mb-6">Introduce tu teléfono y tu código de reserva único.</p>
+            <h2 class="text-xl font-bold text-slate-900 mb-1">Anular o Consultar Reserva</h2>
+            <p class="text-xs text-slate-500 mb-6">Introduce tu teléfono y tu código de reserva único para consultar o anular.</p>
 
             <form id="lookupForm" class="space-y-4 max-w-md">
                 <div>
@@ -142,6 +142,18 @@
                     </div>
                 </div>
 
+                <!-- Enlaces Web del Negocio -->
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 space-y-2 text-xs">
+                    <h3 class="font-bold text-indigo-900 uppercase">🌐 Enlaces Web del Negocio Seleccionado</h3>
+                    <div class="flex flex-col sm:flex-row gap-2 justify-between items-center bg-white p-2.5 rounded border border-indigo-100">
+                        <div>
+                            <span class="font-bold text-slate-600">Web de Reservas (Clientes):</span>
+                            <a id="adminClientWebLink" href="#" target="_blank" class="text-indigo-600 font-mono underline ml-1"></a>
+                        </div>
+                        <button type="button" onclick="copyClientWebLink()" class="bg-indigo-600 text-white px-3 py-1 rounded font-bold cursor-pointer">Copiar Link</button>
+                    </div>
+                </div>
+
                 <div class="bg-slate-50 p-4 rounded-xl border space-y-4">
                     <h3 class="text-xs font-bold uppercase text-slate-700">⚙️ Configuración del Negocio Seleccionado</h3>
                     <form id="configForm" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -171,7 +183,7 @@
                             <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white" placeholder="Ej. 09:00-22:00">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Días de Descanso Semanal (0=Dom, 1=Lun ... 6=Sáb, separados por coma)</label>
+                            <label class="block font-bold mb-1">Días de Descanso Semanal (0=Dom, 1=Lun ... 6=Sáb)</label>
                             <input type="text" id="conf_closed_days" class="w-full p-2 border rounded bg-white" placeholder="Ej. 1, 2">
                         </div>
                         <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-3 border rounded-lg">
@@ -186,7 +198,7 @@
                         </div>
                         <div class="md:col-span-2 bg-white p-3 border rounded-lg space-y-2">
                             <label class="block font-bold text-slate-700">📅 Horarios Específicos para CUALQUIER Día de la Semana</label>
-                            <p class="text-[11px] text-slate-500">Deja en blanco cualquier día para que use el turno general por defecto.</p>
+                            <p class="text-[11px] text-slate-500">Deja en blanco cualquier día para usar el turno general.</p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1">
                                 <div>
                                     <label class="block font-semibold">Lunes (1)</label>
@@ -295,8 +307,22 @@
         const tenantSlug = pathSegments.length > 0 ? pathSegments[0] : '';
 
         window.addEventListener('DOMContentLoaded', () => {
-            if (window.location.hash === '#manage') {
+            const hash = window.location.hash;
+            if (hash.includes('manage')) {
                 switchView('manage');
+                const urlParams = new URLSearchParams(window.location.search || hash.split('?')[1]);
+                const phone = urlParams.get('phone');
+                const code = urlParams.get('code');
+                if (phone && code) {
+                    const phoneEl = document.getElementById('lookup_phone');
+                    const codeEl = document.getElementById('lookup_code');
+                    if (phoneEl) phoneEl.value = phone;
+                    if (codeEl) codeEl.value = code;
+                    setTimeout(() => {
+                        const lookupForm = document.getElementById('lookupForm');
+                        if (lookupForm) lookupForm.dispatchEvent(new Event('submit'));
+                    }, 200);
+                }
             }
         });
 
@@ -470,9 +496,9 @@
                     
                     if (item.is_full) {
                         btn.disabled = true;
-                        btn.innerHTML = `<span class="font-bold text-sm">${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold mt-1 text-red-600">COMPLETO (0 libres)</span>`;
+                        btn.innerHTML = `<span class="font-bold text-sm">⏰ ${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold mt-1 text-red-600">COMPLETO (0 libres)</span>`;
                     } else {
-                        btn.innerHTML = `<span class="font-bold text-sm text-slate-800">${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available} / ${item.max_capacity}</span>`;
+                        btn.innerHTML = `<span class="font-bold text-sm text-slate-800">⏰ ${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available} / ${item.max_capacity}</span>`;
                         btn.onclick = () => selectTimeSlot(item.slot, btn);
                     }
                     gridContainer.appendChild(btn);
@@ -532,10 +558,11 @@
                     return;
                 }
 
+                const clientPhoneVal = document.getElementById('client_phone').value.trim();
                 const data = {
                     tenant_id: tenantData.id,
                     client_name: document.getElementById('client_name').value,
-                    client_phone: document.getElementById('client_phone').value,
+                    client_phone: clientPhoneVal,
                     reservation_date: document.getElementById('reservation_date').value,
                     time_slot: selectedTimeSlot,
                     service_name: document.getElementById('service_name').value,
@@ -556,13 +583,13 @@
                     const assignedResourceInfo = document.getElementById('assignedResourceInfo');
 
                     if (resCodeEl) resCodeEl.innerText = activeReservation.booking_code;
-                    if (assignedResourceInfo) assignedResourceInfo.innerText = `Asignación: ${activeReservation.resource_assigned || 'General'} (${activeReservation.time_slot} ➔ ${activeReservation.end_time})`;
+                    if (assignedResourceInfo) assignedResourceInfo.innerHTML = `🏟️ <strong>Asignación:</strong> ${activeReservation.resource_assigned || 'General'} | ⏰ <strong>Horario:</strong> ${activeReservation.time_slot} ➔ ${activeReservation.end_time}`;
                     if (successCardEl) successCardEl.classList.remove('hidden');
 
                     const phoneWp = tenantData.whatsapp_phone || '34600000000';
-                    const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
+                    const manageUrl = `${window.location.origin}/${tenantData.slug}#manage?phone=${encodeURIComponent(clientPhoneVal)}&code=${activeReservation.booking_code}`;
                     
-                    const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Horario:* ${activeReservation.time_slot} a ${activeReservation.end_time}\n🏷️ *Recurso:* ${activeReservation.resource_assigned}\n👥 *Personas:* ${data.party_size}\n🔑 *Código:* ${activeReservation.booking_code}\n\nGestiona tu reserva aquí:\n${manageUrl}`;
+                    const textWp = `🏢 *${tenantData.name}*\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Horario:* ${activeReservation.time_slot} a ${activeReservation.end_time}\n🏟️ *Pista/Recurso:* ${activeReservation.resource_assigned}\n👥 *Personas/Jugadores:* ${data.party_size}\n🔑 *Código de reserva:* ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
                     
                     const whatsappLink = document.getElementById('whatsappLink');
                     if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
@@ -631,15 +658,16 @@
                     const r = data.reservation;
                     container.innerHTML = `
                         <div class="p-4 bg-white border rounded-xl space-y-3">
-                            <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
-                            <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
-                            <p><strong>Cliente:</strong> ${r.client_name}</p>
-                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
-                            <p><strong>Horario:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} ➔ ${r.end_time}</span></p>
-                            <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
+                            <h4 class="font-bold text-indigo-600">🏢 Detalles de la Reserva</h4>
+                            <p>🏢 <strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
+                            <p>👤 <strong>Cliente:</strong> ${r.client_name}</p>
+                            <p>📅 <strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
+                            <p>⏰ <strong>Horario:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} ➔ ${r.end_time}</span></p>
+                            <p>🏟️ <strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
+                            <p>👥 <strong>Personas/Jugadores:</strong> ${r.party_size}</p>
                             
-                            <div class="flex gap-2 pt-2">
-                                <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
+                            <div class="pt-2 border-t flex justify-end">
+                                <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">🗑️ Anular Reserva</button>
                             </div>
                         </div>
                     `;
@@ -713,6 +741,7 @@
             window.currentTenantId = currentAdminTenant.tenant_id;
             
             const adminBusinessTitle = document.getElementById('adminBusinessTitle');
+            const adminClientWebLink = document.getElementById('adminClientWebLink');
             const confName = document.getElementById('conf_name');
             const confBusinessType = document.getElementById('conf_business_type');
             const confCapacity = document.getElementById('conf_capacity');
@@ -723,7 +752,13 @@
             const confVacationStart = document.getElementById('conf_vacation_start');
             const confVacationEnd = document.getElementById('conf_vacation_end');
 
+            const clientWebUrl = `${window.location.origin}/${currentAdminTenant.slug}`;
             if (adminBusinessTitle) adminBusinessTitle.innerText = `Panel: ${currentAdminTenant.name}`;
+            if (adminClientWebLink) {
+                adminClientWebLink.href = clientWebUrl;
+                adminClientWebLink.innerText = clientWebUrl;
+            }
+
             if (confName) confName.value = currentAdminTenant.name;
             if (confBusinessType) confBusinessType.value = currentAdminTenant.business_type || 'general';
             if (confCapacity) confCapacity.value = currentAdminTenant.max_capacity || 10;
@@ -750,6 +785,14 @@
             }
 
             loadAdminReservations();
+        }
+
+        function copyClientWebLink() {
+            if (!currentAdminTenant) return;
+            const clientWebUrl = `${window.location.origin}/${currentAdminTenant.slug}`;
+            navigator.clipboard.writeText(clientWebUrl).then(() => {
+                alert('¡Enlace de reservas copiado al portapapeles!');
+            });
         }
 
         const configForm = document.getElementById('configForm');
@@ -847,10 +890,10 @@
                 div.className = 'p-3 bg-slate-50 border rounded-xl flex justify-between items-center';
                 div.innerHTML = `
                     <div>
-                        <p class="font-bold text-slate-800">${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[${r.booking_code}]</span></p>
-                        <p class="text-slate-500">Recurso: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${r.reservation_date} | ${r.time_slot} ➔ ${r.end_time} | Personas: ${r.party_size}</p>
+                        <p class="font-bold text-slate-800">👤 ${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[🔑 ${r.booking_code}]</span></p>
+                        <p class="text-slate-500">🏟️ Recurso: <strong>${r.resource_assigned || 'General'}</strong> | 📅 Fecha: ${r.reservation_date} | ⏰ ${r.time_slot} ➔ ${r.end_time} | 👥 Personas: ${r.party_size}</p>
                     </div>
-                    <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
+                    <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">🗑️ Anular</button>
                 `;
                 listContainer.appendChild(div);
             });

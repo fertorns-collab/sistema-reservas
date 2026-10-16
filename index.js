@@ -138,7 +138,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     const businessType = tenant.business_type || 'general';
     const maxCapacity = tenant.max_capacity || 10;
 
-    // Verificar cierre por vacaciones entre dos fechas (vacationStart y vacationEnd)
     const vacationStart = settings.vacationStart;
     const vacationEnd = settings.vacationEnd;
     if (vacationStart && vacationEnd) {
@@ -148,7 +147,7 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     }
 
     const dateObj = new Date(date + 'T00:00:00');
-    const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    const dayOfWeek = dateObj.getDay();
     const closedDays = settings.closedDays || [];
     const forcedOpenDates = settings.forcedOpenDates || [];
 
@@ -156,7 +155,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado por día de descanso semanal." });
     }
 
-    // Horarios específicos por día de la semana (dayShifts para 0 al 6)
     const dayShifts = settings.dayShifts || {};
     const shifts = (dayShifts[dayOfWeek] !== undefined && dayShifts[dayOfWeek] !== null && dayShifts[dayOfWeek].length > 0) 
       ? dayShifts[dayOfWeek] 
@@ -363,30 +361,6 @@ app.put('/api/reservations/cancel', async (req, res) => {
     }
 
     res.json({ success: true, message: "Reserva anulada correctamente." });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/reservations/update', async (req, res) => {
-  try {
-    const { id, client_phone, booking_code, reservation_date, time_slot, party_size, service_name } = req.body;
-    
-    const updated = await pool.query(
-      `UPDATE reservations 
-       SET reservation_date = COALESCE($1, reservation_date),
-           time_slot = COALESCE($2, time_slot),
-           party_size = COALESCE($3, party_size),
-           service_name = COALESCE($4, service_name)
-       WHERE id = $5 AND client_phone = $6 AND booking_code = $7 RETURNING *`,
-      [reservation_date, time_slot, party_size, service_name, id, client_phone, booking_code]
-    );
-
-    if (updated.rows.length === 0) {
-      return res.status(404).json({ error: 'No se pudo actualizar la reserva. Verifique los datos.' });
-    }
-
-    res.json({ success: true, message: "Reserva modificada correctamente", reservation: updated.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
