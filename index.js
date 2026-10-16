@@ -389,15 +389,15 @@ app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
        SET name = COALESCE($1, name), 
            max_capacity = COALESCE($2, max_capacity), 
            whatsapp_phone = COALESCE($3, whatsapp_phone),
-           settings = COALESCE($4, settings),
-           services = COALESCE($5, services)
+           settings = COALESCE($4::jsonb, settings),
+           services = COALESCE($5::jsonb, services)
        WHERE id = $6 RETURNING *`,
       [
         name, 
         max_capacity, 
         whatsapp_phone, 
-        settings || null, 
-        services || null,
+        settings ? JSON.stringify(settings) : null, 
+        services ? JSON.stringify(services) : null,
         tenant_id
       ]
     );
@@ -408,6 +408,7 @@ app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
 
     res.json({ success: true, message: "Configuración actualizada con éxito", tenant });
   } catch (err) {
+    console.error("Error al actualizar negocio:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

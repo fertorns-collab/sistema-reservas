@@ -435,12 +435,10 @@
                 const phoneWp = tenantData.whatsapp_phone || '34600000000';
                 const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
                 
-                // Texto de WhatsApp actualizado con iconos representativos
                 const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot}\n🏷️ *Servicio:* ${data.service_name}\n👥 *Plazas:* ${data.party_size}\n🔑 *Código de reserva:* ${activeReservation.booking_code}\n\nPuedes gestionar, modificar o anular tu reserva aquí:\n${manageUrl}`;
                 
                 document.getElementById('whatsappLink').href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
                 
-                // Configurar Google Calendar con el nombre correcto del negocio
                 const cleanDate = data.reservation_date.replace(/-/g, '');
                 const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
                 const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + data.service_name + ' | Código de reserva: ' + activeReservation.booking_code)}`;
@@ -657,7 +655,7 @@
                 currentAdminTenant.services = services;
                 currentAdminTenant.settings = { shifts, closedDays, slotDurationMinutes: 60 };
             } else {
-                alert('Error al actualizar.');
+                alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
             }
         });
 
