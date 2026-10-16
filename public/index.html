@@ -74,7 +74,7 @@
 
                 <!-- Tabla de Disponibilidad Visual -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-2">⏰ Selecciona una Franja Horaria (Libres / Total)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-2">⏰ Selecciona una Franja Horaria (Inicio ➔ Fin)</label>
                     <div id="availabilityGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                         <p class="text-xs text-slate-400 col-span-full py-2">Selecciona una fecha para ver los turnos disponibles...</p>
                     </div>
@@ -167,8 +167,16 @@
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Turnos (Ej. 09:00-14:00, 16:00-22:00)</label>
+                            <label class="block font-bold mb-1">Turnos Generales (Ej. 09:00-22:00)</label>
                             <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Horario Sábado (Ej. 09:00-15:00)</label>
+                            <input type="text" id="conf_shift_sat" class="w-full p-2 border rounded bg-white" placeholder="Ej. 09:00-15:00">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Horario Domingo (Ej. 13:00-21:00)</label>
+                            <input type="text" id="conf_shift_sun" class="w-full p-2 border rounded bg-white" placeholder="Ej. 13:00-21:00">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block font-bold mb-1">Servicios (Separados por comas)</label>
@@ -276,7 +284,6 @@
                     if (businessNameEl) businessNameEl.innerText = tenantData.name;
                     if (businessSubtitleEl) businessSubtitleEl.innerText = `Gestión de ${tenantData.business_type} (Capacidad máx: ${tenantData.max_capacity})`;
 
-                    // Adaptar interfaz según tipo de negocio
                     const durationWrapper = document.getElementById('durationWrapper');
                     const partySizeLabel = document.getElementById('partySizeLabel');
                     
@@ -362,6 +369,13 @@
             } else if (view === 'manage') {
                 if (manageView) manageView.classList.remove('hidden');
             } else if (view === 'admin') {
+                if (adminBusinesses.length > 0) {
+                    document.getElementById('adminLoginBox').classList.add('hidden');
+                    document.getElementById('adminDashboardBox').classList.remove('hidden');
+                } else {
+                    document.getElementById('adminLoginBox').classList.remove('hidden');
+                    document.getElementById('adminDashboardBox').classList.add('hidden');
+                }
                 if (adminView) adminView.classList.remove('hidden');
             } else if (view === 'register') {
                 if (registerView) registerView.classList.remove('hidden');
@@ -405,7 +419,7 @@
                 }
 
                 if (!data.availability || data.availability.length === 0) {
-                    gridContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">No hay horarios configurados</p>';
+                    gridContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">No hay horarios configurados para este día</p>';
                     return;
                 }
 
@@ -416,7 +430,7 @@
                     
                     if (item.is_full) {
                         btn.disabled = true;
-                        btn.innerHTML = `<span class="font-bold text-sm">${item.slot} - ${item.end_time}</span><span class="text-[10px] font-bold mt-1 text-red-600">COMPLETO (0 libres)</span>`;
+                        btn.innerHTML = `<span class="font-bold text-sm">${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold mt-1 text-red-600">COMPLETO (0 libres)</span>`;
                     } else {
                         btn.innerHTML = `<span class="font-bold text-sm text-slate-800">${item.slot} ➔ ${item.end_time}</span><span class="text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available} / ${item.max_capacity}</span>`;
                         btn.onclick = () => selectTimeSlot(item.slot, btn);
@@ -502,19 +516,19 @@
                     const assignedResourceInfo = document.getElementById('assignedResourceInfo');
 
                     if (resCodeEl) resCodeEl.innerText = activeReservation.booking_code;
-                    if (assignedResourceInfo) assignedResourceInfo.innerText = `Asignación: ${activeReservation.resource_assigned || 'General'} (Fin: ${activeReservation.end_time})`;
+                    if (assignedResourceInfo) assignedResourceInfo.innerText = `Asignación: ${activeReservation.resource_assigned || 'General'} (${activeReservation.time_slot} ➔ ${activeReservation.end_time})`;
                     if (successCardEl) successCardEl.classList.remove('hidden');
 
                     const phoneWp = tenantData.whatsapp_phone || '34600000000';
                     const manageUrl = `${window.location.origin}/${tenantData.slug}#manage`;
                     
-                    const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Hora:* ${data.time_slot} a ${activeReservation.end_time}\n🏷️ *Recurso:* ${activeReservation.resource_assigned}\n👥 *Personas:* ${data.party_size}\n🔑 *Código:* ${activeReservation.booking_code}\n\nGestiona tu reserva aquí:\n${manageUrl}`;
+                    const textWp = `Hola! Confirmo mi reserva en *${tenantData.name}*.\n\n📅 *Fecha:* ${data.reservation_date}\n⏰ *Horario:* ${activeReservation.time_slot} a ${activeReservation.end_time}\n🏷️ *Recurso:* ${activeReservation.resource_assigned}\n👥 *Personas:* ${data.party_size}\n🔑 *Código:* ${activeReservation.booking_code}\n\nGestiona tu reserva aquí:\n${manageUrl}`;
                     
                     const whatsappLink = document.getElementById('whatsappLink');
                     if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
                     
                     const cleanDate = data.reservation_date.replace(/-/g, '');
-                    const timeStr = (data.time_slot || '10:00').replace(':', '') + '00';
+                    const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
                     const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Recurso: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
                     
                     const gCalendarLink = document.getElementById('gCalendarLink');
@@ -542,7 +556,7 @@
                 `DTSTART:${cleanDate}T${timeStr}Z`,
                 `DTEND:${cleanDate}T${timeStr}Z`,
                 `SUMMARY:Reserva en ${tenantData.name}`,
-                `DESCRIPTION:Asignación: ${activeReservation.resource_assigned} \\nCódigo: ${activeReservation.booking_code} \\nPersonas: ${activeReservation.party_size}`,
+                `DESCRIPTION:Asignación: ${activeReservation.resource_assigned} (${activeReservation.time_slot} - ${activeReservation.end_time}) \\nCódigo: ${activeReservation.booking_code} \\nPersonas: ${activeReservation.party_size}`,
                 "END:VEVENT",
                 "END:VCALENDAR"
             ].join("\r\n");
@@ -665,6 +679,8 @@
             const confWhatsapp = document.getElementById('conf_whatsapp');
             const confServices = document.getElementById('conf_services');
             const confShifts = document.getElementById('conf_shifts');
+            const confShiftSat = document.getElementById('conf_shift_sat');
+            const confShiftSun = document.getElementById('conf_shift_sun');
 
             if (adminBusinessTitle) adminBusinessTitle.innerText = `Panel: ${currentAdminTenant.name}`;
             if (confName) confName.value = currentAdminTenant.name;
@@ -676,6 +692,14 @@
             const settings = currentAdminTenant.settings || {};
             const shifts = settings.shifts || [];
             if (confShifts) confShifts.value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
+
+            const dayShifts = settings.dayShifts || {};
+            if (confShiftSat && dayShifts["6"] && dayShifts["6"][0]) {
+                confShiftSat.value = `${dayShifts["6"][0].open}-${dayShifts["6"][0].close}`;
+            }
+            if (confShiftSun && dayShifts["0"] && dayShifts["0"][0]) {
+                confShiftSun.value = `${dayShifts["0"][0].open}-${dayShifts["0"][0].close}`;
+            }
 
             loadAdminReservations();
         }
@@ -692,17 +716,31 @@
                 const newWhatsapp = document.getElementById('conf_whatsapp').value;
                 const servicesInput = document.getElementById('conf_services').value;
                 const shiftsInput = document.getElementById('conf_shifts').value;
+                const shiftSatInput = document.getElementById('conf_shift_sat').value;
+                const shiftSunInput = document.getElementById('conf_shift_sun').value;
 
                 if (!confirm(`¿Guardar cambios para el negocio "${newName}"?`)) return;
 
                 const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
-                let shifts = [{ open: "09:00", close: "21:00" }];
+                let shifts = [{ open: "09:00", close: "22:00" }];
                 if (shiftsInput) {
                     shifts = shiftsInput.split(',').map(part => {
                         const [open, close] = part.trim().split('-');
-                        return { open: open ? open.trim() : "09:00", close: close ? close.trim() : "21:00" };
+                        return { open: open ? open.trim() : "09:00", close: close ? close.trim() : "22:00" };
                     });
                 }
+
+                let dayShifts = currentAdminTenant.settings.dayShifts || {};
+                if (shiftSatInput) {
+                    const [open, close] = shiftSatInput.trim().split('-');
+                    dayShifts["6"] = [{ open: open.trim(), close: close.trim() }];
+                }
+                if (shiftSunInput) {
+                    const [open, close] = shiftSunInput.trim().split('-');
+                    dayShifts["0"] = [{ open: open.trim(), close: close.trim() }];
+                }
+
+                const newSettings = { ...currentAdminTenant.settings, shifts, dayShifts, slotDurationMinutes: 60 };
 
                 const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
                     method: 'PUT',
@@ -712,7 +750,7 @@
                         business_type: newBusinessType,
                         max_capacity: parseInt(newCapacity),
                         whatsapp_phone: newWhatsapp,
-                        settings: { shifts, slotDurationMinutes: 60 },
+                        settings: newSettings,
                         services
                     })
                 });
@@ -724,6 +762,7 @@
                     currentAdminTenant.max_capacity = parseInt(newCapacity);
                     currentAdminTenant.whatsapp_phone = newWhatsapp;
                     currentAdminTenant.services = services;
+                    currentAdminTenant.settings = newSettings;
                 } else {
                     alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
                 }

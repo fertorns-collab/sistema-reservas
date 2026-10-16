@@ -71,14 +71,13 @@ const initDB = async () => {
       ALTER TABLE reservations ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'confirmed';
     `);
 
-    console.log("Base de datos inicializada y migrada correctamente para soporte multisectorial.");
+    console.log("Base de datos inicializada y migrada correctamente.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
 };
 initDB();
 
-// Función auxiliar para calcular minutos desde medianoche y viceversa
 const timeToMins = (timeStr) => {
   const [h, m] = (timeStr || "00:00").split(':').map(Number);
   return h * 60 + (m || 0);
@@ -122,7 +121,6 @@ app.get('/api/tenant/:slug', async (req, res) => {
   }
 });
 
-// Endpoint de disponibilidad inteligente adaptada por tipo de negocio
 app.get('/api/availability/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
@@ -138,10 +136,10 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     }
 
     const businessType = tenant.business_type || 'general';
-    const maxCapacity = tenant.max_capacity || 10; // Sirve como número de pistas, mesas o personal máximo
+    const maxCapacity = tenant.max_capacity || 10;
 
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
     const closedDays = settings.closedDays || [];
     const forcedOpenDates = settings.forcedOpenDates || [];
 
@@ -149,12 +147,18 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado por descanso en esta fecha." });
     }
 
-    const shifts = settings.shifts || [{ open: "09:00", close: "21:00" }];
-    
-    // Determinar duración según el tipo de negocio
+    // Soportar horarios específicos por día de la semana (dayShifts) o turnos generales
+    const dayShifts = settings.dayShifts || {};
+    const shifts = dayShifts[dayOfWeek] || settings.shifts || [{ open: "09:00", close: "21:00" }];
+
+    // Si el turno está vacío para este día, el negocio está cerrado
+    if (!shifts || shifts.length === 0) {
+      return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
+    }
+
     let slotDurationMinutes = 60;
     if (businessType === 'court_rental') {
-      slotDurationMinutes = parseInt(duration) || 60; // 60 o 90 mins para pádel
+      slotDurationMinutes = parseInt(duration) || 60;
     } else if (businessType === 'appointment') {
       const serviceDurations = settings.serviceDurations || {};
       slotDurationMinutes = serviceDurations[service_name] || settings.slotDurationMinutes || 60;
@@ -163,7 +167,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       slotDurationMinutes = pSize > 4 ? (settings.durationLarge || 120) : (settings.durationStandard || 90);
     }
 
-    // Generar franjas de inicio de turno
     let slots = [];
     shifts.forEach(shift => {
       let currentMins = timeToMins(shift.open || "09:00");
@@ -171,7 +174,7 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
 
       while (currentMins + slotDurationMinutes <= closeMins) {
         slots.push(minsToTime(currentMins));
-        currentMins += 30; // Saltos de 30 mins para mayor flexibilidad de reserva
+        currentMins += 30;
       }
     });
 
@@ -179,7 +182,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       slots = ["09:00", "10:00", "11:00", "12:00", "13:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
     }
 
-    // Obtener reservas existentes para esa fecha y negocio
     const bookedQuery = await pool.query(
       `SELECT time_slot, end_time, resource_assigned, party_size FROM reservations 
        WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed'`,
@@ -188,13 +190,10 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
 
     const existingReservations = bookedQuery.rows;
 
-    // Calcular disponibilidad por cada franja horaria considerando recursos y solapamiento de intervalos
     const availability = slots.map(slot => {
       const slotStartMins = timeToMins(slot);
       const slotEndMins = slotStartMins + slotDurationMinutes;
 
-      // Filtrar cuántos recursos están ocupados en este intervalo [slotStartMins, slotEndMins)
-      // Solapamiento: InicioA < FinB Y FinA > InicioB
       const overlappingReservations = existingReservations.filter(r => {
         const rStart = timeToMins(r.time_slot);
         const rEnd = timeToMins(r.end_time || r.time_slot);
@@ -205,11 +204,9 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       let assignedResource = null;
 
       if (businessType === 'court_rental' || businessType === 'table_booking') {
-        // Máximo recursos disponibles es maxCapacity (ej. 15 pistas o N mesas)
         const occupiedResources = new Set(overlappingReservations.map(r => r.resource_assigned).filter(Boolean));
         const freeCount = Math.max(0, maxCapacity - occupiedResources.size);
         
-        // Buscar un identificador de recurso libre (ej. "Pista 1" o "Mesa 3")
         for (let i = 1; i <= maxCapacity; i++) {
           const resName = businessType === 'court_rental' ? `Pista ${i}` : `Mesa ${i}`;
           if (!occupiedResources.has(resName)) {
@@ -219,7 +216,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
         }
         availableResourcesCount = freeCount;
       } else {
-        // Para peluquerías / citas: aforo general o personal disponible
         const totalBookedParty = overlappingReservations.reduce((acc, curr) => acc + (curr.party_size || 1), 0);
         availableResourcesCount = Math.max(0, maxCapacity - totalBookedParty);
       }
@@ -240,7 +236,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
   }
 });
 
-// Endpoint para crear reserva con control avanzado de recursos y tiempos
 app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size, service_name, duration } = req.body;
@@ -254,7 +249,6 @@ app.post('/api/reservations', async (req, res) => {
     let settings = tenant.settings || {};
     if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
 
-    // Calcular duración y hora de fin
     let durationMins = 60;
     if (businessType === 'court_rental') {
       durationMins = parseInt(duration) || 60;
@@ -272,7 +266,6 @@ app.post('/api/reservations', async (req, res) => {
     const requestedSize = parseInt(party_size || 1);
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-    // Comprobar colisión de intervalos y recursos ocupados
     const bookedQuery = await pool.query(
       `SELECT time_slot, end_time, resource_assigned, party_size FROM reservations 
        WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed'`,
@@ -407,7 +400,11 @@ app.post('/api/admin/register', async (req, res) => {
     }
 
     const defaultSettings = JSON.stringify({
-      shifts: [{ open: "09:00", close: "14:00" }, { open: "16:00", close: "22:00" }],
+      shifts: [{ open: "09:00", close: "22:00" }],
+      dayShifts: {
+        "0": [{ open: "13:00", close: "21:00" }], // Domingo
+        "6": [{ open: "09:00", close: "15:00" }]  // Sábado
+      },
       slotDurationMinutes: 60,
       closedDays: [],
       serviceDurations: { "Corte": 30, "Tinte": 60, "Manicura": 45 },
@@ -415,7 +412,7 @@ app.post('/api/admin/register', async (req, res) => {
       durationLarge: 120
     });
 
-    const defaultServices = businessType === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (businessType === 'court_rental' ? ["Pádel 60 min", "Pádel 90 min"] : ["General"]);
+    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (business_type === 'court_rental' ? ["Pádel 60 min", "Pádel 90 min"] : ["General"]);
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
