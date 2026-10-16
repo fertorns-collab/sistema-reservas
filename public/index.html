@@ -167,16 +167,56 @@
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Turnos Generales (Ej. 09:00-22:00)</label>
-                            <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white">
+                            <label class="block font-bold mb-1">Turnos Generales / Defecto (Ej. 09:00-22:00)</label>
+                            <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white" placeholder="Ej. 09:00-22:00">
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Horario Sábado (Ej. 09:00-15:00)</label>
-                            <input type="text" id="conf_shift_sat" class="w-full p-2 border rounded bg-white" placeholder="Ej. 09:00-15:00">
+                            <label class="block font-bold mb-1">Días de Descanso Semanal (0=Dom, 1=Lun ... 6=Sáb, separados por coma)</label>
+                            <input type="text" id="conf_closed_days" class="w-full p-2 border rounded bg-white" placeholder="Ej. 1, 2">
                         </div>
-                        <div>
-                            <label class="block font-bold mb-1">Horario Domingo (Ej. 13:00-21:00)</label>
-                            <input type="text" id="conf_shift_sun" class="w-full p-2 border rounded bg-white" placeholder="Ej. 13:00-21:00">
+                        <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-3 border rounded-lg">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">🏖️ Vacaciones / Cierre Desde:</label>
+                                <input type="date" id="conf_vacation_start" class="w-full p-2 border rounded text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">🏖️ Vacaciones / Cierre Hasta:</label>
+                                <input type="date" id="conf_vacation_end" class="w-full p-2 border rounded text-xs bg-white">
+                            </div>
+                        </div>
+                        <div class="md:col-span-2 bg-white p-3 border rounded-lg space-y-2">
+                            <label class="block font-bold text-slate-700">📅 Horarios Específicos para CUALQUIER Día de la Semana</label>
+                            <p class="text-[11px] text-slate-500">Deja en blanco cualquier día para que use el turno general por defecto.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+                                <div>
+                                    <label class="block font-semibold">Lunes (1)</label>
+                                    <input type="text" id="conf_shift_1" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold">Martes (2)</label>
+                                    <input type="text" id="conf_shift_2" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold">Miércoles (3)</label>
+                                    <input type="text" id="conf_shift_3" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold">Jueves (4)</label>
+                                    <input type="text" id="conf_shift_4" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold">Viernes (5)</label>
+                                    <input type="text" id="conf_shift_5" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-22:00">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold">Sábado (6)</label>
+                                    <input type="text" id="conf_shift_6" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-15:00">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold">Domingo (0)</label>
+                                    <input type="text" id="conf_shift_0" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 13:00-21:00">
+                                </div>
+                            </div>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block font-bold mb-1">Servicios (Separados por comas)</label>
@@ -679,8 +719,9 @@
             const confWhatsapp = document.getElementById('conf_whatsapp');
             const confServices = document.getElementById('conf_services');
             const confShifts = document.getElementById('conf_shifts');
-            const confShiftSat = document.getElementById('conf_shift_sat');
-            const confShiftSun = document.getElementById('conf_shift_sun');
+            const confClosedDays = document.getElementById('conf_closed_days');
+            const confVacationStart = document.getElementById('conf_vacation_start');
+            const confVacationEnd = document.getElementById('conf_vacation_end');
 
             if (adminBusinessTitle) adminBusinessTitle.innerText = `Panel: ${currentAdminTenant.name}`;
             if (confName) confName.value = currentAdminTenant.name;
@@ -692,13 +733,20 @@
             const settings = currentAdminTenant.settings || {};
             const shifts = settings.shifts || [];
             if (confShifts) confShifts.value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
+            if (confClosedDays) confClosedDays.value = (settings.closedDays || []).join(', ');
+            if (confVacationStart) confVacationStart.value = settings.vacationStart || '';
+            if (confVacationEnd) confVacationEnd.value = settings.vacationEnd || '';
 
             const dayShifts = settings.dayShifts || {};
-            if (confShiftSat && dayShifts["6"] && dayShifts["6"][0]) {
-                confShiftSat.value = `${dayShifts["6"][0].open}-${dayShifts["6"][0].close}`;
-            }
-            if (confShiftSun && dayShifts["0"] && dayShifts["0"][0]) {
-                confShiftSun.value = `${dayShifts["0"][0].open}-${dayShifts["0"][0].close}`;
+            for (let i = 0; i <= 6; i++) {
+                const inputEl = document.getElementById(`conf_shift_${i}`);
+                if (inputEl) {
+                    if (dayShifts[i] && dayShifts[i][0]) {
+                        inputEl.value = `${dayShifts[i][0].open}-${dayShifts[i][0].close}`;
+                    } else {
+                        inputEl.value = '';
+                    }
+                }
             }
 
             loadAdminReservations();
@@ -716,12 +764,15 @@
                 const newWhatsapp = document.getElementById('conf_whatsapp').value;
                 const servicesInput = document.getElementById('conf_services').value;
                 const shiftsInput = document.getElementById('conf_shifts').value;
-                const shiftSatInput = document.getElementById('conf_shift_sat').value;
-                const shiftSunInput = document.getElementById('conf_shift_sun').value;
+                const closedDaysInput = document.getElementById('conf_closed_days').value;
+                const vacationStart = document.getElementById('conf_vacation_start').value;
+                const vacationEnd = document.getElementById('conf_vacation_end').value;
 
                 if (!confirm(`¿Guardar cambios para el negocio "${newName}"?`)) return;
 
                 const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
+                const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
+
                 let shifts = [{ open: "09:00", close: "22:00" }];
                 if (shiftsInput) {
                     shifts = shiftsInput.split(',').map(part => {
@@ -730,17 +781,18 @@
                     });
                 }
 
-                let dayShifts = currentAdminTenant.settings.dayShifts || {};
-                if (shiftSatInput) {
-                    const [open, close] = shiftSatInput.trim().split('-');
-                    dayShifts["6"] = [{ open: open.trim(), close: close.trim() }];
-                }
-                if (shiftSunInput) {
-                    const [open, close] = shiftSunInput.trim().split('-');
-                    dayShifts["0"] = [{ open: open.trim(), close: close.trim() }];
+                let dayShifts = {};
+                for (let i = 0; i <= 6; i++) {
+                    const val = document.getElementById(`conf_shift_${i}`).value.trim();
+                    if (val) {
+                        const [open, close] = val.split('-');
+                        if (open && close) {
+                            dayShifts[i] = [{ open: open.trim(), close: close.trim() }];
+                        }
+                    }
                 }
 
-                const newSettings = { ...currentAdminTenant.settings, shifts, dayShifts, slotDurationMinutes: 60 };
+                const newSettings = { ...currentAdminTenant.settings, shifts, dayShifts, closedDays, vacationStart, vacationEnd, slotDurationMinutes: 60 };
 
                 const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
                     method: 'PUT',

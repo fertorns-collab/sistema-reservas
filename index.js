@@ -138,20 +138,30 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
     const businessType = tenant.business_type || 'general';
     const maxCapacity = tenant.max_capacity || 10;
 
+    // Verificar cierre por vacaciones entre dos fechas (vacationStart y vacationEnd)
+    const vacationStart = settings.vacationStart;
+    const vacationEnd = settings.vacationEnd;
+    if (vacationStart && vacationEnd) {
+      if (date >= vacationStart && date <= vacationEnd) {
+        return res.json({ closed: true, message: "Negocio cerrado por vacaciones en esta fecha." });
+      }
+    }
+
     const dateObj = new Date(date + 'T00:00:00');
     const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
     const closedDays = settings.closedDays || [];
     const forcedOpenDates = settings.forcedOpenDates || [];
 
     if (closedDays.includes(dayOfWeek) && !forcedOpenDates.includes(date)) {
-      return res.json({ closed: true, message: "Negocio cerrado por descanso en esta fecha." });
+      return res.json({ closed: true, message: "Negocio cerrado por día de descanso semanal." });
     }
 
-    // Soportar horarios específicos por día de la semana (dayShifts) o turnos generales
+    // Horarios específicos por día de la semana (dayShifts para 0 al 6)
     const dayShifts = settings.dayShifts || {};
-    const shifts = dayShifts[dayOfWeek] || settings.shifts || [{ open: "09:00", close: "21:00" }];
+    const shifts = (dayShifts[dayOfWeek] !== undefined && dayShifts[dayOfWeek] !== null && dayShifts[dayOfWeek].length > 0) 
+      ? dayShifts[dayOfWeek] 
+      : (settings.shifts || [{ open: "09:00", close: "21:00" }]);
 
-    // Si el turno está vacío para este día, el negocio está cerrado
     if (!shifts || shifts.length === 0) {
       return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
     }
@@ -401,12 +411,11 @@ app.post('/api/admin/register', async (req, res) => {
 
     const defaultSettings = JSON.stringify({
       shifts: [{ open: "09:00", close: "22:00" }],
-      dayShifts: {
-        "0": [{ open: "13:00", close: "21:00" }], // Domingo
-        "6": [{ open: "09:00", close: "15:00" }]  // Sábado
-      },
-      slotDurationMinutes: 60,
+      dayShifts: {},
       closedDays: [],
+      vacationStart: "",
+      vacationEnd: "",
+      slotDurationMinutes: 60,
       serviceDurations: { "Corte": 30, "Tinte": 60, "Manicura": 45 },
       durationStandard: 90,
       durationLarge: 120
