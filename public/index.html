@@ -155,13 +155,8 @@
                             <input type="text" id="conf_name" class="w-full p-2 border rounded bg-white" required>
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Tipo de Negocio (Sector)</label>
-                            <select id="conf_business_type" class="w-full p-2 border rounded bg-white">
-                                <option value="general">General / Estándar</option>
-                                <option value="court_rental">Pádel / Pistas Deportivas</option>
-                                <option value="appointment">Peluquería / Estética / Citas</option>
-                                <option value="table_booking">Restaurante / Mesas</option>
-                            </select>
+                            <label class="block font-bold mb-1">Tipo de Negocio / Sector</label>
+                            <input type="text" id="conf_business_type" class="w-full p-2 border rounded bg-white" placeholder="Ej. Pádel, Restaurante, Peluquería..." required>
                         </div>
                         <div>
                             <label class="block font-bold mb-1">Capacidad Máxima (Pistas, Mesas o Aforo)</label>
@@ -262,18 +257,13 @@
         <!-- 4. VISTA REGISTRO -->
         <section id="registerView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-900 mb-1">Registrar Nuevo Negocio</h2>
-            <p class="text-xs text-slate-500 mb-4">Crea negocios de pádel, peluquería, restaurantes o cualquier sector bajo tu cuenta.</p>
+            <p class="text-xs text-slate-500 mb-4">Crea negocios de pádel, peluquería, restaurantes o cualquier sector libremente.</p>
             <form id="registerForm" class="space-y-4 max-w-lg">
-                <input type="text" id="reg_name" required placeholder="Nombre del Negocio" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_name" required placeholder="Nombre del Negocio (Ej. Club Pádel Central)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="text" id="reg_slug" required placeholder="Slug URL (ej. padel-club-central)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sector / Tipo de Negocio</label>
-                    <select id="reg_business_type" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
-                        <option value="general">General / Estándar</option>
-                        <option value="court_rental">Pádel / Pistas Deportivas (Ej. 15 pistas)</option>
-                        <option value="appointment">Peluquería / Salón de Belleza</option>
-                        <option value="table_booking">Restaurante / Mesas</option>
-                    </select>
+                    <input type="text" id="reg_business_type" required placeholder="Ej. Pádel, Restaurante, Peluquería..." value="Pádel" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
                 </div>
                 <input type="number" id="reg_max_capacity" value="15" required placeholder="Capacidad Máxima / Total Pistas o Mesas" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="tel" id="reg_whatsapp" required placeholder="WhatsApp (+34...)" class="w-full px-4 py-3 rounded-xl border text-sm">
@@ -403,14 +393,15 @@
                     const businessSubtitleEl = document.getElementById('businessSubtitle');
 
                     if (businessNameEl) businessNameEl.innerText = tenantData.name;
-                    if (businessSubtitleEl) businessSubtitleEl.innerText = `Gestión de ${tenantData.business_type} (Capacidad máx: ${tenantData.max_capacity})`;
+                    if (businessSubtitleEl) businessSubtitleEl.innerText = `Sector: ${tenantData.business_type} (Capacidad máx: ${tenantData.max_capacity})`;
 
                     const partySizeLabel = document.getElementById('partySizeLabel');
-                    if (tenantData.business_type === 'court_rental') {
+                    const bTypeLower = (tenantData.business_type || '').toLowerCase();
+                    if (bTypeLower.includes('pádel') || bTypeLower.includes('padel') || bTypeLower.includes('pista')) {
                         if (partySizeLabel) partySizeLabel.innerText = "Jugadores";
-                    } else if (tenantData.business_type === 'table_booking') {
+                    } else if (bTypeLower.includes('restaurante') || bTypeLower.includes('mesa')) {
                         if (partySizeLabel) partySizeLabel.innerText = "Comensales";
-                    } else if (tenantData.business_type === 'appointment') {
+                    } else {
                         if (partySizeLabel) partySizeLabel.innerText = "Personas";
                     }
 
@@ -455,7 +446,7 @@
                     card.innerHTML = `
                         <div>
                             <h4 class="font-bold text-slate-900">${t.name}</h4>
-                            <p class="text-[11px] text-slate-500">Tipo: ${t.business_type} | Capacidad: ${t.max_capacity}</p>
+                            <p class="text-[11px] text-slate-500">Sector: ${t.business_type} | Capacidad: ${t.max_capacity}</p>
                         </div>
                         <a href="/${t.slug}" class="bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Reservar</a>
                     `;
@@ -467,7 +458,6 @@
         }
 
         function switchView(view) {
-            // CORREGIDO: Se elimina la restricción que bloqueaba el cambio de vista al venir desde WhatsApp
             const clientView = document.getElementById('clientView');
             const directorySelector = document.getElementById('directorySelector');
             const manageView = document.getElementById('manageView');
@@ -828,7 +818,7 @@
             }
 
             if (confName) confName.value = currentAdminTenant.name;
-            if (confBusinessType) confBusinessType.value = currentAdminTenant.business_type || 'general';
+            if (confBusinessType) confBusinessType.value = currentAdminTenant.business_type || '';
             if (confCapacity) confCapacity.value = currentAdminTenant.max_capacity || 10;
             if (confWhatsapp) confWhatsapp.value = currentAdminTenant.whatsapp_phone || '';
             if (confServices) confServices.value = (currentAdminTenant.services || []).join(', ');

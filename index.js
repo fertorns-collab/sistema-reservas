@@ -89,6 +89,18 @@ const minsToTime = (totalMins) => {
   return `${h}:${m}`;
 };
 
+const getEffectiveBusinessType = (rawType) => {
+  const bTypeLower = String(rawType || 'general').toLowerCase();
+  if (bTypeLower.includes('pádel') || bTypeLower.includes('padel') || bTypeLower.includes('pista') || bTypeLower.includes('deporte') || bTypeLower.includes('court')) {
+    return 'court_rental';
+  } else if (bTypeLower.includes('peluquería') || bTypeLower.includes('peluqueria') || bTypeLower.includes('estética') || bTypeLower.includes('estetica') || bTypeLower.includes('cita') || bTypeLower.includes('appointment')) {
+    return 'appointment';
+  } else if (bTypeLower.includes('restaurante') || bTypeLower.includes('mesa') || bTypeLower.includes('table') || bTypeLower.includes('comida')) {
+    return 'table_booking';
+  }
+  return 'general';
+};
+
 app.get('/api/tenants', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, name, slug, business_type, max_capacity, whatsapp_phone FROM tenants ORDER BY name ASC');
@@ -135,7 +147,7 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       try { settings = JSON.parse(settings); } catch (e) { settings = {}; }
     }
 
-    const businessType = tenant.business_type || 'general';
+    const businessType = getEffectiveBusinessType(tenant.business_type);
     const maxCapacity = tenant.max_capacity || 10;
 
     const vacationStart = settings.vacationStart;
@@ -259,7 +271,7 @@ app.post('/api/reservations', async (req, res) => {
     if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
     
     const tenant = tenantInfo.rows[0];
-    const businessType = tenant.business_type || 'general';
+    const businessType = getEffectiveBusinessType(tenant.business_type);
     const maxCapacity = tenant.max_capacity || 10;
     let settings = tenant.settings || {};
     if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
@@ -409,12 +421,12 @@ app.post('/api/admin/register', async (req, res) => {
       durationLarge: 120
     });
 
-    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : ["60 Minutos", "90 Minutos"];
+    const defaultServices = ["60 Minutos", "90 Minutos"];
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb) RETURNING id, name, slug`,
-      [name, slug, business_type || 'general', max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
+      [name, slug, business_type || 'Pádel', max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });
