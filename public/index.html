@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Actualización Versión 2.8.0 -->
+    <!-- Actualización Versión 2.8.1 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS de Reservas Multi-negocio 24/7</title>
@@ -118,14 +118,74 @@
             </div>
 
             <div id="adminDashboardBox" class="hidden space-y-6">
-                <div class="flex justify-between items-center border-b pb-4">
-                    <h2 id="adminBusinessTitle" class="text-xl font-bold text-slate-900">Panel</h2>
-                    <select id="businessSelector" onchange="switchAdminBusiness()" class="p-2 border rounded-lg text-xs font-bold bg-slate-50"></select>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-3">
+                    <div>
+                        <h2 id="adminBusinessTitle" class="text-xl font-bold text-slate-900">Panel de Control</h2>
+                        <p class="text-xs text-slate-500">Gestiona la configuración y reservas de tu negocio.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="businessSelector" onchange="switchAdminBusiness()" class="p-2 border rounded-lg text-xs font-bold bg-slate-50"></select>
+                        <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline cursor-pointer">Cerrar Sesión</button>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xs font-bold uppercase text-slate-600 mb-3">Listado de Reservas</h3>
-                    <div id="adminReservationsList" class="space-y-2 max-h-96 overflow-y-auto text-xs"></div>
+
+                <!-- Enlace Web -->
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 space-y-2 text-xs">
+                    <h3 class="font-bold text-indigo-900 uppercase">Enlace Web de Reservas</h3>
+                    <div class="flex flex-col sm:flex-row gap-2 justify-between items-center bg-white p-2.5 rounded border border-indigo-100">
+                        <a id="adminClientWebLink" href="#" target="_blank" class="text-indigo-600 font-mono underline"></a>
+                        <button type="button" onclick="copyClientWebLink()" class="bg-indigo-600 text-white px-3 py-1 rounded font-bold cursor-pointer">Copiar Link</button>
+                    </div>
                 </div>
+
+                <!-- Formulario de Configuración -->
+                <div class="bg-slate-50 p-4 rounded-xl border space-y-4">
+                    <h3 class="text-xs font-bold uppercase text-slate-700">Configuración del Negocio</h3>
+                    <form id="configForm" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <label class="block font-bold mb-1">Nombre del Negocio</label>
+                            <input type="text" id="conf_name" class="w-full p-2 border rounded bg-white" required>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Tipo de Negocio / Sector</label>
+                            <input type="text" id="conf_business_type" class="w-full p-2 border rounded bg-white" required>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Capacidad Máxima / Aforo</label>
+                            <input type="number" id="conf_capacity" class="w-full p-2 border rounded bg-white" required>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Teléfono WhatsApp</label>
+                            <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-bold mb-1">Google Sheets Webhook URL (Exportación Automática)</label>
+                            <input type="url" id="conf_sheets_webhook" class="w-full p-2 border rounded bg-white" placeholder="https://script.google.com/macros/s/.../exec">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Turnos (Ej. 08:00-20:00)</label>
+                            <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white" placeholder="Ej. 08:00-20:00">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Días de Descanso (0=Dom, 1=Lun ...)</label>
+                            <input type="text" id="conf_closed_days" class="w-full p-2 border rounded bg-white" placeholder="Ej. 1">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-bold mb-1">Servicios / Productos (Separados por comas)</label>
+                            <input type="text" id="conf_services" class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div>
+                            <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded cursor-pointer">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Listado de Reservas -->
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-bold uppercase text-slate-600">Listado de Reservas / Pedidos</h3>
+                    <button onclick="exportToCSV()" class="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer">Exportar CSV</button>
+                </div>
+                <div id="adminReservationsList" class="space-y-2 max-h-96 overflow-y-auto text-xs"></div>
             </div>
         </section>
 
@@ -354,8 +414,71 @@
         async function selectAdminBusiness(idx) {
             currentAdminTenant = adminBusinesses[idx];
             window.currentTenantId = currentAdminTenant.tenant_id;
+            
+            const clientWebUrl = `${window.location.origin}/${currentAdminTenant.slug}`;
+            document.getElementById('adminClientWebLink').href = clientWebUrl;
+            document.getElementById('adminClientWebLink').innerText = clientWebUrl;
+
+            document.getElementById('conf_name').value = currentAdminTenant.name;
+            document.getElementById('conf_business_type').value = currentAdminTenant.business_type || '';
+            document.getElementById('conf_capacity').value = currentAdminTenant.max_capacity || 50;
+            document.getElementById('conf_whatsapp').value = currentAdminTenant.whatsapp_phone || '';
+            
+            const settings = currentAdminTenant.settings || {};
+            document.getElementById('conf_sheets_webhook').value = settings.googleSheetsWebhook || '';
+            document.getElementById('conf_shifts').value = (settings.shifts || []).map(s => `${s.open}-${s.close}`).join(', ');
+            document.getElementById('conf_closed_days').value = (settings.closedDays || []).join(', ');
+            document.getElementById('conf_services').value = (currentAdminTenant.services || []).join(', ');
+
             loadAdminReservations();
         }
+
+        function copyClientWebLink() {
+            if (!currentAdminTenant) return;
+            navigator.clipboard.writeText(`${window.location.origin}/${currentAdminTenant.slug}`).then(() => {
+                alert('¡Enlace copiado al portapapeles!');
+            });
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!window.currentTenantId) return;
+
+            const name = document.getElementById('conf_name').value;
+            const business_type = document.getElementById('conf_business_type').value;
+            const max_capacity = parseInt(document.getElementById('conf_capacity').value);
+            const whatsapp_phone = document.getElementById('conf_whatsapp').value;
+            const googleSheetsWebhook = document.getElementById('conf_sheets_webhook').value.trim();
+            const services = document.getElementById('conf_services').value.split(',').map(s => s.trim()).filter(Boolean);
+            const shiftsInput = document.getElementById('conf_shifts').value;
+            const closedDays = document.getElementById('conf_closed_days').value.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+
+            let shifts = [{ open: "08:00", close: "20:00" }];
+            if (shiftsInput) {
+                shifts = shiftsInput.split(',').map(part => {
+                    const [open, close] = part.trim().split('-');
+                    return { open: open ? open.trim() : "08:00", close: close ? close.trim() : "20:00" };
+                });
+            }
+
+            const newSettings = { ...currentAdminTenant.settings, shifts, closedDays, googleSheetsWebhook };
+
+            const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, business_type, max_capacity, whatsapp_phone, settings: newSettings, services })
+            });
+            const result = await res.json();
+            if (res.ok && result.tenant) {
+                alert('¡Configuración actualizada con éxito!');
+                currentAdminTenant.name = name;
+                currentAdminTenant.business_type = business_type;
+                currentAdminTenant.max_capacity = max_capacity;
+                currentAdminTenant.whatsapp_phone = whatsapp_phone;
+                currentAdminTenant.services = services;
+                currentAdminTenant.settings = newSettings;
+            }
+        });
 
         async function loadAdminReservations() {
             const res = await fetch(`/api/admin/reservations/${window.currentTenantId}`);
@@ -381,6 +504,21 @@
             });
             if (res.ok) loadAdminReservations();
         }
+
+        function exportToCSV() {
+            if (!fetchedReservations.length) return alert('Sin datos.');
+            let csv = "Codigo,Cliente,Telefono,Servicio,Fecha,Inicio,Fin,Cantidad,Estado\n";
+            fetchedReservations.forEach(r => {
+                csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.service_name}",${formatDate(r.reservation_date)},${r.time_slot},${r.end_time},${r.party_size},${r.status}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `reservas_${currentAdminTenant.slug}.csv`;
+            link.click();
+        }
+
+        function logoutAdmin() { location.reload(); }
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
