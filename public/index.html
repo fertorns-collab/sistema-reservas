@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- Actualización forzada - Versión 2.7.1 -->
+    <!-- Actualización forzada - Versión 2.7.2 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS de Reservas Multi-negocio 24/7</title>
@@ -167,6 +167,10 @@
                             <label class="block font-bold mb-1">Teléfono WhatsApp</label>
                             <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
                         </div>
+                        <div class="md:col-span-2">
+                            <label class="block font-bold mb-1">Google Sheets Webhook URL (Exportación Automática)</label>
+                            <input type="url" id="conf_sheets_webhook" class="w-full p-2 border rounded bg-white" placeholder="https://script.google.com/macros/s/.../exec">
+                        </div>
                         <div>
                             <label class="block font-bold mb-1">Turnos Generales / Defecto (Ej. 09:00-22:00)</label>
                             <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white" placeholder="Ej. 09:00-22:00">
@@ -291,6 +295,24 @@
         const tenantSlug = pathSegments.length > 0 ? pathSegments[0] : '';
         const isFromWhatsapp = window.location.search.includes('phone=') || (window.location.hash && window.location.hash.includes('phone='));
 
+        // Función robusta para formatear fechas ISO (2026-10-21T00:00:00.000z) a dd/mm/aaaa
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const cleanStr = String(dateStr).split('T')[0];
+            const parts = cleanStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+                const day = String(d.getUTCDate()).padStart(2, '0');
+                const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+                const year = d.getUTCFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            return dateStr;
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             const hash = window.location.hash;
             if (hash.includes('manage') || isFromWhatsapp) {
@@ -346,6 +368,13 @@
 
                 if (res.ok && data.success) {
                     const r = data.reservation;
+                    activeReservation = r; // Guardamos para el botón .ics si hace falta
+                    if (!tenantData && r.tenant_slug) {
+                        try {
+                            const tRes = await fetch(`/api/tenant/${r.tenant_slug}`);
+                            if (tRes.ok) tenantData = await tRes.json();
+                        } catch(e) {}
+                    }
                     container.innerHTML = `
                         <div class="p-4 bg-white border rounded-xl space-y-3">
                             <h4 class="font-bold text-indigo-600 text-base">Detalles de tu Reserva</h4>
@@ -353,13 +382,14 @@
                             <p><strong>Cliente:</strong> ${r.client_name}</p>
                             <p><strong>Teléfono:</strong> ${r.client_phone}</p>
                             <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
-                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
+                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${formatDate(r.reservation_date)}</span></p>
                             <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
                             <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
                             <p><strong>Plazas / Personas:</strong> ${r.party_size}</p>
                             <p><strong>Código de Reserva:</strong> <span class="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">${r.booking_code}</span></p>
                             
-                            <div class="pt-3 border-t flex justify-end">
+                            <div class="pt-3 border-t flex flex-wrap gap-2 justify-between items-center">
+                                <button onclick="downloadICS()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Descargar Calendario (.ics)</button>
                                 <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
                             </div>
                         </div>
@@ -662,37 +692,38 @@
                     const phoneWp = tenantData.whatsapp_phone || '34600000000';
                     const manageUrl = `${window.location.origin}/${tenantData.slug}#manage?phone=${encodeURIComponent(clientPhoneVal)}&code=${activeReservation.booking_code}`;
                     
-                    const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${data.reservation_date}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nPlaza: ${activeReservation.resource_assigned}\nPersonas: ${data.party_size}\nCódigo de reserva: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
+                    const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${formatDate(data.reservation_date)}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nPlaza: ${activeReservation.resource_assigned}\nPersonas: ${data.party_size}\nCódigo de reserva: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
                     
                     const whatsappLink = document.getElementById('whatsappLink');
                     if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
                     
                     window.open(whatsappLink.href, '_blank');
 
-                    const cleanDate = data.reservation_date.replace(/-/g, '');
+                    const cleanDate = (data.reservation_date || '').split('T')[0].replace(/-/g, '');
                     const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
                     const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Plaza: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
                     
                     const gCalendarLink = document.getElementById('gCalendarLink');
                     if (gCalendarLink) gCalendarLink.href = gCalUrl;
 
-                    alert("¡Reserva confirmada con éxito y enviada a WhatsApp!");
+                    alert("¡Reserva confirmada con éxito y exportada a Google Sheets!");
                 } else {
                     alert(result.error || 'Error al procesar la reserva.');
                 }
             });
         }
 
-        // --- CORREGIDO: Función ICS optimizada para que cargue perfectamente en cualquier calendario ---
+        // --- CORREGIDO: Método robusto Data URI compatible con móviles (WhatsApp / iOS / Android) ---
         function downloadICS() {
-            if (!activeReservation || !tenantData) return;
-            const dateStr = activeReservation.reservation_date; // Formato YYYY-MM-DD
-            const startTimeStr = activeReservation.time_slot; // Formato HH:MM
-            const endTimeStr = activeReservation.end_time; // Formato HH:MM
+            if (!activeReservation) return;
+            const tName = tenantData ? tenantData.name : (activeReservation.tenant_name || 'Negocio');
+            const datePart = (activeReservation.reservation_date || '').split('T')[0]; // "YYYY-MM-DD"
+            const cleanDate = datePart.replace(/-/g, ''); // "YYYYMMDD"
+            const startTimeStr = (activeReservation.time_slot || '09:00').replace(':', '') + '00';
+            const endTimeStr = (activeReservation.end_time || '10:00').replace(':', '') + '00';
 
-            const cleanDate = dateStr.replace(/-/g, '');
-            const startTimestamp = `${cleanDate}T${startTimeStr.replace(':', '')}00`;
-            const endTimestamp = `${cleanDate}T${endTimeStr.replace(':', '')}00`;
+            const startTimestamp = `${cleanDate}T${startTimeStr}`;
+            const endTimestamp = `${cleanDate}T${endTimeStr}`;
             const nowTimestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
             const icsContent = [
@@ -706,16 +737,16 @@
                 `DTSTAMP:${nowTimestamp}`,
                 `DTSTART:${startTimestamp}`,
                 `DTEND:${endTimestamp}`,
-                `SUMMARY:Reserva en ${tenantData.name} (${activeReservation.resource_assigned})`,
-                `DESCRIPTION:Reserva en ${tenantData.name}\\nPlaza/Recurso: ${activeReservation.resource_assigned}\\nHorario: ${startTimeStr} - ${endTimeStr}\\nPersonas: ${activeReservation.party_size}\\nCódigo de reserva: ${activeReservation.booking_code}`,
-                `LOCATION:${tenantData.name}`,
+                `SUMMARY:Reserva en ${tName} (${activeReservation.resource_assigned})`,
+                `DESCRIPTION:Reserva en ${tName}\\nPlaza/Recurso: ${activeReservation.resource_assigned}\\nHorario: ${activeReservation.time_slot} - ${activeReservation.end_time}\\nPersonas: ${activeReservation.party_size}\\nCodigo de reserva: ${activeReservation.booking_code}`,
+                `LOCATION:${tName}`,
                 "END:VEVENT",
                 "END:VCALENDAR"
             ].join("\r\n");
             
-            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const encodedUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
             const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('href', encodedUri);
             link.setAttribute('download', `reserva-${activeReservation.booking_code}.ics`);
             document.body.appendChild(link);
             link.click();
@@ -741,6 +772,13 @@
 
                 if (res.ok && data.success) {
                     const r = data.reservation;
+                    activeReservation = r;
+                    if (!tenantData && r.tenant_slug) {
+                        try {
+                            const tRes = await fetch(`/api/tenant/${r.tenant_slug}`);
+                            if (tRes.ok) tenantData = await tRes.json();
+                        } catch(e) {}
+                    }
                     container.innerHTML = `
                         <div class="p-4 bg-white border rounded-xl space-y-3">
                             <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
@@ -748,12 +786,13 @@
                             <p><strong>Cliente:</strong> ${r.client_name}</p>
                             <p><strong>Teléfono:</strong> ${r.client_phone}</p>
                             <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
-                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
+                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${formatDate(r.reservation_date)}</span></p>
                             <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
                             <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
                             <p><strong>Plazas / Personas:</strong> ${r.party_size}</p>
                             
-                            <div class="pt-2 border-t flex justify-end">
+                            <div class="pt-2 border-t flex flex-wrap gap-2 justify-between items-center">
+                                <button onclick="downloadICS()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Descargar Calendario (.ics)</button>
                                 <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
                             </div>
                         </div>
@@ -833,6 +872,7 @@
             const confBusinessType = document.getElementById('conf_business_type');
             const confCapacity = document.getElementById('conf_capacity');
             const confWhatsapp = document.getElementById('conf_whatsapp');
+            const confSheetsWebhook = document.getElementById('conf_sheets_webhook');
             const confServices = document.getElementById('conf_services');
             const confShifts = document.getElementById('conf_shifts');
             const confClosedDays = document.getElementById('conf_closed_days');
@@ -850,9 +890,10 @@
             if (confBusinessType) confBusinessType.value = currentAdminTenant.business_type || '';
             if (confCapacity) confCapacity.value = currentAdminTenant.max_capacity || 10;
             if (confWhatsapp) confWhatsapp.value = currentAdminTenant.whatsapp_phone || '';
-            if (confServices) confServices.value = (currentAdminTenant.services || []).join(', ');
             
             const settings = currentAdminTenant.settings || {};
+            if (confSheetsWebhook) confSheetsWebhook.value = settings.googleSheetsWebhook || '';
+            
             const shifts = settings.shifts || [];
             if (confShifts) confShifts.value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
             if (confClosedDays) confClosedDays.value = (settings.closedDays || []).join(', ');
@@ -892,6 +933,7 @@
                 const newBusinessType = document.getElementById('conf_business_type').value;
                 const newCapacity = document.getElementById('conf_capacity').value;
                 const newWhatsapp = document.getElementById('conf_whatsapp').value;
+                const newSheetsWebhook = document.getElementById('conf_sheets_webhook').value.trim();
                 const servicesInput = document.getElementById('conf_services').value;
                 const shiftsInput = document.getElementById('conf_shifts').value;
                 const closedDaysInput = document.getElementById('conf_closed_days').value;
@@ -922,7 +964,7 @@
                     }
                 }
 
-                const newSettings = { ...currentAdminTenant.settings, shifts, dayShifts, closedDays, vacationStart, vacationEnd, slotDurationMinutes: 60 };
+                const newSettings = { ...currentAdminTenant.settings, shifts, dayShifts, closedDays, vacationStart, vacationEnd, googleSheetsWebhook: newSheetsWebhook, slotDurationMinutes: 60 };
 
                 const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
                     method: 'PUT',
@@ -978,7 +1020,7 @@
                 div.innerHTML = `
                     <div>
                         <p class="font-bold text-slate-800">Cliente: ${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[Código: ${r.booking_code}]</span></p>
-                        <p class="text-slate-500">Plaza: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${r.reservation_date} | ${r.time_slot} - ${r.end_time} | Personas: ${r.party_size}</p>
+                        <p class="text-slate-500">Plaza: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${formatDate(r.reservation_date)} | ${r.time_slot} - ${r.end_time} | Personas: ${r.party_size}</p>
                     </div>
                     <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
                 `;
@@ -1000,7 +1042,7 @@
             if (!fetchedReservations.length) return alert('Sin datos.');
             let csv = "Codigo,Cliente,Telefono,Plaza,Fecha,Inicio,Fin,Personas,Estado\n";
             fetchedReservations.forEach(r => {
-                csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.resource_assigned}",${r.reservation_date},${r.time_slot},${r.end_time},${r.party_size},${r.status}\n`;
+                csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.resource_assigned}",${formatDate(r.reservation_date)},${r.time_slot},${r.end_time},${r.party_size},${r.status}\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const link = document.createElement('a');
