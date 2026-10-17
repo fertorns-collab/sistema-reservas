@@ -164,17 +164,17 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
     }
 
-    // CÁLCULO DE DURACIÓN DE LA RESERVA (PÁDEL O CITAS)
+    // --- CORRECCIÓN CLAVE: Detección universal de 90 minutos ---
     let slotDurationMinutes = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
 
-    if (businessType === 'court_rental') {
-      if (reqService.includes('90') || reqDuration === '90') {
-        slotDurationMinutes = 90;
-      } else {
-        slotDurationMinutes = parseInt(duration) || 60;
-      }
+    if (reqService.includes('90') || reqDuration === '90' || reqService === '90') {
+      slotDurationMinutes = 90;
+    } else if (reqService.includes('60') || reqDuration === '60' || reqService === '60') {
+      slotDurationMinutes = 60;
+    } else if (businessType === 'court_rental') {
+      slotDurationMinutes = parseInt(duration) || 60;
     } else if (businessType === 'appointment') {
       const serviceDurations = settings.serviceDurations || {};
       slotDurationMinutes = serviceDurations[service_name] || settings.slotDurationMinutes || 60;
@@ -219,12 +219,12 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       let availableResourcesCount = 0;
       let assignedResource = null;
 
-      if (businessType === 'court_rental' || businessType === 'table_booking') {
+      if (businessType === 'court_rental' || businessType === 'table_booking' || businessType === 'general') {
         const occupiedResources = new Set(overlappingReservations.map(r => r.resource_assigned).filter(Boolean));
         const freeCount = Math.max(0, maxCapacity - occupiedResources.size);
         
         for (let i = 1; i <= maxCapacity; i++) {
-          const resName = businessType === 'court_rental' ? `Pista ${i}` : `Mesa ${i}`;
+          const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Pista ${i}`);
           if (!occupiedResources.has(resName)) {
             assignedResource = resName;
             break;
@@ -241,7 +241,7 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
         end_time: minsToTime(slotEndMins),
         max_capacity: maxCapacity,
         available: availableResourcesCount,
-        resource_assigned: assignedResource,
+        resource_assigned: assignedResource || 'Pista 1',
         is_full: availableResourcesCount === 0
       };
     });
@@ -265,16 +265,17 @@ app.post('/api/reservations', async (req, res) => {
     let settings = tenant.settings || {};
     if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
 
+    // --- CORRECCIÓN CLAVE EN RESERVAS ---
     let durationMins = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
 
-    if (businessType === 'court_rental') {
-      if (reqService.includes('90') || reqDuration === '90') {
-        durationMins = 90;
-      } else {
-        durationMins = parseInt(duration) || 60;
-      }
+    if (reqService.includes('90') || reqDuration === '90' || reqService === '90') {
+      durationMins = 90;
+    } else if (reqService.includes('60') || reqDuration === '60' || reqService === '60') {
+      durationMins = 60;
+    } else if (businessType === 'court_rental') {
+      durationMins = parseInt(duration) || 60;
     } else if (businessType === 'appointment') {
       const serviceDurations = settings.serviceDurations || {};
       durationMins = serviceDurations[service_name] || 60;
@@ -302,15 +303,15 @@ app.post('/api/reservations', async (req, res) => {
       return startMins < rEnd && endMins > rStart;
     });
 
-    let assignedResource = 'General';
+    let assignedResource = 'Pista 1';
 
-    if (businessType === 'court_rental' || businessType === 'table_booking') {
+    if (businessType === 'court_rental' || businessType === 'table_booking' || businessType === 'general') {
       const occupiedResources = new Set(overlapping.map(r => r.resource_assigned).filter(Boolean));
       if (occupiedResources.size >= maxCapacity) {
         return res.status(400).json({ error: 'No hay pistas o mesas libres para este intervalo de tiempo.' });
       }
       for (let i = 1; i <= maxCapacity; i++) {
-        const resName = businessType === 'court_rental' ? `Pista ${i}` : `Mesa ${i}`;
+        const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Pista ${i}`);
         if (!occupiedResources.has(resName)) {
           assignedResource = resName;
           break;
@@ -410,7 +411,7 @@ app.post('/api/admin/register', async (req, res) => {
       durationLarge: 120
     });
 
-    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (business_type === 'court_rental' ? ["60 Minutos", "90 Minutos"] : ["General"]);
+    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : ["60 Minutos", "90 Minutos"];
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 

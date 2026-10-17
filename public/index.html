@@ -527,7 +527,6 @@
             const selectedVal = serviceSelect ? serviceSelect.value : 'General';
             const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
             
-            // Si el texto o el valor contiene '90', indicamos la duración explícitamente en la query
             let is90Min = selectedVal.includes('90') || selectedText.includes('90');
             let durationVal = is90Min ? '90' : '60';
 
