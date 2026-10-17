@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Actualización Versión 2.8.1 -->
+    <!-- Actualización Versión 2.8.2 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS de Reservas Multi-negocio 24/7</title>
@@ -85,6 +85,7 @@
                 <div class="flex flex-wrap gap-2 pt-2">
                     <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">Enviar a WhatsApp</a>
                     <button type="button" onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer">Descargar (.ics)</button>
+                    <a id="gCalendarLink" href="#" target="_blank" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg">Google Calendar</a>
                 </div>
             </div>
         </section>
@@ -262,7 +263,8 @@
                         <p><strong>Horario:</strong> ${r.time_slot} - ${r.end_time}</p>
                         <p><strong>Cantidad/Personas:</strong> ${r.party_size}</p>
                         <p><strong>Código:</strong> ${r.booking_code}</p>
-                        <div class="pt-3 border-t flex justify-end">
+                        <div class="pt-3 border-t flex flex-wrap gap-2 justify-between items-center">
+                            <button onclick="downloadICS()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Descargar (.ics)</button>
                             <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular</button>
                         </div>
                     </div>
@@ -360,14 +362,19 @@
             e.preventDefault();
             if (!selectedTimeSlot) return alert('Selecciona una franja horaria.');
 
+            const clientPhoneVal = document.getElementById('client_phone').value.trim();
+            const reservationDateVal = document.getElementById('reservation_date').value;
+            const serviceNameVal = document.getElementById('service_name').value;
+            const partySizeVal = parseInt(document.getElementById('party_size').value);
+
             const data = {
                 tenant_id: tenantData.id,
                 client_name: document.getElementById('client_name').value,
-                client_phone: document.getElementById('client_phone').value.trim(),
-                reservation_date: document.getElementById('reservation_date').value,
+                client_phone: clientPhoneVal,
+                reservation_date: reservationDateVal,
                 time_slot: selectedTimeSlot,
-                service_name: document.getElementById('service_name').value,
-                party_size: parseInt(document.getElementById('party_size').value)
+                service_name: serviceNameVal,
+                party_size: partySizeVal
             };
 
             const res = await fetch('/api/reservations', {
@@ -379,10 +386,76 @@
             if (res.ok && result.success) {
                 activeReservation = result.reservation;
                 document.getElementById('resCode').innerText = activeReservation.booking_code;
+                document.getElementById('assignedResourceInfo').innerHTML = `Servicio: ${activeReservation.service_name} | Horario: ${activeReservation.time_slot} - ${activeReservation.end_time}`;
                 document.getElementById('successCard').classList.remove('hidden');
-                alert("¡Reserva confirmada!");
+
+                // Configurar enlace de WhatsApp correctamente
+                const phoneWp = tenantData.whatsapp_phone ? tenantData.whatsapp_phone.replace(/[^0-9]/g, '') : '34600000000';
+                const manageUrl = `${window.location.origin}/${tenantData.slug}#manage?phone=${encodeURIComponent(clientPhoneVal)}&code=${activeReservation.booking_code}`;
+                
+                const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${formatDate(reservationDateVal)}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nServicio: ${serviceNameVal}\nCantidad: ${partySizeVal}\nCódigo: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
+                
+                const whatsappLink = document.getElementById('whatsappLink');
+                if (whatsappLink) {
+                    whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
+                }
+
+                // Configurar enlace de Google Calendar
+                const cleanDate = reservationDateVal.replace(/-/g, '');
+                const timeStr = activeReservation.time_slot.replace(':', '') + '00';
+                const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + serviceNameVal + ' | Código: ' + activeReservation.booking_code)}`;
+                const gCalendarLink = document.getElementById('gCalendarLink');
+                if (gCalendarLink) {
+                    gCalendarLink.href = gCalUrl;
+                }
+
+                alert("¡Reserva confirmada con éxito!");
+            } else {
+                alert(result.error || 'Error al procesar la reserva.');
             }
         });
+
+        // --- Descarga robusta de archivo .ics ---
+        function downloadICS() {
+            if (!activeReservation) return;
+            const tName = tenantData ? tenantData.name : (activeReservation.tenant_name || 'Negocio');
+            const datePart = (activeReservation.reservation_date || '').split('T')[0];
+            const cleanDate = datePart.replace(/-/g, '');
+            const startTimeStr = (activeReservation.time_slot || '09:00').replace(':', '') + '00';
+            const endTimeStr = (activeReservation.end_time || '10:00').replace(':', '') + '00';
+
+            const startTimestamp = `${cleanDate}T${startTimeStr}`;
+            const endTimestamp = `${cleanDate}T${endTimeStr}`;
+            const nowTimestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+            const icsContent = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//SaaS Reservas//ES",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
+                "BEGIN:VEVENT",
+                `UID:${activeReservation.booking_code}-${cleanDate}@saasreservas`,
+                `DTSTAMP:${nowTimestamp}`,
+                `DTSTART:${startTimestamp}`,
+                `DTEND:${endTimestamp}`,
+                `SUMMARY:Reserva en ${tName}`,
+                `DESCRIPTION:Reserva en ${tName}\\nServicio: ${activeReservation.service_name}\\nHorario: ${activeReservation.time_slot} - ${activeReservation.end_time}\\nCodigo: ${activeReservation.booking_code}`,
+                `LOCATION:${tName}`,
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ].join("\r\n");
+            
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `reserva-${activeReservation.booking_code}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
 
         // Panel Admin Login & Gestión
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
