@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Actualización Versión 2.9.0 -->
+    <!-- Actualización Versión 2.9.1 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS de Reservas Multi-negocio 24/7</title>
@@ -234,11 +234,9 @@
             if (window.location.hash.includes('manage') || isFromWhatsapp) {
                 switchView('manage');
                 if (isFromWhatsapp) {
-                    // Ocultar botones de la cabecera
                     const navBtns = document.getElementById('navButtons');
                     if (navBtns) navBtns.style.display = 'none';
 
-                    // Ocultar cabeceras y formulario superfluos
                     const manageHeaderBox = document.getElementById('manageHeaderBox');
                     if (manageHeaderBox) manageHeaderBox.style.display = 'none';
 
@@ -299,6 +297,17 @@
             } else {
                 container.innerHTML = `<p class="text-red-500 font-bold p-2">No se encontró ninguna reserva activa con esos datos.</p>`;
             }
+        }
+
+        // --- MANEJADOR DEL FORMULARIO DE BÚSQUEDA (GESTIONAR) ---
+        const lookupForm = document.getElementById('lookupForm');
+        if (lookupForm) {
+            lookupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const client_phone = document.getElementById('lookup_phone').value.trim();
+                const booking_code = document.getElementById('lookup_code').value.trim();
+                await autoLookupReservation(client_phone, booking_code);
+            });
         }
 
         async function loadTenant() {
