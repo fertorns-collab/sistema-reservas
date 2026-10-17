@@ -323,9 +323,22 @@
                     const lookupForm = document.getElementById('lookupForm');
                     if (lookupForm) lookupForm.style.display = 'none';
 
-                    const urlParams = new URLSearchParams(window.location.search || hash.split('?')[1]);
-                    const phone = urlParams.get('phone');
-                    const code = urlParams.get('code');
+                    let phone = '';
+                    let code = '';
+                    const fullUrl = window.location.href;
+                    if (fullUrl.includes('phone=')) {
+                        const parts = fullUrl.split('phone=');
+                        if (parts[1]) {
+                            phone = decodeURIComponent(parts[1].split('&')[0]);
+                        }
+                    }
+                    if (fullUrl.includes('code=')) {
+                        const parts = fullUrl.split('code=');
+                        if (parts[1]) {
+                            code = decodeURIComponent(parts[1].split('&')[0].split('#')[0]);
+                        }
+                    }
+
                     if (phone && code) {
                         setTimeout(() => {
                             autoLookupReservation(phone, code);
@@ -351,15 +364,18 @@
                     const r = data.reservation;
                     container.innerHTML = `
                         <div class="p-4 bg-white border rounded-xl space-y-3">
-                            <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
+                            <h4 class="font-bold text-indigo-600 text-base">Detalles de tu Reserva</h4>
                             <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
                             <p><strong>Cliente:</strong> ${r.client_name}</p>
+                            <p><strong>Teléfono:</strong> ${r.client_phone}</p>
+                            <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
                             <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
-                            <p><strong>Horario:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
+                            <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
                             <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
                             <p><strong>Personas/Jugadores:</strong> ${r.party_size}</p>
+                            <p><strong>Código de Reserva:</strong> <span class="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">${r.booking_code}</span></p>
                             
-                            <div class="pt-2 border-t flex justify-end">
+                            <div class="pt-3 border-t flex justify-end">
                                 <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
                             </div>
                         </div>
@@ -517,7 +533,8 @@
             }
 
             const serviceName = document.getElementById('service_name') ? document.getElementById('service_name').value : 'General';
-            const duration = document.getElementById('duration_select') ? document.getElementById('duration_select').value : 60;
+            const durationSelectEl = document.getElementById('duration_select');
+            const duration = durationSelectEl ? durationSelectEl.value : 60;
             const partySize = document.getElementById('party_size') ? document.getElementById('party_size').value : 1;
 
             try {
@@ -606,6 +623,9 @@
                 }
 
                 const clientPhoneVal = document.getElementById('client_phone').value.trim();
+                const durationSelectEl = document.getElementById('duration_select');
+                const durationVal = durationSelectEl ? durationSelectEl.value : 60;
+
                 const data = {
                     tenant_id: tenantData.id,
                     client_name: document.getElementById('client_name').value,
@@ -613,7 +633,7 @@
                     reservation_date: document.getElementById('reservation_date').value,
                     time_slot: selectedTimeSlot,
                     service_name: document.getElementById('service_name').value,
-                    duration: tenantData.business_type === 'court_rental' ? document.getElementById('duration_select').value : 60,
+                    duration: tenantData.business_type === 'court_rental' ? durationVal : 60,
                     party_size: parseInt(document.getElementById('party_size').value)
                 };
 
@@ -641,6 +661,9 @@
                     const whatsappLink = document.getElementById('whatsappLink');
                     if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
                     
+                    // Abrir WhatsApp automáticamente
+                    window.open(whatsappLink.href, '_blank');
+
                     const cleanDate = data.reservation_date.replace(/-/g, '');
                     const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
                     const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Recurso: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
@@ -648,7 +671,7 @@
                     const gCalendarLink = document.getElementById('gCalendarLink');
                     if (gCalendarLink) gCalendarLink.href = gCalUrl;
 
-                    alert("¡Reserva confirmada con éxito!");
+                    alert("¡Reserva confirmada con éxito y enviada a WhatsApp!");
                 } else {
                     alert(result.error || 'Error al procesar la reserva.');
                 }
@@ -708,8 +731,10 @@
                             <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
                             <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
                             <p><strong>Cliente:</strong> ${r.client_name}</p>
+                            <p><strong>Teléfono:</strong> ${r.client_phone}</p>
+                            <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
                             <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
-                            <p><strong>Horario:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
+                            <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
                             <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
                             <p><strong>Personas/Jugadores:</strong> ${r.party_size}</p>
                             

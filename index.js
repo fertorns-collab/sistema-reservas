@@ -326,7 +326,7 @@ app.post('/api/reservations/lookup', async (req, res) => {
     const result = await pool.query(
       `SELECT r.*, t.name as tenant_name, t.whatsapp_phone, t.slug as tenant_slug FROM reservations r 
        JOIN tenants t ON r.tenant_id = t.id 
-       WHERE UPPER(TRIM(r.client_phone)) = UPPER(TRIM($1)) 
+       WHERE REPLACE(REPLACE(REPLACE(r.client_phone, ' ', ''), '+', ''), '-', '') = REPLACE(REPLACE(REPLACE($1, ' ', ''), '+', ''), '-', '')
          AND UPPER(TRIM(r.booking_code)) = UPPER(TRIM($2)) 
          AND r.status != 'cancelled'`,
       [client_phone, booking_code]
@@ -351,7 +351,7 @@ app.put('/api/reservations/cancel', async (req, res) => {
       query = `UPDATE reservations SET status = 'cancelled' WHERE id = $1 RETURNING *`;
       params = [id];
     } else {
-      query = `UPDATE reservations SET status = 'cancelled' WHERE UPPER(TRIM(client_phone)) = UPPER(TRIM($1)) AND UPPER(TRIM(booking_code)) = UPPER(TRIM($2)) RETURNING *`;
+      query = `UPDATE reservations SET status = 'cancelled' WHERE REPLACE(REPLACE(REPLACE(client_phone, ' ', ''), '+', ''), '-', '') = REPLACE(REPLACE(REPLACE($1, ' ', ''), '+', ''), '-', '') AND UPPER(TRIM(booking_code)) = UPPER(TRIM($2)) RETURNING *`;
       params = [client_phone, booking_code];
     }
 
