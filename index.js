@@ -176,13 +176,20 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
     }
 
+    // --- DETECCIÓN DINÁMICA DE DURACIÓN (45 min, 60 min, 90 min, etc.) ---
     let slotDurationMinutes = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
+    const combinedText = (reqService + " " + reqDuration).toLowerCase();
 
-    if (reqService.includes('90') || reqDuration === '90' || reqService === '90') {
+    const matchDuration = combinedText.match(/(\d+)\s*(?:min|minutos)?/);
+    if (matchDuration && matchDuration[1]) {
+      slotDurationMinutes = parseInt(matchDuration[1], 10);
+    } else if (combinedText.includes('90')) {
       slotDurationMinutes = 90;
-    } else if (reqService.includes('60') || reqDuration === '60' || reqService === '60') {
+    } else if (combinedText.includes('45')) {
+      slotDurationMinutes = 45;
+    } else if (combinedText.includes('60')) {
       slotDurationMinutes = 60;
     } else if (businessType === 'court_rental') {
       slotDurationMinutes = parseInt(duration) || 60;
@@ -199,9 +206,13 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       let currentMins = timeToMins(shift.open || "09:00");
       let closeMins = timeToMins(shift.close || "21:00");
 
+      // Si la clase dura 45 minutos (o cualquier duración que no sea múltiplo estándar de 30), 
+      // los inicios de sesión ocurren a la hora exacta (paso de 60 min, ej: 09:00, 10:00, 11:00...)
+      const step = (slotDurationMinutes === 45) ? 60 : 30;
+
       while (currentMins + slotDurationMinutes <= closeMins) {
         slots.push(minsToTime(currentMins));
-        currentMins += 30;
+        currentMins += step;
       }
     });
 
@@ -235,7 +246,7 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
         const freeCount = Math.max(0, maxCapacity - occupiedResources.size);
         
         for (let i = 1; i <= maxCapacity; i++) {
-          const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Pista ${i}`);
+          const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Bici ${i}`);
           if (!occupiedResources.has(resName)) {
             assignedResource = resName;
             break;
@@ -252,7 +263,7 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
         end_time: minsToTime(slotEndMins),
         max_capacity: maxCapacity,
         available: availableResourcesCount,
-        resource_assigned: assignedResource || 'Pista 1',
+        resource_assigned: assignedResource || 'Bici 1',
         is_full: availableResourcesCount === 0
       };
     });
@@ -279,10 +290,16 @@ app.post('/api/reservations', async (req, res) => {
     let durationMins = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
+    const combinedText = (reqService + " " + reqDuration).toLowerCase();
 
-    if (reqService.includes('90') || reqDuration === '90' || reqService === '90') {
+    const matchDuration = combinedText.match(/(\d+)\s*(?:min|minutos)?/);
+    if (matchDuration && matchDuration[1]) {
+      durationMins = parseInt(matchDuration[1], 10);
+    } else if (combinedText.includes('90')) {
       durationMins = 90;
-    } else if (reqService.includes('60') || reqDuration === '60' || reqService === '60') {
+    } else if (combinedText.includes('45')) {
+      durationMins = 45;
+    } else if (combinedText.includes('60')) {
       durationMins = 60;
     } else if (businessType === 'court_rental') {
       durationMins = parseInt(duration) || 60;
@@ -313,15 +330,15 @@ app.post('/api/reservations', async (req, res) => {
       return startMins < rEnd && endMins > rStart;
     });
 
-    let assignedResource = 'Pista 1';
+    let assignedResource = 'Bici 1';
 
     if (businessType === 'court_rental' || businessType === 'table_booking' || businessType === 'general') {
       const occupiedResources = new Set(overlapping.map(r => r.resource_assigned).filter(Boolean));
       if (occupiedResources.size >= maxCapacity) {
-        return res.status(400).json({ error: 'No hay pistas o mesas libres para este intervalo de tiempo.' });
+        return res.status(400).json({ error: 'No hay plazas libres para este horario.' });
       }
       for (let i = 1; i <= maxCapacity; i++) {
-        const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Pista ${i}`);
+        const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Bici ${i}`);
         if (!occupiedResources.has(resName)) {
           assignedResource = resName;
           break;
@@ -416,17 +433,17 @@ app.post('/api/admin/register', async (req, res) => {
       vacationStart: "",
       vacationEnd: "",
       slotDurationMinutes: 60,
-      serviceDurations: { "Corte": 30, "Tinte": 60, "Manicura": 45 },
+      serviceDurations: {},
       durationStandard: 90,
       durationLarge: 120
     });
 
-    const defaultServices = ["60 Minutos", "90 Minutos"];
+    const defaultServices = ["45 Minutos", "60 Minutos", "90 Minutos"];
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb) RETURNING id, name, slug`,
-      [name, slug, business_type || 'Pádel', max_capacity || 10, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
+      [name, slug, business_type || 'Spinning', max_capacity || 12, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });

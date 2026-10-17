@@ -56,8 +56,8 @@
                         </select>
                     </div>
                     <div>
-                        <label id="partySizeLabel" class="block text-xs font-bold text-slate-600 uppercase mb-1">Personas / Jugadores</label>
-                        <input type="number" id="party_size" value="2" min="1" max="50" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
+                        <label id="partySizeLabel" class="block text-xs font-bold text-slate-600 uppercase mb-1">Personas / Plazas</label>
+                        <input type="number" id="party_size" value="1" min="1" max="50" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Fecha de Reserva</label>
@@ -156,10 +156,10 @@
                         </div>
                         <div>
                             <label class="block font-bold mb-1">Tipo de Negocio / Sector</label>
-                            <input type="text" id="conf_business_type" class="w-full p-2 border rounded bg-white" placeholder="Ej. Pádel, Restaurante, Peluquería..." required>
+                            <input type="text" id="conf_business_type" class="w-full p-2 border rounded bg-white" placeholder="Ej. Spinning, Gimnasio, Pádel..." required>
                         </div>
                         <div>
-                            <label class="block font-bold mb-1">Capacidad Máxima (Pistas, Mesas o Aforo)</label>
+                            <label class="block font-bold mb-1">Capacidad Máxima (Plazas o Aforo)</label>
                             <input type="number" id="conf_capacity" class="w-full p-2 border rounded bg-white" required>
                         </div>
                         <div>
@@ -257,15 +257,15 @@
         <!-- 4. VISTA REGISTRO -->
         <section id="registerView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-900 mb-1">Registrar Nuevo Negocio</h2>
-            <p class="text-xs text-slate-500 mb-4">Crea negocios de pádel, peluquería, restaurantes o cualquier sector libremente.</p>
+            <p class="text-xs text-slate-500 mb-4">Crea negocios de spinning, peluquería, restaurantes o cualquier sector libremente.</p>
             <form id="registerForm" class="space-y-4 max-w-lg">
-                <input type="text" id="reg_name" required placeholder="Nombre del Negocio (Ej. Club Pádel Central)" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <input type="text" id="reg_slug" required placeholder="Slug URL (ej. padel-club-central)" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_name" required placeholder="Nombre del Negocio (Ej. Spinning Center)" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_slug" required placeholder="Slug URL (ej. spinning-center)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sector / Tipo de Negocio</label>
-                    <input type="text" id="reg_business_type" required placeholder="Ej. Pádel, Restaurante, Peluquería..." value="Pádel" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
+                    <input type="text" id="reg_business_type" required placeholder="Ej. Spinning, Gimnasio, Restaurante..." value="Spinning" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
                 </div>
-                <input type="number" id="reg_max_capacity" value="15" required placeholder="Capacidad Máxima / Total Pistas o Mesas" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="number" id="reg_max_capacity" value="12" required placeholder="Capacidad Máxima / Plazas" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="tel" id="reg_whatsapp" required placeholder="WhatsApp (+34...)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="email" id="reg_email" required placeholder="Correo admin" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="password" id="reg_password" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border text-sm">
@@ -355,7 +355,7 @@
                             <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
                             <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
                             <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
-                            <p><strong>Personas/Jugadores:</strong> ${r.party_size}</p>
+                            <p><strong>Plazas / Personas:</strong> ${r.party_size}</p>
                             <p><strong>Código de Reserva:</strong> <span class="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">${r.booking_code}</span></p>
                             
                             <div class="pt-3 border-t flex justify-end">
@@ -399,6 +399,8 @@
                     const bTypeLower = (tenantData.business_type || '').toLowerCase();
                     if (bTypeLower.includes('pádel') || bTypeLower.includes('padel') || bTypeLower.includes('pista')) {
                         if (partySizeLabel) partySizeLabel.innerText = "Jugadores";
+                    } else if (bTypeLower.includes('spinning') || bTypeLower.includes('clase') || bTypeLower.includes('gimnasio')) {
+                        if (partySizeLabel) partySizeLabel.innerText = "Plazas";
                     } else if (bTypeLower.includes('restaurante') || bTypeLower.includes('mesa')) {
                         if (partySizeLabel) partySizeLabel.innerText = "Comensales";
                     } else {
@@ -408,11 +410,11 @@
                     const serviceSelect = document.getElementById('service_name');
                     if (serviceSelect) {
                         serviceSelect.innerHTML = '';
-                        const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['60 Minutos', '90 Minutos'];
+                        const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['45 Minutos', '60 Minutos', '90 Minutos'];
                         services.forEach(s => {
                             const opt = document.createElement('option');
                             opt.value = s;
-                            opt.innerText = s.includes('90') ? '90 Minutos' : (s.includes('60') ? '60 Minutos' : s);
+                            opt.innerText = s;
                             serviceSelect.appendChild(opt);
                         });
                     }
@@ -517,8 +519,16 @@
             const selectedVal = serviceSelect ? serviceSelect.value : 'General';
             const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
             
-            let is90Min = selectedVal.includes('90') || selectedText.includes('90');
-            let durationVal = is90Min ? '90' : '60';
+            let durationVal = '60';
+            const combined = (selectedVal + " " + selectedText).toLowerCase();
+            const match = combined.match(/(\d+)/);
+            if (match) {
+                durationVal = match[1];
+            } else if (combined.includes('45')) {
+                durationVal = '45';
+            } else if (combined.includes('90')) {
+                durationVal = '90';
+            }
 
             const partySize = document.getElementById('party_size') ? document.getElementById('party_size').value : 1;
 
@@ -611,7 +621,15 @@
                 const serviceSelect = document.getElementById('service_name');
                 const selectedVal = serviceSelect ? serviceSelect.value : 'General';
                 const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
-                let is90Min = selectedVal.includes('90') || selectedText.includes('90');
+                
+                let durationVal = '60';
+                const combined = (selectedVal + " " + selectedText).toLowerCase();
+                const match = combined.match(/(\d+)/);
+                if (match) {
+                    durationVal = match[1];
+                } else if (combined.includes('45')) {
+                    durationVal = '45';
+                }
 
                 const data = {
                     tenant_id: tenantData.id,
@@ -620,7 +638,7 @@
                     reservation_date: document.getElementById('reservation_date').value,
                     time_slot: selectedTimeSlot,
                     service_name: selectedVal,
-                    duration: is90Min ? '90' : '60',
+                    duration: durationVal,
                     party_size: parseInt(document.getElementById('party_size').value)
                 };
 
@@ -643,7 +661,7 @@
                     const phoneWp = tenantData.whatsapp_phone || '34600000000';
                     const manageUrl = `${window.location.origin}/${tenantData.slug}#manage?phone=${encodeURIComponent(clientPhoneVal)}&code=${activeReservation.booking_code}`;
                     
-                    const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${data.reservation_date}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nPista/Recurso: ${activeReservation.resource_assigned}\nPersonas/Jugadores: ${data.party_size}\nCódigo de reserva: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
+                    const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${data.reservation_date}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nPlaza: ${activeReservation.resource_assigned}\nPersonas: ${data.party_size}\nCódigo de reserva: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
                     
                     const whatsappLink = document.getElementById('whatsappLink');
                     if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
@@ -652,7 +670,7 @@
 
                     const cleanDate = data.reservation_date.replace(/-/g, '');
                     const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
-                    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Recurso: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
+                    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Plaza: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
                     
                     const gCalendarLink = document.getElementById('gCalendarLink');
                     if (gCalendarLink) gCalendarLink.href = gCalUrl;
@@ -679,7 +697,7 @@
                 `DTSTART:${cleanDate}T${timeStr}Z`,
                 `DTEND:${cleanDate}T${timeStr}Z`,
                 `SUMMARY:Reserva en ${tenantData.name}`,
-                `DESCRIPTION:Asignación: ${activeReservation.resource_assigned} (${activeReservation.time_slot} - ${activeReservation.end_time}) \\nCódigo: ${activeReservation.booking_code} \\nPersonas: ${activeReservation.party_size}`,
+                `DESCRIPTION:Plaza: ${activeReservation.resource_assigned} (${activeReservation.time_slot} - ${activeReservation.end_time}) \\nCódigo: ${activeReservation.booking_code} \\nPersonas: ${activeReservation.party_size}`,
                 "END:VEVENT",
                 "END:VCALENDAR"
             ].join("\r\n");
@@ -722,7 +740,7 @@
                             <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.reservation_date}</span></p>
                             <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
                             <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
-                            <p><strong>Personas/Jugadores:</strong> ${r.party_size}</p>
+                            <p><strong>Plazas / Personas:</strong> ${r.party_size}</p>
                             
                             <div class="pt-2 border-t flex justify-end">
                                 <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
@@ -949,7 +967,7 @@
                 div.innerHTML = `
                     <div>
                         <p class="font-bold text-slate-800">Cliente: ${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[Código: ${r.booking_code}]</span></p>
-                        <p class="text-slate-500">Recurso: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${r.reservation_date} | ${r.time_slot} - ${r.end_time} | Personas: ${r.party_size}</p>
+                        <p class="text-slate-500">Plaza: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${r.reservation_date} | ${r.time_slot} - ${r.end_time} | Personas: ${r.party_size}</p>
                     </div>
                     <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
                 `;
@@ -967,9 +985,9 @@
             if (res.ok) loadAdminReservations();
         }
 
-        function exportToCSV() {
+        exportToCSV = function() {
             if (!fetchedReservations.length) return alert('Sin datos.');
-            let csv = "Codigo,Cliente,Telefono,Recurso,Fecha,Inicio,Fin,Personas,Estado\n";
+            let csv = "Codigo,Cliente,Telefono,Plaza,Fecha,Inicio,Fin,Personas,Estado\n";
             fetchedReservations.forEach(r => {
                 csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.resource_assigned}",${r.reservation_date},${r.time_slot},${r.end_time},${r.party_size},${r.status}\n`;
             });
