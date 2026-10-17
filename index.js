@@ -164,9 +164,13 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
     }
 
+    // CÁLCULO DE DURACIÓN DE LA RESERVA (PÁDEL O CITAS)
     let slotDurationMinutes = 60;
+    const reqService = String(service_name || '');
+    const reqDuration = String(duration || '');
+
     if (businessType === 'court_rental') {
-      if (service_name && (service_name.includes('90') || service_name === '90')) {
+      if (reqService.includes('90') || reqDuration === '90') {
         slotDurationMinutes = 90;
       } else {
         slotDurationMinutes = parseInt(duration) || 60;
@@ -262,8 +266,11 @@ app.post('/api/reservations', async (req, res) => {
     if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
 
     let durationMins = 60;
+    const reqService = String(service_name || '');
+    const reqDuration = String(duration || '');
+
     if (businessType === 'court_rental') {
-      if (service_name && (service_name.includes('90') || service_name === '90')) {
+      if (reqService.includes('90') || reqDuration === '90') {
         durationMins = 90;
       } else {
         durationMins = parseInt(duration) || 60;
@@ -403,7 +410,7 @@ app.post('/api/admin/register', async (req, res) => {
       durationLarge: 120
     });
 
-    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (business_type === 'court_rental' ? ["60", "90"] : ["General"]);
+    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (business_type === 'court_rental' ? ["60 Minutos", "90 Minutos"] : ["General"]);
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 

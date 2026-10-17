@@ -417,11 +417,11 @@
                     const serviceSelect = document.getElementById('service_name');
                     if (serviceSelect) {
                         serviceSelect.innerHTML = '';
-                        const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['General'];
+                        const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['60 Minutos', '90 Minutos'];
                         services.forEach(s => {
                             const opt = document.createElement('option');
                             opt.value = s;
-                            opt.innerText = s.includes('90') ? `${s} Minutos` : (s.includes('60') ? `${s} Minutos` : s);
+                            opt.innerText = s.includes('90') ? '90 Minutos' : (s.includes('60') ? '60 Minutos' : s);
                             serviceSelect.appendChild(opt);
                         });
                     }
@@ -523,11 +523,18 @@
                 }
             }
 
-            const serviceName = document.getElementById('service_name') ? document.getElementById('service_name').value : 'General';
+            const serviceSelect = document.getElementById('service_name');
+            const selectedVal = serviceSelect ? serviceSelect.value : 'General';
+            const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
+            
+            // Si el texto o el valor contiene '90', indicamos la duración explícitamente en la query
+            let is90Min = selectedVal.includes('90') || selectedText.includes('90');
+            let durationVal = is90Min ? '90' : '60';
+
             const partySize = document.getElementById('party_size') ? document.getElementById('party_size').value : 1;
 
             try {
-                let url = `/api/availability/${tenantData.id}?date=${date}&service_name=${encodeURIComponent(serviceName)}&party_size=${partySize}`;
+                let url = `/api/availability/${tenantData.id}?date=${date}&service_name=${encodeURIComponent(selectedVal)}&duration=${durationVal}&party_size=${partySize}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 gridContainer.innerHTML = '';
@@ -612,13 +619,19 @@
                 }
 
                 const clientPhoneVal = document.getElementById('client_phone').value.trim();
+                const serviceSelect = document.getElementById('service_name');
+                const selectedVal = serviceSelect ? serviceSelect.value : 'General';
+                const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
+                let is90Min = selectedVal.includes('90') || selectedText.includes('90');
+
                 const data = {
                     tenant_id: tenantData.id,
                     client_name: document.getElementById('client_name').value,
                     client_phone: clientPhoneVal,
                     reservation_date: document.getElementById('reservation_date').value,
                     time_slot: selectedTimeSlot,
-                    service_name: document.getElementById('service_name').value,
+                    service_name: selectedVal,
+                    duration: is90Min ? '90' : '60',
                     party_size: parseInt(document.getElementById('party_size').value)
                 };
 
