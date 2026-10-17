@@ -1,4 +1,3 @@
-// Actualización forzada - Versión 2.7.1
 import express from 'express';
 import pg from 'pg';
 import path from 'path';
@@ -6,6 +5,7 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 
+// Actualización forzada - Soporte robusto panadería y cancelación admin
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,27 +52,7 @@ const initDB = async () => {
       );
     `);
 
-    await pool.query(`
-      ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_email_key;
-      DROP INDEX IF EXISTS tenants_email_key;
-    `);
-
-    await pool.query(`
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS slug VARCHAR(50);
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS business_type VARCHAR(50) DEFAULT 'general';
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS max_capacity INT DEFAULT 10;
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS whatsapp_phone VARCHAR(20);
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings JSONB;
-      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS services JSONB DEFAULT '[]';
-      
-      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS booking_code VARCHAR(10);
-      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS end_time VARCHAR(50);
-      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS service_name VARCHAR(100);
-      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS resource_assigned VARCHAR(50);
-      ALTER TABLE reservations ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'confirmed';
-    `);
-
-    console.log("Base de datos inicializada y migrada correctamente.");
+    console.log("Base de datos inicializada correctamente.");
   } catch (err) {
     console.error("Error al inicializar la base de datos:", err.message);
   }
@@ -92,12 +72,14 @@ const minsToTime = (totalMins) => {
 
 const getEffectiveBusinessType = (rawType) => {
   const bTypeLower = String(rawType || 'general').toLowerCase();
-  if (bTypeLower.includes('pádel') || bTypeLower.includes('padel') || bTypeLower.includes('pista') || bTypeLower.includes('deporte') || bTypeLower.includes('court')) {
+  if (bTypeLower.includes('pádel') || bTypeLower.includes('padel') || bTypeLower.includes('pista') || bTypeLower.includes('deporte')) {
     return 'court_rental';
-  } else if (bTypeLower.includes('peluquería') || bTypeLower.includes('peluqueria') || bTypeLower.includes('estética') || bTypeLower.includes('estetica') || bTypeLower.includes('cita') || bTypeLower.includes('appointment')) {
+  } else if (bTypeLower.includes('peluquería') || bTypeLower.includes('peluqueria') || bTypeLower.includes('estética') || bTypeLower.includes('cita')) {
     return 'appointment';
-  } else if (bTypeLower.includes('restaurante') || bTypeLower.includes('mesa') || bTypeLower.includes('table') || bTypeLower.includes('comida')) {
+  } else if (bTypeLower.includes('restaurante') || bTypeLower.includes('mesa')) {
     return 'table_booking';
+  } else if (bTypeLower.includes('panadería') || bTypeLower.includes('panaderia') || bTypeLower.includes('tienda') || bTypeLower.includes('comercio')) {
+    return 'bakery';
   }
   return 'general';
 };
@@ -144,79 +126,34 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
 
     let tenant = tenantInfo.rows[0];
     let settings = tenant.settings;
-    if (typeof settings === 'string') {
-      try { settings = JSON.parse(settings); } catch (e) { settings = {}; }
-    }
+    if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch (e) { settings = {}; } }
 
     const businessType = getEffectiveBusinessType(tenant.business_type);
-    const maxCapacity = tenant.max_capacity || 10;
-
-    const vacationStart = settings.vacationStart;
-    const vacationEnd = settings.vacationEnd;
-    if (vacationStart && vacationEnd) {
-      if (date >= vacationStart && date <= vacationEnd) {
-        return res.json({ closed: true, message: "Negocio cerrado por vacaciones en esta fecha." });
-      }
-    }
+    const maxCapacity = tenant.max_capacity || 50;
 
     const dateObj = new Date(date + 'T00:00:00');
     const dayOfWeek = dateObj.getDay();
     const closedDays = settings.closedDays || [];
-    const forcedOpenDates = settings.forcedOpenDates || [];
 
-    if (closedDays.includes(dayOfWeek) && !forcedOpenDates.includes(date)) {
-      return res.json({ closed: true, message: "Negocio cerrado por día de descanso semanal." });
+    if (closedDays.includes(dayOfWeek)) {
+      return res.json({ closed: true, message: "Negocio cerrado en este día." });
     }
 
-    const dayShifts = settings.dayShifts || {};
-    const shifts = (dayShifts[dayOfWeek] !== undefined && dayShifts[dayOfWeek] !== null && dayShifts[dayOfWeek].length > 0) 
-      ? dayShifts[dayOfWeek] 
-      : (settings.shifts || [{ open: "09:00", close: "21:00" }]);
-
-    if (!shifts || shifts.length === 0) {
-      return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
-    }
-
+    const shifts = settings.shifts || [{ open: "08:00", close: "20:00" }];
     let slotDurationMinutes = 60;
-    const reqService = String(service_name || '');
-    const reqDuration = String(duration || '');
-    const combinedText = (reqService + " " + reqDuration).toLowerCase();
-
-    const matchDuration = combinedText.match(/(\d+)\s*(?:min|minutos)?/);
-    if (matchDuration && matchDuration[1]) {
-      slotDurationMinutes = parseInt(matchDuration[1], 10);
-    } else if (combinedText.includes('90')) {
-      slotDurationMinutes = 90;
-    } else if (combinedText.includes('45')) {
-      slotDurationMinutes = 45;
-    } else if (combinedText.includes('60')) {
-      slotDurationMinutes = 60;
-    } else if (businessType === 'court_rental') {
-      slotDurationMinutes = parseInt(duration) || 60;
-    } else if (businessType === 'appointment') {
-      const serviceDurations = settings.serviceDurations || {};
-      slotDurationMinutes = serviceDurations[service_name] || settings.slotDurationMinutes || 60;
-    } else if (businessType === 'table_booking') {
-      const pSize = parseInt(party_size) || 2;
-      slotDurationMinutes = pSize > 4 ? (settings.durationLarge || 120) : (settings.durationStandard || 90);
-    }
+    if (businessType === 'bakery') slotDurationMinutes = 30;
 
     let slots = [];
     shifts.forEach(shift => {
-      let currentMins = timeToMins(shift.open || "09:00");
-      let closeMins = timeToMins(shift.close || "21:00");
-
-      const step = (slotDurationMinutes === 45) ? 60 : 30;
-
+      let currentMins = timeToMins(shift.open || "08:00");
+      let closeMins = timeToMins(shift.close || "20:00");
       while (currentMins + slotDurationMinutes <= closeMins) {
         slots.push(minsToTime(currentMins));
-        currentMins += step;
+        currentMins += 30;
       }
     });
 
-    if (slots.length === 0) {
-      slots = ["09:00", "10:00", "11:00", "12:00", "13:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
-    }
+    if (slots.length === 0) slots = ["09:00", "10:00", "11:00", "12:00", "16:00", "17:00", "18:00"];
 
     const bookedQuery = await pool.query(
       `SELECT time_slot, end_time, resource_assigned, party_size FROM reservations 
@@ -230,39 +167,22 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       const slotStartMins = timeToMins(slot);
       const slotEndMins = slotStartMins + slotDurationMinutes;
 
-      const overlappingReservations = existingReservations.filter(r => {
+      const overlapping = existingReservations.filter(r => {
         const rStart = timeToMins(r.time_slot);
         const rEnd = timeToMins(r.end_time || r.time_slot);
         return slotStartMins < rEnd && slotEndMins > rStart;
       });
 
-      let availableResourcesCount = 0;
-      let assignedResource = null;
-
-      if (businessType === 'court_rental' || businessType === 'table_booking' || businessType === 'general') {
-        const occupiedResources = new Set(overlappingReservations.map(r => r.resource_assigned).filter(Boolean));
-        const freeCount = Math.max(0, maxCapacity - occupiedResources.size);
-        
-        for (let i = 1; i <= maxCapacity; i++) {
-          const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Bici ${i}`);
-          if (!occupiedResources.has(resName)) {
-            assignedResource = resName;
-            break;
-          }
-        }
-        availableResourcesCount = freeCount;
-      } else {
-        const totalBookedParty = overlappingReservations.reduce((acc, curr) => acc + (curr.party_size || 1), 0);
-        availableResourcesCount = Math.max(0, maxCapacity - totalBookedParty);
-      }
+      const totalBooked = overlapping.reduce((acc, curr) => acc + (curr.party_size || 1), 0);
+      const availableCount = Math.max(0, maxCapacity - totalBooked);
 
       return {
         slot,
         end_time: minsToTime(slotEndMins),
         max_capacity: maxCapacity,
-        available: availableResourcesCount,
-        resource_assigned: assignedResource || 'Bici 1',
-        is_full: availableResourcesCount === 0
+        available: availableCount,
+        resource_assigned: service_name || 'Pedido Estándar',
+        is_full: availableCount === 0
       };
     });
 
@@ -276,78 +196,23 @@ app.post('/api/reservations', async (req, res) => {
   try {
     const { tenant_id, client_name, client_phone, reservation_date, time_slot, party_size, service_name, duration } = req.body;
     
-    const tenantInfo = await pool.query('SELECT business_type, max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
+    const tenantInfo = await pool.query('SELECT name, business_type, max_capacity, settings FROM tenants WHERE id = $1', [tenant_id]);
     if (tenantInfo.rows.length === 0) return res.status(404).json({ error: 'Negocio no encontrado' });
     
     const tenant = tenantInfo.rows[0];
     const businessType = getEffectiveBusinessType(tenant.business_type);
-    const maxCapacity = tenant.max_capacity || 10;
+    const maxCapacity = tenant.max_capacity || 50;
     let settings = tenant.settings || {};
     if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
 
-    let durationMins = 60;
-    const reqService = String(service_name || '');
-    const reqDuration = String(duration || '');
-    const combinedText = (reqService + " " + reqDuration).toLowerCase();
-
-    const matchDuration = combinedText.match(/(\d+)\s*(?:min|minutos)?/);
-    if (matchDuration && matchDuration[1]) {
-      durationMins = parseInt(matchDuration[1], 10);
-    } else if (combinedText.includes('90')) {
-      durationMins = 90;
-    } else if (combinedText.includes('45')) {
-      durationMins = 45;
-    } else if (combinedText.includes('60')) {
-      durationMins = 60;
-    } else if (businessType === 'court_rental') {
-      durationMins = parseInt(duration) || 60;
-    } else if (businessType === 'appointment') {
-      const serviceDurations = settings.serviceDurations || {};
-      durationMins = serviceDurations[service_name] || 60;
-    } else if (businessType === 'table_booking') {
-      const pSize = parseInt(party_size) || 2;
-      durationMins = pSize > 4 ? (settings.durationLarge || 120) : (settings.durationStandard || 90);
-    }
-
+    const durationMins = businessType === 'bakery' ? 30 : 60;
     const startMins = timeToMins(time_slot);
     const endMins = startMins + durationMins;
     const end_time = minsToTime(endMins);
     const requestedSize = parseInt(party_size || 1);
     const booking_code = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-    const bookedQuery = await pool.query(
-      `SELECT time_slot, end_time, resource_assigned, party_size FROM reservations 
-       WHERE tenant_id = $1 AND reservation_date = $2 AND status = 'confirmed'`,
-      [tenant_id, reservation_date]
-    );
-
-    const existing = bookedQuery.rows;
-    const overlapping = existing.filter(r => {
-      const rStart = timeToMins(r.time_slot);
-      const rEnd = timeToMins(r.end_time || r.time_slot);
-      return startMins < rEnd && endMins > rStart;
-    });
-
-    let assignedResource = 'Bici 1';
-
-    if (businessType === 'court_rental' || businessType === 'table_booking' || businessType === 'general') {
-      const occupiedResources = new Set(overlapping.map(r => r.resource_assigned).filter(Boolean));
-      if (occupiedResources.size >= maxCapacity) {
-        return res.status(400).json({ error: 'No hay plazas libres para este horario.' });
-      }
-      for (let i = 1; i <= maxCapacity; i++) {
-        const resName = businessType === 'court_rental' ? `Pista ${i}` : (businessType === 'table_booking' ? `Mesa ${i}` : `Bici ${i}`);
-        if (!occupiedResources.has(resName)) {
-          assignedResource = resName;
-          break;
-        }
-      }
-    } else {
-      const totalBooked = overlapping.reduce((acc, curr) => acc + (curr.party_size || 1), 0);
-      if (totalBooked + requestedSize > maxCapacity) {
-        return res.status(400).json({ error: 'No hay suficiente aforo disponible para este horario.' });
-      }
-    }
+    const assignedResource = service_name || (businessType === 'bakery' ? 'Producto Panadería' : 'General');
 
     const newReservation = await pool.query(
       `INSERT INTO reservations (tenant_id, client_name, client_phone, booking_code, reservation_date, time_slot, end_time, service_name, party_size, resource_assigned) 
@@ -355,7 +220,23 @@ app.post('/api/reservations', async (req, res) => {
       [tenant_id, client_name, client_phone, booking_code, reservation_date, time_slot, end_time, service_name || 'General', requestedSize, assignedResource]
     );
 
-    res.status(201).json({ success: true, reservation: newReservation.rows[0] });
+    const createdRes = newReservation.rows[0];
+
+    // Webhook Google Sheets
+    const sheetsWebhookUrl = settings.googleSheetsWebhook || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+    if (sheetsWebhookUrl) {
+      try {
+        await fetch(sheetsWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_name: tenant.name, ...createdRes })
+        });
+      } catch (sheetErr) {
+        console.error("Error al exportar a Google Sheets:", sheetErr.message);
+      }
+    }
+
+    res.status(201).json({ success: true, reservation: createdRes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -374,7 +255,7 @@ app.post('/api/reservations/lookup', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No se encontró ninguna reserva activa con esos datos.' });
+      return res.status(404).json({ error: 'No se encontró ninguna reserva activa.' });
     }
 
     res.json({ success: true, reservation: result.rows[0] });
@@ -398,7 +279,7 @@ app.put('/api/reservations/cancel', async (req, res) => {
 
     const cancelled = await pool.query(query, params);
     if (cancelled.rows.length === 0) {
-      return res.status(404).json({ error: 'Reserva no encontrada o datos incorrectos.' });
+      return res.status(404).json({ error: 'Reserva no encontrada.' });
     }
 
     res.json({ success: true, message: "Reserva anulada correctamente." });
@@ -410,43 +291,19 @@ app.put('/api/reservations/cancel', async (req, res) => {
 app.post('/api/admin/register', async (req, res) => {
   try {
     const { name, slug, business_type, max_capacity, whatsapp_phone, email, password } = req.body;
-    
-    const existing = await pool.query('SELECT id FROM tenants WHERE slug = $1', [slug]);
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'El identificador (slug) ya está registrado. Elige otro.' });
-    }
+    const password_hash = await bcrypt.hash(password, 10);
 
-    const userExists = await pool.query('SELECT password_hash FROM tenants WHERE email = $1 LIMIT 1', [email]);
-    let password_hash;
-    if (userExists.rows.length > 0) {
-      password_hash = userExists.rows[0].password_hash;
-    } else {
-      password_hash = await bcrypt.hash(password, 10);
-    }
-
-    const defaultSettings = JSON.stringify({
-      shifts: [{ open: "09:00", close: "22:00" }],
-      dayShifts: {},
-      closedDays: [],
-      vacationStart: "",
-      vacationEnd: "",
-      slotDurationMinutes: 60,
-      serviceDurations: {},
-      durationStandard: 90,
-      durationLarge: 120
-    });
-
-    const defaultServices = ["45 Minutos", "60 Minutos", "90 Minutos"];
+    const defaultSettings = JSON.stringify({ shifts: [{ open: "08:00", close: "20:00" }], closedDays: [] });
+    const defaultServices = ["Barra de Pan", "Croissant", "Napolitana", "Café para llevar"];
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb) RETURNING id, name, slug`,
-      [name, slug, business_type || 'Spinning', max_capacity || 12, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
+      [name, slug, business_type || 'Panadería', max_capacity || 50, whatsapp_phone, email, password_hash, defaultSettings, JSON.stringify(defaultServices)]
     );
 
     res.status(201).json({ success: true, tenant: newTenant.rows[0] });
   } catch (err) {
-    console.error("Error al registrar negocio:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -460,23 +317,16 @@ app.post('/api/admin/login', async (req, res) => {
     const match = await bcrypt.compare(password, tenantRes.rows[0].password_hash);
     if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    const businesses = tenantRes.rows.map(t => {
-      let s = t.services;
-      if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = ['General']; } }
-      let set = t.settings;
-      if (typeof set === 'string') { try { set = JSON.parse(set); } catch(e) { set = {}; } }
-
-      return {
-        tenant_id: t.id,
-        name: t.name,
-        slug: t.slug,
-        business_type: t.business_type,
-        max_capacity: t.max_capacity,
-        whatsapp_phone: t.whatsapp_phone,
-        settings: set,
-        services: s
-      };
-    });
+    const businesses = tenantRes.rows.map(t => ({
+      tenant_id: t.id,
+      name: t.name,
+      slug: t.slug,
+      business_type: t.business_type,
+      max_capacity: t.max_capacity,
+      whatsapp_phone: t.whatsapp_phone,
+      settings: typeof t.settings === 'string' ? JSON.parse(t.settings) : t.settings,
+      services: typeof t.services === 'string' ? JSON.parse(t.services) : t.services
+    }));
 
     res.json({ success: true, businesses });
   } catch (err) {
@@ -487,21 +337,7 @@ app.post('/api/admin/login', async (req, res) => {
 app.get('/api/admin/reservations/:tenant_id', async (req, res) => {
   try {
     const { tenant_id } = req.params;
-    const { date, start_date, end_date } = req.query;
-
-    let query = 'SELECT * FROM reservations WHERE tenant_id = $1';
-    let params = [tenant_id];
-
-    if (date) {
-      query += ' AND reservation_date = $2';
-      params.push(date);
-    } else if (start_date && end_date) {
-      query += ' AND reservation_date BETWEEN $2 AND $3';
-      params.push(start_date, end_date);
-    }
-
-    query += ' ORDER BY reservation_date DESC, time_slot DESC';
-    const reservations = await pool.query(query, params);
+    const reservations = await pool.query('SELECT * FROM reservations WHERE tenant_id = $1 ORDER BY reservation_date DESC, time_slot DESC', [tenant_id]);
     res.json(reservations.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -522,24 +358,11 @@ app.put('/api/admin/tenant/:tenant_id', async (req, res) => {
            settings = COALESCE($5::jsonb, settings),
            services = COALESCE($6::jsonb, services)
        WHERE id = $7 RETURNING *`,
-      [
-        name, 
-        max_capacity, 
-        whatsapp_phone, 
-        business_type,
-        settings ? JSON.stringify(settings) : null, 
-        services ? JSON.stringify(services) : null,
-        tenant_id
-      ]
+      [name, max_capacity, whatsapp_phone, business_type, settings ? JSON.stringify(settings) : null, services ? JSON.stringify(services) : null, tenant_id]
     );
 
-    let tenant = updated.rows[0];
-    if (typeof tenant.services === 'string') { try { tenant.services = JSON.parse(tenant.services); } catch(e){} }
-    if (typeof tenant.settings === 'string') { try { tenant.settings = JSON.parse(tenant.settings); } catch(e){} }
-
-    res.json({ success: true, message: "Configuración actualizada con éxito", tenant });
+    res.json({ success: true, tenant: updated.rows[0] });
   } catch (err) {
-    console.error("Error al actualizar negocio:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -549,5 +372,5 @@ app.get(/(.*)/, (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor SaaS activo en el puerto ${PORT}`);
+  console.log(`Servidor activo en el puerto ${PORT}`);
 });

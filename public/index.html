@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Actualización forzada - Versión 2.7.2 -->
+    <!-- Actualización Versión 2.8.0 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS de Reservas Multi-negocio 24/7</title>
@@ -9,7 +9,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
-    <header id="mainHeader" class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 id="businessName" class="text-lg font-bold tracking-tight">Cargando negocio...</h1>
             <div id="navButtons" class="flex gap-2 flex-wrap">
@@ -23,18 +23,17 @@
 
     <main class="max-w-4xl w-full mx-auto p-4 flex-grow flex flex-col justify-center my-6">
 
-        <!-- Directorio si se accede sin slug -->
+        <!-- Directorio -->
         <div id="directorySelector" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200 mb-6">
             <h2 class="text-xl font-bold text-slate-900 mb-2">Directorio de Negocios Disponibles</h2>
-            <p class="text-xs text-slate-500 mb-4">Selecciona un negocio para hacer tu reserva:</p>
             <div id="tenantListGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
 
         <!-- 1. VISTA CLIENTE -->
         <section id="clientView" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <div class="mb-6">
-                <h2 class="text-xl font-bold text-slate-900">Haz tu Reserva Online</h2>
-                <p id="businessSubtitle" class="text-xs text-slate-500 mt-1">Selecciona la fecha y parámetros para ver la disponibilidad en tiempo real.</p>
+                <h2 class="text-xl font-bold text-slate-900">Haz tu Reserva / Pedido Online</h2>
+                <p id="businessSubtitle" class="text-xs text-slate-500 mt-1">Selecciona el servicio y la fecha en tiempo real.</p>
             </div>
 
             <form id="bookingForm" class="space-y-4">
@@ -51,207 +50,78 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Servicio / Duración</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Servicio / Producto</label>
                         <select id="service_name" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white" onchange="fetchAvailability()">
-                            <option value="General">General / Estándar</option>
+                            <option value="General">General</option>
                         </select>
                     </div>
                     <div>
-                        <label id="partySizeLabel" class="block text-xs font-bold text-slate-600 uppercase mb-1">Personas / Plazas</label>
-                        <input type="number" id="party_size" value="1" min="1" max="50" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
+                        <label id="partySizeLabel" class="block text-xs font-bold text-slate-600 uppercase mb-1">PERSONAS / CANTIDAD</label>
+                        <input type="number" id="party_size" value="1" min="1" max="100" class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Fecha de Reserva</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Fecha</label>
                         <input type="date" id="reservation_date" required class="w-full px-3 py-3 rounded-xl border border-slate-200 text-sm" onchange="fetchAvailability()">
                     </div>
                 </div>
 
-                <!-- Tabla de Disponibilidad Visual -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Selecciona una Franja Horaria (Inicio - Fin)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Selecciona un Turno / Horario</label>
                     <div id="availabilityGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                        <p class="text-xs text-slate-400 col-span-full py-2">Selecciona una fecha para ver los turnos disponibles...</p>
+                        <p class="text-xs text-slate-400 col-span-full py-2">Selecciona una fecha...</p>
                     </div>
                     <input type="hidden" id="time_slot" required>
                 </div>
 
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-sm mt-4 cursor-pointer">
-                    Confirmar Reserva
+                    Confirmar Reserva / Pedido
                 </button>
             </form>
 
             <div id="successCard" class="hidden mt-6 p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
                 <h3 class="font-bold text-emerald-800 text-base">¡Reserva Registrada con Éxito!</h3>
-                <p class="text-xs text-emerald-700">Código de reserva: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
+                <p class="text-xs text-emerald-700">Código: <span id="resCode" class="font-mono bg-white px-2 py-1 rounded font-bold text-indigo-600 border border-emerald-300"></span></p>
                 <p id="assignedResourceInfo" class="text-xs text-emerald-800 font-semibold"></p>
                 <div class="flex flex-wrap gap-2 pt-2">
                     <a id="whatsappLink" href="#" target="_blank" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">Enviar a WhatsApp</a>
                     <button type="button" onclick="downloadICS()" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer">Descargar (.ics)</button>
-                    <a id="gCalendarLink" href="#" target="_blank" class="bg-white border text-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg">Google Calendar</a>
                 </div>
             </div>
         </section>
 
-        <!-- 2. GESTIONAR RESERVA -->
+        <!-- 2. GESTIONAR -->
         <section id="manageView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 id="manageTitle" class="text-xl font-bold text-slate-900 mb-1">Anular o Consultar Reserva</h2>
-            <p id="manageSubtitle" class="text-xs text-slate-500 mb-6">Introduce tu teléfono y tu código de reserva único para consultar o anular.</p>
-
             <form id="lookupForm" class="space-y-4 max-w-md">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Teléfono Móvil</label>
-                    <input type="tel" id="lookup_phone" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm" placeholder="+34600000000">
+                    <input type="tel" id="lookup_phone" required class="w-full px-4 py-3 rounded-xl border text-sm" placeholder="+34600000000">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Código de Reserva</label>
-                    <input type="text" id="lookup_code" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm uppercase font-mono" placeholder="Ej. A3F9B2">
+                    <input type="text" id="lookup_code" required class="w-full px-4 py-3 rounded-xl border text-sm uppercase font-mono" placeholder="Ej. A3F9B2">
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Consultar Reserva</button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Consultar</button>
             </form>
-
             <div id="lookupResult" class="hidden mt-6 p-4 bg-slate-50 border rounded-xl space-y-3 text-sm"></div>
         </section>
 
-        <!-- 3. PANEL ADMINISTRADOR -->
+        <!-- 3. ADMIN -->
         <section id="adminView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <div id="adminLoginBox">
-                <h2 class="text-xl font-bold text-slate-900 mb-1">Acceso Administrador Multinegocio</h2>
-                <p class="text-xs text-slate-500 mb-6">Introduce tu correo y contraseña para administrar todos tus negocios.</p>
+                <h2 class="text-xl font-bold text-slate-900 mb-1">Acceso Administrador</h2>
                 <form id="adminLoginForm" class="space-y-4 max-w-md">
-                    <input type="email" id="adminEmail" required placeholder="Correo de administrador" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
-                    <input type="password" id="adminPassword" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Entrar al Panel</button>
+                    <input type="email" id="adminEmail" required placeholder="Correo" class="w-full px-4 py-3 rounded-xl border text-sm">
+                    <input type="password" id="adminPassword" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border text-sm">
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Entrar</button>
                 </form>
             </div>
 
             <div id="adminDashboardBox" class="hidden space-y-6">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-3">
-                    <div>
-                        <h2 id="adminBusinessTitle" class="text-xl font-bold text-slate-900">Panel de Control</h2>
-                        <p class="text-xs text-slate-500">Selecciona uno de tus negocios para gestionar su configuración y reservas.</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <select id="businessSelector" onchange="switchAdminBusiness()" class="p-2 border rounded-lg text-xs font-bold bg-slate-50"></select>
-                        <button onclick="logoutAdmin()" class="text-xs text-red-600 font-bold underline cursor-pointer">Cerrar Sesión</button>
-                    </div>
+                <div class="flex justify-between items-center border-b pb-4">
+                    <h2 id="adminBusinessTitle" class="text-xl font-bold text-slate-900">Panel</h2>
+                    <select id="businessSelector" onchange="switchAdminBusiness()" class="p-2 border rounded-lg text-xs font-bold bg-slate-50"></select>
                 </div>
-
-                <!-- Enlaces Web del Negocio -->
-                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 space-y-2 text-xs">
-                    <h3 class="font-bold text-indigo-900 uppercase">Enlaces Web del Negocio Seleccionado</h3>
-                    <div class="flex flex-col sm:flex-row gap-2 justify-between items-center bg-white p-2.5 rounded border border-indigo-100">
-                        <div>
-                            <span class="font-bold text-slate-600">Web de Reservas (Clientes):</span>
-                            <a id="adminClientWebLink" href="#" target="_blank" class="text-indigo-600 font-mono underline ml-1"></a>
-                        </div>
-                        <button type="button" onclick="copyClientWebLink()" class="bg-indigo-600 text-white px-3 py-1 rounded font-bold cursor-pointer">Copiar Link</button>
-                    </div>
-                </div>
-
-                <div class="bg-slate-50 p-4 rounded-xl border space-y-4">
-                    <h3 class="text-xs font-bold uppercase text-slate-700">Configuración del Negocio Seleccionado</h3>
-                    <form id="configForm" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div>
-                            <label class="block font-bold mb-1">Nombre del Negocio</label>
-                            <input type="text" id="conf_name" class="w-full p-2 border rounded bg-white" required>
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-1">Tipo de Negocio / Sector</label>
-                            <input type="text" id="conf_business_type" class="w-full p-2 border rounded bg-white" placeholder="Ej. Spinning, Gimnasio, Pádel..." required>
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-1">Capacidad Máxima (Plazas o Aforo)</label>
-                            <input type="number" id="conf_capacity" class="w-full p-2 border rounded bg-white" required>
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-1">Teléfono WhatsApp</label>
-                            <input type="text" id="conf_whatsapp" class="w-full p-2 border rounded bg-white">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Google Sheets Webhook URL (Exportación Automática)</label>
-                            <input type="url" id="conf_sheets_webhook" class="w-full p-2 border rounded bg-white" placeholder="https://script.google.com/macros/s/.../exec">
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-1">Turnos Generales / Defecto (Ej. 09:00-22:00)</label>
-                            <input type="text" id="conf_shifts" class="w-full p-2 border rounded bg-white" placeholder="Ej. 09:00-22:00">
-                        </div>
-                        <div>
-                            <label class="block font-bold mb-1">Días de Descanso Semanal (0=Dom, 1=Lun ... 6=Sáb)</label>
-                            <input type="text" id="conf_closed_days" class="w-full p-2 border rounded bg-white" placeholder="Ej. 1, 2">
-                        </div>
-                        <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-3 border rounded-lg">
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Vacaciones / Cierre Desde:</label>
-                                <input type="date" id="conf_vacation_start" class="w-full p-2 border rounded text-xs bg-white">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Vacaciones / Cierre Hasta:</label>
-                                <input type="date" id="conf_vacation_end" class="w-full p-2 border rounded text-xs bg-white">
-                            </div>
-                        </div>
-                        <div class="md:col-span-2 bg-white p-3 border rounded-lg space-y-2">
-                            <label class="block font-bold text-slate-700">Horarios Específicos para CUALQUIER Día de la Semana</label>
-                            <p class="text-[11px] text-slate-500">Deja en blanco cualquier día para usar el turno general.</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1">
-                                <div>
-                                    <label class="block font-semibold">Lunes (1)</label>
-                                    <input type="text" id="conf_shift_1" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold">Martes (2)</label>
-                                    <input type="text" id="conf_shift_2" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold">Miércoles (3)</label>
-                                    <input type="text" id="conf_shift_3" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold">Jueves (4)</label>
-                                    <input type="text" id="conf_shift_4" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-20:00">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold">Viernes (5)</label>
-                                    <input type="text" id="conf_shift_5" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-22:00">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold">Sábado (6)</label>
-                                    <input type="text" id="conf_shift_6" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 09:00-15:00">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold">Domingo (0)</label>
-                                    <input type="text" id="conf_shift_0" class="w-full p-1.5 border rounded text-xs" placeholder="Ej. 13:00-21:00">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block font-bold mb-1">Servicios (Separados por comas)</label>
-                            <input type="text" id="conf_services" class="w-full p-2 border rounded bg-white">
-                        </div>
-                        <div>
-                            <button type="submit" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded cursor-pointer">Guardar Cambios</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="flex flex-wrap gap-3 items-end justify-between bg-slate-50 p-4 rounded-xl border">
-                    <div class="flex flex-wrap gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Fecha Inicio</label>
-                            <input type="date" id="filterStartDate" class="px-3 py-2 rounded-lg border text-xs bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Fecha Fin</label>
-                            <input type="date" id="filterEndDate" class="px-3 py-2 rounded-lg border text-xs bg-white">
-                        </div>
-                        <div class="flex items-end">
-                            <button onclick="loadAdminReservations()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer">Filtrar</button>
-                        </div>
-                    </div>
-                    <div>
-                        <button onclick="exportToCSV()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer">Exportar CSV</button>
-                    </div>
-                </div>
-
                 <div>
                     <h3 class="text-xs font-bold uppercase text-slate-600 mb-3">Listado de Reservas</h3>
                     <div id="adminReservationsList" class="space-y-2 max-h-96 overflow-y-auto text-xs"></div>
@@ -259,30 +129,22 @@
             </div>
         </section>
 
-        <!-- 4. VISTA REGISTRO -->
+        <!-- 4. REGISTRO -->
         <section id="registerView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-900 mb-1">Registrar Nuevo Negocio</h2>
-            <p class="text-xs text-slate-500 mb-4">Crea negocios de spinning, peluquería, restaurantes o cualquier sector libremente.</p>
             <form id="registerForm" class="space-y-4 max-w-lg">
-                <input type="text" id="reg_name" required placeholder="Nombre del Negocio (Ej. Spinning Center)" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <input type="text" id="reg_slug" required placeholder="Slug URL (ej. spinning-center)" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sector / Tipo de Negocio</label>
-                    <input type="text" id="reg_business_type" required placeholder="Ej. Spinning, Gimnasio, Restaurante..." value="Spinning" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
-                </div>
-                <input type="number" id="reg_max_capacity" value="12" required placeholder="Capacidad Máxima / Plazas" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_name" required placeholder="Nombre (Ej. Panadería San José)" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_slug" required placeholder="Slug URL (ej. panaderia-san-jose)" class="w-full px-4 py-3 rounded-xl border text-sm">
+                <input type="text" id="reg_business_type" required value="Panadería" class="w-full px-4 py-3 rounded-xl border text-sm bg-white">
+                <input type="number" id="reg_max_capacity" value="50" required placeholder="Capacidad" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="tel" id="reg_whatsapp" required placeholder="WhatsApp (+34...)" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="email" id="reg_email" required placeholder="Correo admin" class="w-full px-4 py-3 rounded-xl border text-sm">
                 <input type="password" id="reg_password" required placeholder="Contraseña" class="w-full px-4 py-3 rounded-xl border text-sm">
-                <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl text-sm cursor-pointer">Registrar Negocio</button>
+                <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl text-sm cursor-pointer">Registrar</button>
             </form>
         </section>
 
     </main>
-
-    <footer class="bg-white border-t py-4 text-center text-xs text-slate-500">
-        Sistema de Reservas Multi-negocio SaaS 24/7.
-    </footer>
 
     <script>
         let tenantData = null;
@@ -295,741 +157,223 @@
         const tenantSlug = pathSegments.length > 0 ? pathSegments[0] : '';
         const isFromWhatsapp = window.location.search.includes('phone=') || (window.location.hash && window.location.hash.includes('phone='));
 
-        // Función robusta para formatear fechas ISO (2026-10-21T00:00:00.000z) a dd/mm/aaaa
         function formatDate(dateStr) {
             if (!dateStr) return '';
             const cleanStr = String(dateStr).split('T')[0];
             const parts = cleanStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            const d = new Date(dateStr);
-            if (!isNaN(d.getTime())) {
-                const day = String(d.getUTCDate()).padStart(2, '0');
-                const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-                const year = d.getUTCFullYear();
-                return `${day}/${month}/${year}`;
-            }
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
             return dateStr;
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            const hash = window.location.hash;
-            if (hash.includes('manage') || isFromWhatsapp) {
+            if (window.location.hash.includes('manage') || isFromWhatsapp) {
                 switchView('manage');
-                
                 if (isFromWhatsapp) {
-                    const navButtons = document.getElementById('navButtons');
-                    if (navButtons) navButtons.innerHTML = '';
-                    const manageTitle = document.getElementById('manageTitle');
-                    const manageSubtitle = document.getElementById('manageSubtitle');
-                    if (manageTitle) manageTitle.innerText = "Detalle de tu Reserva";
-                    if (manageSubtitle) manageSubtitle.innerText = "Consulta o anula tu reserva activa.";
-                    
-                    const lookupForm = document.getElementById('lookupForm');
-                    if (lookupForm) lookupForm.style.display = 'none';
-
-                    let phone = '';
-                    let code = '';
+                    let phone = ''; let code = '';
                     const fullUrl = window.location.href;
-                    if (fullUrl.includes('phone=')) {
-                        const parts = fullUrl.split('phone=');
-                        if (parts[1]) {
-                            phone = decodeURIComponent(parts[1].split('&')[0]);
-                        }
-                    }
-                    if (fullUrl.includes('code=')) {
-                        const parts = fullUrl.split('code=');
-                        if (parts[1]) {
-                            code = decodeURIComponent(parts[1].split('&')[0].split('#')[0]);
-                        }
-                    }
-
-                    if (phone && code) {
-                        setTimeout(() => {
-                            autoLookupReservation(phone, code);
-                        }, 200);
-                    }
+                    if (fullUrl.includes('phone=')) phone = decodeURIComponent(fullUrl.split('phone=')[1].split('&')[0]);
+                    if (fullUrl.includes('code=')) code = decodeURIComponent(fullUrl.split('code=')[1].split('&')[0].split('#')[0]);
+                    if (phone && code) setTimeout(() => autoLookupReservation(phone, code), 200);
                 }
             }
         });
 
         async function autoLookupReservation(client_phone, booking_code) {
-            try {
-                const res = await fetch('/api/reservations/lookup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ client_phone, booking_code })
-                });
-                const data = await res.json();
-                const container = document.getElementById('lookupResult');
-                if (!container) return;
-                container.classList.remove('hidden');
+            const res = await fetch('/api/reservations/lookup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_phone, booking_code })
+            });
+            const data = await res.json();
+            const container = document.getElementById('lookupResult');
+            if (!container) return;
+            container.classList.remove('hidden');
 
-                if (res.ok && data.success) {
-                    const r = data.reservation;
-                    activeReservation = r; // Guardamos para el botón .ics si hace falta
-                    if (!tenantData && r.tenant_slug) {
-                        try {
-                            const tRes = await fetch(`/api/tenant/${r.tenant_slug}`);
-                            if (tRes.ok) tenantData = await tRes.json();
-                        } catch(e) {}
-                    }
-                    container.innerHTML = `
-                        <div class="p-4 bg-white border rounded-xl space-y-3">
-                            <h4 class="font-bold text-indigo-600 text-base">Detalles de tu Reserva</h4>
-                            <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
-                            <p><strong>Cliente:</strong> ${r.client_name}</p>
-                            <p><strong>Teléfono:</strong> ${r.client_phone}</p>
-                            <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
-                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${formatDate(r.reservation_date)}</span></p>
-                            <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
-                            <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
-                            <p><strong>Plazas / Personas:</strong> ${r.party_size}</p>
-                            <p><strong>Código de Reserva:</strong> <span class="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">${r.booking_code}</span></p>
-                            
-                            <div class="pt-3 border-t flex flex-wrap gap-2 justify-between items-center">
-                                <button onclick="downloadICS()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Descargar Calendario (.ics)</button>
-                                <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
-                            </div>
+            if (res.ok && data.success) {
+                const r = data.reservation;
+                activeReservation = r;
+                container.innerHTML = `
+                    <div class="p-4 bg-white border rounded-xl space-y-3">
+                        <h4 class="font-bold text-indigo-600 text-base">Detalles</h4>
+                        <p><strong>Negocio:</strong> ${r.tenant_name}</p>
+                        <p><strong>Cliente:</strong> ${r.client_name}</p>
+                        <p><strong>Servicio/Producto:</strong> ${r.service_name || 'General'}</p>
+                        <p><strong>Fecha:</strong> ${formatDate(r.reservation_date)}</p>
+                        <p><strong>Horario:</strong> ${r.time_slot} - ${r.end_time}</p>
+                        <p><strong>Cantidad/Personas:</strong> ${r.party_size}</p>
+                        <p><strong>Código:</strong> ${r.booking_code}</p>
+                        <div class="pt-3 border-t flex justify-end">
+                            <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular</button>
                         </div>
-                    `;
-                } else {
-                    container.innerHTML = `<p class="text-red-500 font-bold">No se encontró ninguna reserva activa con esos datos.</p>`;
-                }
-            } catch (err) {
-                console.error(err);
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<p class="text-red-500 font-bold">No encontrado.</p>`;
             }
         }
 
         async function loadTenant() {
             if (!tenantSlug) {
-                const businessNameEl = document.getElementById('businessName');
-                const businessSubtitleEl = document.getElementById('businessSubtitle');
-                const clientViewEl = document.getElementById('clientView');
-                const directorySelectorEl = document.getElementById('directorySelector');
-
-                if (businessNameEl) businessNameEl.innerText = "Portal SaaS de Reservas";
-                if (businessSubtitleEl) businessSubtitleEl.innerText = "Selecciona un negocio del directorio o regístrate.";
-                if (clientViewEl) clientViewEl.classList.add('hidden');
-                if (directorySelectorEl) directorySelectorEl.classList.remove('hidden');
+                document.getElementById('clientView').classList.add('hidden');
+                document.getElementById('directorySelector').classList.remove('hidden');
                 loadTenantDirectory();
                 return;
             }
-            try {
-                const res = await fetch(`/api/tenant/${tenantSlug}`);
-                if (res.ok) {
-                    tenantData = await res.json();
-                    const businessNameEl = document.getElementById('businessName');
-                    const businessSubtitleEl = document.getElementById('businessSubtitle');
-
-                    if (businessNameEl) businessNameEl.innerText = tenantData.name;
-                    if (businessSubtitleEl) businessSubtitleEl.innerText = `Sector: ${tenantData.business_type} (Capacidad máx: ${tenantData.max_capacity})`;
-
-                    const partySizeLabel = document.getElementById('partySizeLabel');
-                    const bTypeLower = (tenantData.business_type || '').toLowerCase();
-                    if (bTypeLower.includes('pádel') || bTypeLower.includes('padel') || bTypeLower.includes('pista')) {
-                        if (partySizeLabel) partySizeLabel.innerText = "Jugadores";
-                    } else if (bTypeLower.includes('spinning') || bTypeLower.includes('clase') || bTypeLower.includes('gimnasio')) {
-                        if (partySizeLabel) partySizeLabel.innerText = "Plazas";
-                    } else if (bTypeLower.includes('restaurante') || bTypeLower.includes('mesa')) {
-                        if (partySizeLabel) partySizeLabel.innerText = "Comensales";
-                    } else {
-                        if (partySizeLabel) partySizeLabel.innerText = "Personas";
-                    }
-
-                    const serviceSelect = document.getElementById('service_name');
-                    if (serviceSelect) {
-                        serviceSelect.innerHTML = '';
-                        const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['45 Minutos', '60 Minutos', '90 Minutos'];
-                        services.forEach(s => {
-                            const opt = document.createElement('option');
-                            opt.value = s;
-                            opt.innerText = s;
-                            serviceSelect.appendChild(opt);
-                        });
-                    }
-                    fetchAvailability();
-                } else {
-                    const businessNameEl = document.getElementById('businessName');
-                    const businessSubtitleEl = document.getElementById('businessSubtitle');
-                    if (businessNameEl) businessNameEl.innerText = "Negocio no encontrado";
-                    if (businessSubtitleEl) businessSubtitleEl.innerText = "Comprueba la URL o selecciona un negocio.";
+            const res = await fetch(`/api/tenant/${tenantSlug}`);
+            if (res.ok) {
+                tenantData = await res.json();
+                document.getElementById('businessName').innerText = tenantData.name;
+                document.getElementById('businessSubtitle').innerText = `Sector: ${tenantData.business_type}`;
+                
+                const serviceSelect = document.getElementById('service_name');
+                if (serviceSelect) {
+                    serviceSelect.innerHTML = '';
+                    const services = tenantData.services && tenantData.services.length > 0 ? tenantData.services : ['General'];
+                    services.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s; opt.innerText = s;
+                        serviceSelect.appendChild(opt);
+                    });
                 }
-            } catch (err) {
-                console.error(err);
+                fetchAvailability();
             }
         }
         loadTenant();
 
         async function loadTenantDirectory() {
-            try {
-                const res = await fetch('/api/tenants');
-                const tenants = await res.json();
-                const grid = document.getElementById('tenantListGrid');
-                if (!grid) return;
-                grid.innerHTML = '';
-                if (tenants.length === 0) {
-                    grid.innerHTML = '<p class="text-xs text-slate-400">No hay negocios registrados todavía.</p>';
-                    return;
-                }
-                tenants.forEach(t => {
-                    const card = document.createElement('div');
-                    card.className = 'p-4 border rounded-xl bg-slate-50 hover:bg-indigo-50 transition cursor-pointer flex justify-between items-center';
-                    card.innerHTML = `
-                        <div>
-                            <h4 class="font-bold text-slate-900">${t.name}</h4>
-                            <p class="text-[11px] text-slate-500">Sector: ${t.business_type} | Capacidad: ${t.max_capacity}</p>
-                        </div>
-                        <a href="/${t.slug}" class="bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Reservar</a>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch (err) {
-                console.error(err);
-            }
+            const res = await fetch('/api/tenants');
+            const tenants = await res.json();
+            const grid = document.getElementById('tenantListGrid');
+            grid.innerHTML = tenants.map(t => `
+                <div class="p-4 border rounded-xl bg-slate-50 flex justify-between items-center">
+                    <div><h4 class="font-bold">${t.name}</h4><p class="text-[11px] text-slate-500">${t.business_type}</p></div>
+                    <a href="/${t.slug}" class="bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-lg">Visitar</a>
+                </div>
+            `).join('');
         }
 
         function switchView(view) {
-            const clientView = document.getElementById('clientView');
-            const directorySelector = document.getElementById('directorySelector');
-            const manageView = document.getElementById('manageView');
-            const adminView = document.getElementById('adminView');
-            const registerView = document.getElementById('registerView');
-
-            if (clientView) clientView.classList.add('hidden');
-            if (directorySelector) directorySelector.classList.add('hidden');
-            if (manageView) manageView.classList.add('hidden');
-            if (adminView) adminView.classList.add('hidden');
-            if (registerView) registerView.classList.add('hidden');
-
+            ['clientView', 'directorySelector', 'manageView', 'adminView', 'registerView'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
             if (view === 'client') {
-                if (!tenantSlug) {
-                    if (directorySelector) directorySelector.classList.remove('hidden');
-                } else {
-                    if (clientView) clientView.classList.remove('hidden');
-                }
-            } else if (view === 'manage') {
-                if (manageView) manageView.classList.remove('hidden');
-            } else if (view === 'admin') {
-                if (adminBusinesses.length > 0) {
-                    document.getElementById('adminLoginBox').classList.add('hidden');
-                    document.getElementById('adminDashboardBox').classList.remove('hidden');
-                } else {
-                    document.getElementById('adminLoginBox').classList.remove('hidden');
-                    document.getElementById('adminDashboardBox').classList.add('hidden');
-                }
-                if (adminView) adminView.classList.remove('hidden');
-            } else if (view === 'register') {
-                if (registerView) registerView.classList.remove('hidden');
+                if (!tenantSlug) document.getElementById('directorySelector').classList.remove('hidden');
+                else document.getElementById('clientView').classList.remove('hidden');
+            } else {
+                document.getElementById(view + 'View').classList.remove('hidden');
             }
         }
 
         async function fetchAvailability() {
-            const dateEl = document.getElementById('reservation_date');
-            if (!dateEl) return;
-            const date = dateEl.value;
+            const date = document.getElementById('reservation_date').value;
             const gridContainer = document.getElementById('availabilityGrid');
-            if (!gridContainer) return;
-            gridContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">Calculando disponibilidad en tiempo real...</p>';
+            if (!date || !tenantData) return;
 
-            if (!date) {
-                gridContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">Selecciona una fecha primero...</p>';
+            const serviceName = document.getElementById('service_name').value;
+            const partySize = document.getElementById('party_size').value;
+
+            const res = await fetch(`/api/availability/${tenantData.id}?date=${date}&service_name=${encodeURIComponent(serviceName)}&party_size=${partySize}`);
+            const data = await res.json();
+            gridContainer.innerHTML = '';
+
+            if (data.closed) {
+                gridContainer.innerHTML = `<p class="text-xs text-red-600 font-bold col-span-full">${data.message}</p>`;
                 return;
             }
 
-            if (!tenantData) {
-                await loadTenant();
-                if (!tenantData) {
-                    gridContainer.innerHTML = '<p class="text-xs text-red-500 col-span-full py-2">Negocio no válido o no seleccionado.</p>';
-                    return;
-                }
-            }
-
-            const serviceSelect = document.getElementById('service_name');
-            const selectedVal = serviceSelect ? serviceSelect.value : 'General';
-            const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
-            
-            let durationVal = '60';
-            const combined = (selectedVal + " " + selectedText).toLowerCase();
-            const match = combined.match(/(\d+)/);
-            if (match) {
-                durationVal = match[1];
-            } else if (combined.includes('45')) {
-                durationVal = '45';
-            } else if (combined.includes('90')) {
-                durationVal = '90';
-            }
-
-            const partySize = document.getElementById('party_size') ? document.getElementById('party_size').value : 1;
-
-            try {
-                let url = `/api/availability/${tenantData.id}?date=${date}&service_name=${encodeURIComponent(selectedVal)}&duration=${durationVal}&party_size=${partySize}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                gridContainer.innerHTML = '';
-
-                if (data.closed) {
-                    gridContainer.innerHTML = `<p class="text-xs text-red-600 font-bold col-span-full py-2">${data.message}</p>`;
-                    return;
-                }
-
-                if (!data.availability || data.availability.length === 0) {
-                    gridContainer.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">No hay horarios configurados para este día</p>';
-                    return;
-                }
-
-                data.availability.forEach(item => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = `p-3 rounded-xl border text-left transition flex flex-col justify-between text-xs cursor-pointer ${item.is_full ? 'bg-red-50 border-red-200 text-red-700 cursor-not-allowed opacity-60' : 'bg-white border-slate-200 hover:border-indigo-600 hover:shadow-sm'}`;
-                    
-                    if (item.is_full) {
-                        btn.disabled = true;
-                        btn.innerHTML = `<span class="font-bold text-sm">${item.slot} - ${item.end_time}</span><span class="text-[10px] font-bold mt-1 text-red-600">COMPLETO (0 libres)</span>`;
-                    } else {
-                        btn.innerHTML = `<span class="font-bold text-sm text-slate-800">${item.slot} - ${item.end_time}</span><span class="text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available} / ${item.max_capacity}</span>`;
-                        btn.onclick = () => selectTimeSlot(item.slot, btn);
-                    }
-                    gridContainer.appendChild(btn);
-                });
-            } catch (err) {
-                gridContainer.innerHTML = '<p class="text-xs text-red-500 col-span-full py-2">Error al cargar la disponibilidad.</p>';
-            }
+            gridContainer.innerHTML = data.availability.map(item => `
+                <button type="button" onclick="selectTimeSlot('${item.slot}', this)" class="p-3 rounded-xl border text-left text-xs transition cursor-pointer ${item.is_full ? 'bg-red-50 text-red-700 opacity-60 cursor-not-allowed' : 'bg-white hover:border-indigo-600'}">
+                    <span class="font-bold text-sm">${item.slot} - ${item.end_time}</span>
+                    <span class="block text-[10px] font-bold text-emerald-600 mt-1">Libres: ${item.available}</span>
+                </button>
+            `).join('');
         }
 
         function selectTimeSlot(slot, btnElement) {
             document.querySelectorAll('#availabilityGrid button').forEach(b => b.classList.remove('border-indigo-600', 'bg-indigo-50', 'ring-2', 'ring-indigo-600'));
             btnElement.classList.add('border-indigo-600', 'bg-indigo-50', 'ring-2', 'ring-indigo-600');
-            const timeSlotInput = document.getElementById('time_slot');
-            if (timeSlotInput) timeSlotInput.value = slot;
+            document.getElementById('time_slot').value = slot;
             selectedTimeSlot = slot;
         }
 
-        const registerForm = document.getElementById('registerForm');
-        if (registerForm) {
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const data = {
-                    name: document.getElementById('reg_name').value,
-                    slug: document.getElementById('reg_slug').value.toLowerCase().replace(/\s+/g, '-'),
-                    business_type: document.getElementById('reg_business_type').value,
-                    max_capacity: parseInt(document.getElementById('reg_max_capacity').value),
-                    whatsapp_phone: document.getElementById('reg_whatsapp').value,
-                    email: document.getElementById('reg_email').value,
-                    password: document.getElementById('reg_password').value
-                };
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!selectedTimeSlot) return alert('Selecciona una franja horaria.');
 
-                const res = await fetch('/api/admin/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await res.json();
-                if (res.ok && result.success) {
-                    alert('¡Negocio registrado con éxito!');
-                    window.location.href = `/${result.tenant.slug}`;
-                } else {
-                    alert(result.error || 'Error al registrar');
-                }
-            });
-        }
+            const data = {
+                tenant_id: tenantData.id,
+                client_name: document.getElementById('client_name').value,
+                client_phone: document.getElementById('client_phone').value.trim(),
+                reservation_date: document.getElementById('reservation_date').value,
+                time_slot: selectedTimeSlot,
+                service_name: document.getElementById('service_name').value,
+                party_size: parseInt(document.getElementById('party_size').value)
+            };
 
-        const bookingForm = document.getElementById('bookingForm');
-        if (bookingForm) {
-            bookingForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!tenantData) {
-                    alert('Accede mediante la URL específica de un negocio.');
-                    return;
-                }
-                if (!selectedTimeSlot) {
-                    alert('Por favor, selecciona una franja horaria en la tabla de disponibilidad.');
-                    return;
-                }
-
-                const clientPhoneVal = document.getElementById('client_phone').value.trim();
-                const serviceSelect = document.getElementById('service_name');
-                const selectedVal = serviceSelect ? serviceSelect.value : 'General';
-                const selectedText = serviceSelect && serviceSelect.options[serviceSelect.selectedIndex] ? serviceSelect.options[serviceSelect.selectedIndex].text : '';
-                
-                let durationVal = '60';
-                const combined = (selectedVal + " " + selectedText).toLowerCase();
-                const match = combined.match(/(\d+)/);
-                if (match) {
-                    durationVal = match[1];
-                } else if (combined.includes('45')) {
-                    durationVal = '45';
-                }
-
-                const data = {
-                    tenant_id: tenantData.id,
-                    client_name: document.getElementById('client_name').value,
-                    client_phone: clientPhoneVal,
-                    reservation_date: document.getElementById('reservation_date').value,
-                    time_slot: selectedTimeSlot,
-                    service_name: selectedVal,
-                    duration: durationVal,
-                    party_size: parseInt(document.getElementById('party_size').value)
-                };
-
-                const res = await fetch('/api/reservations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await res.json();
-                if (res.ok && result.success) {
-                    activeReservation = result.reservation;
-                    const resCodeEl = document.getElementById('resCode');
-                    const successCardEl = document.getElementById('successCard');
-                    const assignedResourceInfo = document.getElementById('assignedResourceInfo');
-
-                    if (resCodeEl) resCodeEl.innerText = activeReservation.booking_code;
-                    if (assignedResourceInfo) assignedResourceInfo.innerHTML = `Asignación: ${activeReservation.resource_assigned || 'General'} | Horario: ${activeReservation.time_slot} - ${activeReservation.end_time}`;
-                    if (successCardEl) successCardEl.classList.remove('hidden');
-
-                    const phoneWp = tenantData.whatsapp_phone || '34600000000';
-                    const manageUrl = `${window.location.origin}/${tenantData.slug}#manage?phone=${encodeURIComponent(clientPhoneVal)}&code=${activeReservation.booking_code}`;
-                    
-                    const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${formatDate(data.reservation_date)}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nPlaza: ${activeReservation.resource_assigned}\nPersonas: ${data.party_size}\nCódigo de reserva: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
-                    
-                    const whatsappLink = document.getElementById('whatsappLink');
-                    if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
-                    
-                    window.open(whatsappLink.href, '_blank');
-
-                    const cleanDate = (data.reservation_date || '').split('T')[0].replace(/-/g, '');
-                    const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
-                    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Plaza: ' + activeReservation.resource_assigned + ' | Código: ' + activeReservation.booking_code)}`;
-                    
-                    const gCalendarLink = document.getElementById('gCalendarLink');
-                    if (gCalendarLink) gCalendarLink.href = gCalUrl;
-
-                    alert("¡Reserva confirmada con éxito y exportada a Google Sheets!");
-                } else {
-                    alert(result.error || 'Error al procesar la reserva.');
-                }
-            });
-        }
-
-        // --- CORREGIDO: Método robusto Data URI compatible con móviles (WhatsApp / iOS / Android) ---
-        function downloadICS() {
-            if (!activeReservation) return;
-            const tName = tenantData ? tenantData.name : (activeReservation.tenant_name || 'Negocio');
-            const datePart = (activeReservation.reservation_date || '').split('T')[0]; // "YYYY-MM-DD"
-            const cleanDate = datePart.replace(/-/g, ''); // "YYYYMMDD"
-            const startTimeStr = (activeReservation.time_slot || '09:00').replace(':', '') + '00';
-            const endTimeStr = (activeReservation.end_time || '10:00').replace(':', '') + '00';
-
-            const startTimestamp = `${cleanDate}T${startTimeStr}`;
-            const endTimestamp = `${cleanDate}T${endTimeStr}`;
-            const nowTimestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-            const icsContent = [
-                "BEGIN:VCALENDAR",
-                "VERSION:2.0",
-                "PRODID:-//SaaS Reservas//ES",
-                "CALSCALE:GREGORIAN",
-                "METHOD:PUBLISH",
-                "BEGIN:VEVENT",
-                `UID:${activeReservation.booking_code}-${cleanDate}@saasreservas`,
-                `DTSTAMP:${nowTimestamp}`,
-                `DTSTART:${startTimestamp}`,
-                `DTEND:${endTimestamp}`,
-                `SUMMARY:Reserva en ${tName} (${activeReservation.resource_assigned})`,
-                `DESCRIPTION:Reserva en ${tName}\\nPlaza/Recurso: ${activeReservation.resource_assigned}\\nHorario: ${activeReservation.time_slot} - ${activeReservation.end_time}\\nPersonas: ${activeReservation.party_size}\\nCodigo de reserva: ${activeReservation.booking_code}`,
-                `LOCATION:${tName}`,
-                "END:VEVENT",
-                "END:VCALENDAR"
-            ].join("\r\n");
-            
-            const encodedUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-            const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
-            link.setAttribute('download', `reserva-${activeReservation.booking_code}.ics`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        const lookupForm = document.getElementById('lookupForm');
-        if (lookupForm) {
-            lookupForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const client_phone = document.getElementById('lookup_phone').value.trim();
-                const booking_code = document.getElementById('lookup_code').value.trim();
-
-                const res = await fetch('/api/reservations/lookup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ client_phone, booking_code })
-                });
-                const data = await res.json();
-                const container = document.getElementById('lookupResult');
-                if (!container) return;
-                container.classList.remove('hidden');
-
-                if (res.ok && data.success) {
-                    const r = data.reservation;
-                    activeReservation = r;
-                    if (!tenantData && r.tenant_slug) {
-                        try {
-                            const tRes = await fetch(`/api/tenant/${r.tenant_slug}`);
-                            if (tRes.ok) tenantData = await tRes.json();
-                        } catch(e) {}
-                    }
-                    container.innerHTML = `
-                        <div class="p-4 bg-white border rounded-xl space-y-3">
-                            <h4 class="font-bold text-indigo-600">Detalles de la Reserva</h4>
-                            <p><strong>Negocio:</strong> ${r.tenant_name || 'Negocio'}</p>
-                            <p><strong>Cliente:</strong> ${r.client_name}</p>
-                            <p><strong>Teléfono:</strong> ${r.client_phone}</p>
-                            <p><strong>Servicio:</strong> ${r.service_name || 'General'}</p>
-                            <p><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${formatDate(r.reservation_date)}</span></p>
-                            <p><strong>Franja Horaria:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
-                            <p><strong>Asignación:</strong> <span class="font-bold text-slate-800">${r.resource_assigned}</span></p>
-                            <p><strong>Plazas / Personas:</strong> ${r.party_size}</p>
-                            
-                            <div class="pt-2 border-t flex flex-wrap gap-2 justify-between items-center">
-                                <button onclick="downloadICS()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Descargar Calendario (.ics)</button>
-                                <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular Reserva</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `<p class="text-red-500 font-bold">No se encontró ninguna reserva activa con esos datos.</p>`;
-                }
-            });
-        }
-
-        async function cancelClientReservation(id, client_phone, booking_code) {
-            if (!confirm('¿Seguro que deseas anular tu reserva?')) return;
-            const res = await fetch('/api/reservations/cancel', {
-                method: 'PUT',
+            const res = await fetch('/api/reservations', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, client_phone, booking_code })
+                body: JSON.stringify(data)
             });
-            if (res.ok) {
-                alert('Reserva anulada con éxito.');
-                location.reload();
+            const result = await res.json();
+            if (res.ok && result.success) {
+                activeReservation = result.reservation;
+                document.getElementById('resCode').innerText = activeReservation.booking_code;
+                document.getElementById('successCard').classList.remove('hidden');
+                alert("¡Reserva confirmada!");
             }
-        }
+        });
 
-        const adminLoginForm = document.getElementById('adminLoginForm');
-        if (adminLoginForm) {
-            adminLoginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('adminEmail').value;
-                const password = document.getElementById('adminPassword').value;
-
-                const res = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    adminBusinesses = data.businesses;
-                    const adminLoginBox = document.getElementById('adminLoginBox');
-                    const adminDashboardBox = document.getElementById('adminDashboardBox');
-                    if (adminLoginBox) adminLoginBox.classList.add('hidden');
-                    if (adminDashboardBox) adminDashboardBox.classList.remove('hidden');
-                    
-                    const selector = document.getElementById('businessSelector');
-                    if (selector) {
-                        selector.innerHTML = '';
-                        adminBusinesses.forEach((b, idx) => {
-                            const opt = document.createElement('option');
-                            opt.value = idx;
-                            opt.innerText = `${b.name} (${b.slug})`;
-                            selector.appendChild(opt);
-                        });
-                    }
-
-                    selectAdminBusiness(0);
-                } else {
-                    alert(data.error || 'Credenciales incorrectas');
-                }
+        // Panel Admin Login & Gestión
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('adminEmail').value,
+                    password: document.getElementById('adminPassword').value
+                })
             });
-        }
+            const data = await res.json();
+            if (res.ok && data.success) {
+                adminBusinesses = data.businesses;
+                document.getElementById('adminLoginBox').classList.add('hidden');
+                document.getElementById('adminDashboardBox').classList.remove('hidden');
+                
+                const selector = document.getElementById('businessSelector');
+                selector.innerHTML = adminBusinesses.map((b, idx) => `<option value="${idx}">${b.name}</option>`).join('');
+                selectAdminBusiness(0);
+            }
+        });
 
         function switchAdminBusiness() {
-            const selector = document.getElementById('businessSelector');
-            if (!selector) return;
-            const idx = selector.value;
-            selectAdminBusiness(idx);
+            selectAdminBusiness(document.getElementById('businessSelector').value);
         }
 
-        function selectAdminBusiness(idx) {
+        async function selectAdminBusiness(idx) {
             currentAdminTenant = adminBusinesses[idx];
-            if (!currentAdminTenant) return;
             window.currentTenantId = currentAdminTenant.tenant_id;
-            
-            const adminBusinessTitle = document.getElementById('adminBusinessTitle');
-            const adminClientWebLink = document.getElementById('adminClientWebLink');
-            const confName = document.getElementById('conf_name');
-            const confBusinessType = document.getElementById('conf_business_type');
-            const confCapacity = document.getElementById('conf_capacity');
-            const confWhatsapp = document.getElementById('conf_whatsapp');
-            const confSheetsWebhook = document.getElementById('conf_sheets_webhook');
-            const confServices = document.getElementById('conf_services');
-            const confShifts = document.getElementById('conf_shifts');
-            const confClosedDays = document.getElementById('conf_closed_days');
-            const confVacationStart = document.getElementById('conf_vacation_start');
-            const confVacationEnd = document.getElementById('conf_vacation_end');
-
-            const clientWebUrl = `${window.location.origin}/${currentAdminTenant.slug}`;
-            if (adminBusinessTitle) adminBusinessTitle.innerText = `Panel: ${currentAdminTenant.name}`;
-            if (adminClientWebLink) {
-                adminClientWebLink.href = clientWebUrl;
-                adminClientWebLink.innerText = clientWebUrl;
-            }
-
-            if (confName) confName.value = currentAdminTenant.name;
-            if (confBusinessType) confBusinessType.value = currentAdminTenant.business_type || '';
-            if (confCapacity) confCapacity.value = currentAdminTenant.max_capacity || 10;
-            if (confWhatsapp) confWhatsapp.value = currentAdminTenant.whatsapp_phone || '';
-            
-            const settings = currentAdminTenant.settings || {};
-            if (confSheetsWebhook) confSheetsWebhook.value = settings.googleSheetsWebhook || '';
-            
-            const shifts = settings.shifts || [];
-            if (confShifts) confShifts.value = shifts.map(s => `${s.open}-${s.close}`).join(', ');
-            if (confClosedDays) confClosedDays.value = (settings.closedDays || []).join(', ');
-            if (confVacationStart) confVacationStart.value = settings.vacationStart || '';
-            if (confVacationEnd) confVacationEnd.value = settings.vacationEnd || '';
-
-            const dayShifts = settings.dayShifts || {};
-            for (let i = 0; i <= 6; i++) {
-                const inputEl = document.getElementById(`conf_shift_${i}`);
-                if (inputEl) {
-                    if (dayShifts[i] && dayShifts[i][0]) {
-                        inputEl.value = `${dayShifts[i][0].open}-${dayShifts[i][0].close}`;
-                    } else {
-                        inputEl.value = '';
-                    }
-                }
-            }
-
             loadAdminReservations();
         }
 
-        function copyClientWebLink() {
-            if (!currentAdminTenant) return;
-            const clientWebUrl = `${window.location.origin}/${currentAdminTenant.slug}`;
-            navigator.clipboard.writeText(clientWebUrl).then(() => {
-                alert('¡Enlace de reservas copiado al portapapeles!');
-            });
-        }
-
-        const configForm = document.getElementById('configForm');
-        if (configForm) {
-            configForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!window.currentTenantId) return;
-
-                const newName = document.getElementById('conf_name').value;
-                const newBusinessType = document.getElementById('conf_business_type').value;
-                const newCapacity = document.getElementById('conf_capacity').value;
-                const newWhatsapp = document.getElementById('conf_whatsapp').value;
-                const newSheetsWebhook = document.getElementById('conf_sheets_webhook').value.trim();
-                const servicesInput = document.getElementById('conf_services').value;
-                const shiftsInput = document.getElementById('conf_shifts').value;
-                const closedDaysInput = document.getElementById('conf_closed_days').value;
-                const vacationStart = document.getElementById('conf_vacation_start').value;
-                const vacationEnd = document.getElementById('conf_vacation_end').value;
-
-                if (!confirm(`¿Guardar cambios para el negocio "${newName}"?`)) return;
-
-                const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(s => s.length > 0) : ['General'];
-                const closedDays = closedDaysInput ? closedDaysInput.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
-
-                let shifts = [{ open: "09:00", close: "22:00" }];
-                if (shiftsInput) {
-                    shifts = shiftsInput.split(',').map(part => {
-                        const [open, close] = part.trim().split('-');
-                        return { open: open ? open.trim() : "09:00", close: close ? close.trim() : "22:00" };
-                    });
-                }
-
-                let dayShifts = {};
-                for (let i = 0; i <= 6; i++) {
-                    const val = document.getElementById(`conf_shift_${i}`).value.trim();
-                    if (val) {
-                        const [open, close] = val.split('-');
-                        if (open && close) {
-                            dayShifts[i] = [{ open: open.trim(), close: close.trim() }];
-                        }
-                    }
-                }
-
-                const newSettings = { ...currentAdminTenant.settings, shifts, dayShifts, closedDays, vacationStart, vacationEnd, googleSheetsWebhook: newSheetsWebhook, slotDurationMinutes: 60 };
-
-                const res = await fetch(`/api/admin/tenant/${window.currentTenantId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: newName,
-                        business_type: newBusinessType,
-                        max_capacity: parseInt(newCapacity),
-                        whatsapp_phone: newWhatsapp,
-                        settings: newSettings,
-                        services
-                    })
-                });
-                const result = await res.json();
-                if (res.ok && result.success) {
-                    alert('¡Configuración guardada con éxito!');
-                    currentAdminTenant.name = newName;
-                    currentAdminTenant.business_type = newBusinessType;
-                    currentAdminTenant.max_capacity = parseInt(newCapacity);
-                    currentAdminTenant.whatsapp_phone = newWhatsapp;
-                    currentAdminTenant.services = services;
-                    currentAdminTenant.settings = newSettings;
-                } else {
-                    alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
-                }
-            });
-        }
-
         async function loadAdminReservations() {
-            if (!window.currentTenantId) return;
-            const startDateEl = document.getElementById('filterStartDate');
-            const endDateEl = document.getElementById('filterEndDate');
-            const startDate = startDateEl ? startDateEl.value : '';
-            const endDate = endDateEl ? endDateEl.value : '';
-
-            let url = `/api/admin/reservations/${window.currentTenantId}`;
-            if (startDate && endDate) url += `?start_date=${startDate}&end_date=${endDate}`;
-
-            const res = await fetch(url);
+            const res = await fetch(`/api/admin/reservations/${window.currentTenantId}`);
             fetchedReservations = await res.json();
-            const listContainer = document.getElementById('adminReservationsList');
-            if (!listContainer) return;
-            listContainer.innerHTML = '';
-
-            if (fetchedReservations.length === 0) {
-                listContainer.innerHTML = '<p class="text-slate-400">No hay reservas.</p>';
-                return;
-            }
-
-            fetchedReservations.forEach(r => {
-                const div = document.createElement('div');
-                div.className = 'p-3 bg-slate-50 border rounded-xl flex justify-between items-center';
-                div.innerHTML = `
+            const list = document.getElementById('adminReservationsList');
+            list.innerHTML = fetchedReservations.map(r => `
+                <div class="p-3 bg-slate-50 border rounded-xl flex justify-between items-center">
                     <div>
-                        <p class="font-bold text-slate-800">Cliente: ${r.client_name} (${r.client_phone}) - <span class="font-mono text-indigo-600">[Código: ${r.booking_code}]</span></p>
-                        <p class="text-slate-500">Plaza: <strong>${r.resource_assigned || 'General'}</strong> | Fecha: ${formatDate(r.reservation_date)} | ${r.time_slot} - ${r.end_time} | Personas: ${r.party_size}</p>
+                        <p class="font-bold">Cliente: ${r.client_name} (${r.client_phone}) - <span class="text-indigo-600">[${r.booking_code}]</span></p>
+                        <p class="text-slate-500">Producto/Servicio: <strong>${r.service_name}</strong> | Fecha: ${formatDate(r.reservation_date)} | ${r.time_slot} | Cantidad: ${r.party_size}</p>
                     </div>
-                    <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2.5 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
-                `;
-                listContainer.appendChild(div);
-            });
+                    <button onclick="adminCancelReservation(${r.id})" class="text-red-500 font-bold px-2 py-1 bg-white border rounded text-xs cursor-pointer">Anular</button>
+                </div>
+            `).join('');
         }
 
         async function adminCancelReservation(id) {
-            if (!confirm('¿Anular reserva?')) return;
+            if (!confirm('¿Anular esta reserva?')) return;
             const res = await fetch('/api/reservations/cancel', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -1038,20 +382,28 @@
             if (res.ok) loadAdminReservations();
         }
 
-        function exportToCSV() {
-            if (!fetchedReservations.length) return alert('Sin datos.');
-            let csv = "Codigo,Cliente,Telefono,Plaza,Fecha,Inicio,Fin,Personas,Estado\n";
-            fetchedReservations.forEach(r => {
-                csv += `${r.booking_code},"${r.client_name}",${r.client_phone},"${r.resource_assigned}",${formatDate(r.reservation_date)},${r.time_slot},${r.end_time},${r.party_size},${r.status}\n`;
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('reg_name').value,
+                slug: document.getElementById('reg_slug').value.toLowerCase().replace(/\s+/g, '-'),
+                business_type: document.getElementById('reg_business_type').value,
+                max_capacity: parseInt(document.getElementById('reg_max_capacity').value),
+                whatsapp_phone: document.getElementById('reg_whatsapp').value,
+                email: document.getElementById('reg_email').value,
+                password: document.getElementById('reg_password').value
+            };
+            const res = await fetch('/api/admin/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `reservas_${currentAdminTenant.slug}.csv`;
-            link.click();
-        }
-
-        function logoutAdmin() { location.reload(); }
+            const result = await res.json();
+            if (res.ok) {
+                alert('Registrado con éxito');
+                window.location.href = `/${result.tenant.slug}`;
+            }
+        });
     </script>
 </body>
 </html>
