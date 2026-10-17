@@ -166,7 +166,11 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
 
     let slotDurationMinutes = 60;
     if (businessType === 'court_rental') {
-      slotDurationMinutes = parseInt(duration) || 60;
+      if (service_name && (service_name.includes('90') || service_name === '90')) {
+        slotDurationMinutes = 90;
+      } else {
+        slotDurationMinutes = parseInt(duration) || 60;
+      }
     } else if (businessType === 'appointment') {
       const serviceDurations = settings.serviceDurations || {};
       slotDurationMinutes = serviceDurations[service_name] || settings.slotDurationMinutes || 60;
@@ -259,7 +263,11 @@ app.post('/api/reservations', async (req, res) => {
 
     let durationMins = 60;
     if (businessType === 'court_rental') {
-      durationMins = parseInt(duration) || 60;
+      if (service_name && (service_name.includes('90') || service_name === '90')) {
+        durationMins = 90;
+      } else {
+        durationMins = parseInt(duration) || 60;
+      }
     } else if (businessType === 'appointment') {
       const serviceDurations = settings.serviceDurations || {};
       durationMins = serviceDurations[service_name] || 60;
@@ -395,7 +403,7 @@ app.post('/api/admin/register', async (req, res) => {
       durationLarge: 120
     });
 
-    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (business_type === 'court_rental' ? ["Pádel 60 min", "Pádel 90 min"] : ["General"]);
+    const defaultServices = business_type === 'appointment' ? ["Corte", "Tinte", "Manicura"] : (business_type === 'court_rental' ? ["60", "90"] : ["General"]);
 
     const newTenant = await pool.query(
       `INSERT INTO tenants (name, slug, business_type, max_capacity, whatsapp_phone, email, password_hash, settings, services) 
