@@ -467,7 +467,7 @@
         }
 
         function switchView(view) {
-            if (isFromWhatsapp) return;
+            // CORREGIDO: Se elimina la restricción que bloqueaba el cambio de vista al venir desde WhatsApp
             const clientView = document.getElementById('clientView');
             const directorySelector = document.getElementById('directorySelector');
             const manageView = document.getElementById('manageView');

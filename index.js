@@ -164,7 +164,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
     }
 
-    // --- CORRECCIÓN CLAVE: Detección universal de 90 minutos ---
     let slotDurationMinutes = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
@@ -265,7 +264,6 @@ app.post('/api/reservations', async (req, res) => {
     let settings = tenant.settings || {};
     if (typeof settings === 'string') { try { settings = JSON.parse(settings); } catch(e){} }
 
-    // --- CORRECCIÓN CLAVE EN RESERVAS ---
     let durationMins = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
