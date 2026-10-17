@@ -176,7 +176,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       return res.json({ closed: true, message: "Negocio cerrado en este día de la semana." });
     }
 
-    // --- DETECCIÓN DINÁMICA DE DURACIÓN (45 min, 60 min, 90 min, etc.) ---
     let slotDurationMinutes = 60;
     const reqService = String(service_name || '');
     const reqDuration = String(duration || '');
@@ -206,8 +205,6 @@ app.get('/api/availability/:tenant_id', async (req, res) => {
       let currentMins = timeToMins(shift.open || "09:00");
       let closeMins = timeToMins(shift.close || "21:00");
 
-      // Si la clase dura 45 minutos (o cualquier duración que no sea múltiplo estándar de 30), 
-      // los inicios de sesión ocurren a la hora exacta (paso de 60 min, ej: 09:00, 10:00, 11:00...)
       const step = (slotDurationMinutes === 45) ? 60 : 30;
 
       while (currentMins + slotDurationMinutes <= closeMins) {

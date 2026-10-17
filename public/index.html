@@ -682,22 +682,32 @@
             });
         }
 
+        // --- CORREGIDO: Función ICS optimizada para que cargue perfectamente en cualquier calendario ---
         function downloadICS() {
             if (!activeReservation || !tenantData) return;
-            const cleanDate = activeReservation.reservation_date.replace(/-/g, '');
-            const timeStr = (activeReservation.time_slot || '10:00').replace(':', '') + '00';
-            
+            const dateStr = activeReservation.reservation_date; // Formato YYYY-MM-DD
+            const startTimeStr = activeReservation.time_slot; // Formato HH:MM
+            const endTimeStr = activeReservation.end_time; // Formato HH:MM
+
+            const cleanDate = dateStr.replace(/-/g, '');
+            const startTimestamp = `${cleanDate}T${startTimeStr.replace(':', '')}00`;
+            const endTimestamp = `${cleanDate}T${endTimeStr.replace(':', '')}00`;
+            const nowTimestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
             const icsContent = [
                 "BEGIN:VCALENDAR",
                 "VERSION:2.0",
                 "PRODID:-//SaaS Reservas//ES",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
                 "BEGIN:VEVENT",
                 `UID:${activeReservation.booking_code}-${cleanDate}@saasreservas`,
-                `DTSTAMP:${cleanDate}T${timeStr}Z`,
-                `DTSTART:${cleanDate}T${timeStr}Z`,
-                `DTEND:${cleanDate}T${timeStr}Z`,
-                `SUMMARY:Reserva en ${tenantData.name}`,
-                `DESCRIPTION:Plaza: ${activeReservation.resource_assigned} (${activeReservation.time_slot} - ${activeReservation.end_time}) \\nCódigo: ${activeReservation.booking_code} \\nPersonas: ${activeReservation.party_size}`,
+                `DTSTAMP:${nowTimestamp}`,
+                `DTSTART:${startTimestamp}`,
+                `DTEND:${endTimestamp}`,
+                `SUMMARY:Reserva en ${tenantData.name} (${activeReservation.resource_assigned})`,
+                `DESCRIPTION:Reserva en ${tenantData.name}\\nPlaza/Recurso: ${activeReservation.resource_assigned}\\nHorario: ${startTimeStr} - ${endTimeStr}\\nPersonas: ${activeReservation.party_size}\\nCódigo de reserva: ${activeReservation.booking_code}`,
+                `LOCATION:${tenantData.name}`,
                 "END:VEVENT",
                 "END:VCALENDAR"
             ].join("\r\n");
@@ -985,7 +995,7 @@
             if (res.ok) loadAdminReservations();
         }
 
-        exportToCSV = function() {
+        function exportToCSV() {
             if (!fetchedReservations.length) return alert('Sin datos.');
             let csv = "Codigo,Cliente,Telefono,Plaza,Fecha,Inicio,Fin,Personas,Estado\n";
             fetchedReservations.forEach(r => {
