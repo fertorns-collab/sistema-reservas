@@ -1,3 +1,4 @@
+// Actualización forzada - Versión 2.7.1
 import express from 'express';
 import pg from 'pg';
 import path from 'path';
