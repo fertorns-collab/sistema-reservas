@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- Actualización Versión 2.8.2 -->
+    <!-- Actualización Versión 2.9.0 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS de Reservas Multi-negocio 24/7</title>
@@ -9,7 +9,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
 
-    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+    <header id="mainHeader" class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 id="businessName" class="text-lg font-bold tracking-tight">Cargando negocio...</h1>
             <div id="navButtons" class="flex gap-2 flex-wrap">
@@ -92,7 +92,11 @@
 
         <!-- 2. GESTIONAR -->
         <section id="manageView" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-            <h2 id="manageTitle" class="text-xl font-bold text-slate-900 mb-1">Anular o Consultar Reserva</h2>
+            <div id="manageHeaderBox">
+                <h2 id="manageTitle" class="text-xl font-bold text-slate-900 mb-1">Anular o Consultar Reserva</h2>
+                <p id="manageSubtitle" class="text-xs text-slate-500 mb-6">Introduce tu teléfono y código de reserva para consultar.</p>
+            </div>
+
             <form id="lookupForm" class="space-y-4 max-w-md">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Teléfono Móvil</label>
@@ -104,7 +108,7 @@
                 </div>
                 <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm cursor-pointer">Consultar</button>
             </form>
-            <div id="lookupResult" class="hidden mt-6 p-4 bg-slate-50 border rounded-xl space-y-3 text-sm"></div>
+            <div id="lookupResult" class="hidden mt-4 p-4 bg-slate-50 border rounded-xl space-y-3 text-sm"></div>
         </section>
 
         <!-- 3. ADMIN -->
@@ -230,6 +234,17 @@
             if (window.location.hash.includes('manage') || isFromWhatsapp) {
                 switchView('manage');
                 if (isFromWhatsapp) {
+                    // Ocultar botones de la cabecera
+                    const navBtns = document.getElementById('navButtons');
+                    if (navBtns) navBtns.style.display = 'none';
+
+                    // Ocultar cabeceras y formulario superfluos
+                    const manageHeaderBox = document.getElementById('manageHeaderBox');
+                    if (manageHeaderBox) manageHeaderBox.style.display = 'none';
+
+                    const lookupForm = document.getElementById('lookupForm');
+                    if (lookupForm) lookupForm.style.display = 'none';
+
                     let phone = ''; let code = '';
                     const fullUrl = window.location.href;
                     if (fullUrl.includes('phone=')) phone = decodeURIComponent(fullUrl.split('phone=')[1].split('&')[0]);
@@ -253,24 +268,36 @@
             if (res.ok && data.success) {
                 const r = data.reservation;
                 activeReservation = r;
+                
+                if (!tenantData && r.tenant_slug) {
+                    try {
+                        const tRes = await fetch(`/api/tenant/${r.tenant_slug}`);
+                        if (tRes.ok) tenantData = await tRes.json();
+                    } catch(e) {}
+                }
+
+                const businessPhone = (tenantData && tenantData.whatsapp_phone) ? tenantData.whatsapp_phone : (r.whatsapp_phone || 'No disponible');
+
                 container.innerHTML = `
-                    <div class="p-4 bg-white border rounded-xl space-y-3">
-                        <h4 class="font-bold text-indigo-600 text-base">Detalles</h4>
-                        <p><strong>Negocio:</strong> ${r.tenant_name}</p>
-                        <p><strong>Cliente:</strong> ${r.client_name}</p>
-                        <p><strong>Servicio/Producto:</strong> ${r.service_name || 'General'}</p>
-                        <p><strong>Fecha:</strong> ${formatDate(r.reservation_date)}</p>
-                        <p><strong>Horario:</strong> ${r.time_slot} - ${r.end_time}</p>
-                        <p><strong>Cantidad/Personas:</strong> ${r.party_size}</p>
-                        <p><strong>Código:</strong> ${r.booking_code}</p>
-                        <div class="pt-3 border-t flex flex-wrap gap-2 justify-between items-center">
-                            <button onclick="downloadICS()" class="bg-indigo-600 text-white px-3 py-2 rounded text-xs font-bold cursor-pointer">Descargar (.ics)</button>
-                            <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 text-white px-4 py-2 rounded text-xs font-bold cursor-pointer">Anular</button>
+                    <div class="p-4 bg-white border rounded-xl space-y-3 shadow-sm">
+                        <h4 class="font-bold text-indigo-600 text-lg border-b pb-2">Detalles de tu Reserva</h4>
+                        <p class="text-sm"><strong>Negocio:</strong> ${r.tenant_name}</p>
+                        <p class="text-sm"><strong>Cliente:</strong> ${r.client_name}</p>
+                        <p class="text-sm"><strong>Teléfono Cliente:</strong> ${r.client_phone}</p>
+                        <p class="text-sm"><strong>Teléfono Negocio:</strong> <a href="tel:${businessPhone}" class="text-indigo-600 font-bold underline">${businessPhone}</a></p>
+                        <p class="text-sm"><strong>Servicio/Producto:</strong> ${r.service_name || 'General'}</p>
+                        <p class="text-sm"><strong>Fecha:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${formatDate(r.reservation_date)}</span></p>
+                        <p class="text-sm"><strong>Horario:</strong> <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${r.time_slot} - ${r.end_time}</span></p>
+                        <p class="text-sm"><strong>Cantidad / Personas:</strong> ${r.party_size}</p>
+                        <p class="text-sm"><strong>Código de Reserva:</strong> <span class="font-mono bg-slate-100 px-2 py-0.5 rounded font-bold">${r.booking_code}</span></p>
+                        <div class="pt-4 border-t flex flex-wrap gap-2 justify-between items-center">
+                            <button onclick="downloadICS()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition">Descargar (.ics)</button>
+                            <button onclick="cancelClientReservation(${r.id}, '${r.client_phone}', '${r.booking_code}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition">Anular Reserva</button>
                         </div>
                     </div>
                 `;
             } else {
-                container.innerHTML = `<p class="text-red-500 font-bold">No encontrado.</p>`;
+                container.innerHTML = `<p class="text-red-500 font-bold p-2">No se encontró ninguna reserva activa con esos datos.</p>`;
             }
         }
 
@@ -389,25 +416,19 @@
                 document.getElementById('assignedResourceInfo').innerHTML = `Servicio: ${activeReservation.service_name} | Horario: ${activeReservation.time_slot} - ${activeReservation.end_time}`;
                 document.getElementById('successCard').classList.remove('hidden');
 
-                // Configurar enlace de WhatsApp correctamente
                 const phoneWp = tenantData.whatsapp_phone ? tenantData.whatsapp_phone.replace(/[^0-9]/g, '') : '34600000000';
                 const manageUrl = `${window.location.origin}/${tenantData.slug}#manage?phone=${encodeURIComponent(clientPhoneVal)}&code=${activeReservation.booking_code}`;
                 
                 const textWp = `Negocio: ${tenantData.name}\n\nFecha: ${formatDate(reservationDateVal)}\nHorario: ${activeReservation.time_slot} a ${activeReservation.end_time}\nServicio: ${serviceNameVal}\nCantidad: ${partySizeVal}\nCódigo: ${activeReservation.booking_code}\n\nGestiona o anula tu reserva aquí:\n${manageUrl}`;
                 
                 const whatsappLink = document.getElementById('whatsappLink');
-                if (whatsappLink) {
-                    whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
-                }
+                if (whatsappLink) whatsappLink.href = `https://wa.me/${phoneWp}?text=${encodeURIComponent(textWp)}`;
 
-                // Configurar enlace de Google Calendar
                 const cleanDate = reservationDateVal.replace(/-/g, '');
                 const timeStr = activeReservation.time_slot.replace(':', '') + '00';
                 const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva en ' + tenantData.name)}&dates=${cleanDate}T${timeStr}/${cleanDate}T${timeStr}&details=${encodeURIComponent('Servicio: ' + serviceNameVal + ' | Código: ' + activeReservation.booking_code)}`;
                 const gCalendarLink = document.getElementById('gCalendarLink');
-                if (gCalendarLink) {
-                    gCalendarLink.href = gCalUrl;
-                }
+                if (gCalendarLink) gCalendarLink.href = gCalUrl;
 
                 alert("¡Reserva confirmada con éxito!");
             } else {
@@ -415,7 +436,6 @@
             }
         });
 
-        // --- Descarga robusta de archivo .ics ---
         function downloadICS() {
             if (!activeReservation) return;
             const tName = tenantData ? tenantData.name : (activeReservation.tenant_name || 'Negocio');
@@ -457,7 +477,20 @@
             window.URL.revokeObjectURL(url);
         }
 
-        // Panel Admin Login & Gestión
+        async function cancelClientReservation(id, client_phone, booking_code) {
+            if (!confirm('¿Seguro que deseas anular tu reserva?')) return;
+            const res = await fetch('/api/reservations/cancel', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, client_phone, booking_code })
+            });
+            if (res.ok) {
+                alert('Reserva anulada con éxito.');
+                location.reload();
+            }
+        }
+
+        // Admin Login & Management
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const res = await fetch('/api/admin/login', {
